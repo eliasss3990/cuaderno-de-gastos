@@ -1,0 +1,99 @@
+name: CI servidor
+
+# Mismo esquema que ci-app.yml: el filtro por carpeta va en el job "changes" y
+# "Servidor OK" siempre corre (es el check requerido en las protecciones).
+on:
+  pull_request:
+    branches: [next, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-server-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Qué cambió (servidor)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      server: ${{ steps.diff.outputs.server }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -qE '^(server/|\.github/workflows/ci-server\.yml)'; then
+            echo "server=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "server=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  pruebas:
+    name: Servidor (tipos, pruebas y auditoría)
+    # PR a next, o hotfix/* a main (validación reducida: tipos y pruebas, sin auditoría ni imagen).
+    if: needs.changes.outputs.server == 'true' && (github.base_ref == 'next' || startsWith(github.head_ref, 'hotfix/'))
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - name: Auditoría de dependencias
+        if: github.base_ref == 'next'
+        run: npm audit --omit=dev --audit-level=high
+
+  imagen:
+    name: Imagen del servidor (arm64)
+    if: needs.changes.outputs.server == 'true' && github.base_ref == 'next'
+    needs: changes
+    # Runner arm64 de GitHub: la imagen se construye en la misma arquitectura que el VPS.
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen
+        run: docker build -t cuaderno-server:ci server
+      - name: Probar el contenedor sin root y con solo lectura
+        run: |
+          docker run -d --name cdg --user 1234:1234 --read-only --memory 256m -p 8094:8094 cuaderno-server:ci
+          for _ in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8094/healthz; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs cdg
+          exit 1
+
+  servidor-ok:
+    name: Servidor OK
+    if: always()
+    needs: [changes, pruebas, imagen]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Todos los jobs aplicables pasaron o no correspondían
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "resultados: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::un job terminó en '$r'"; exit 1
+            fi
+          done

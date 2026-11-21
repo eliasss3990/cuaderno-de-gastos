@@ -1,0 +1,23 @@
+name: Simulador nocturno
+
+# Los `schedule` de GitHub corren sobre la rama por defecto: este archivo vive en
+# main y hace checkout de next. El simulador largo (5.000 semillas) llega en H1
+# (plan/07 §4); mientras tanto el flujo solo reserva su lugar.
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  simulador-largo:
+    name: Simulador largo (pendiente H1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: next
+      - run: echo "El simulador largo de sincronización llega en H1 (plan/07 §4)."
