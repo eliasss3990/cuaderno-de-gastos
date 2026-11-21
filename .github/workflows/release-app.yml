@@ -86,4 +86,5 @@ jobs:
           tag_name: app-v${{ steps.version.outputs.version }}
           name: app-v${{ steps.version.outputs.version }}
           generate_release_notes: true
-          files: app/build/outputs/apk/release/app-release.apk
+          files: app/build/outputs/apk/release/*-release.apk
+          fail_on_unmatched_files: true
