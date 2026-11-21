@@ -1,0 +1,561 @@
+{
+  "version": 1,
+  "descripcion": "Dinero: enteros en la unidad menor, formato con . de miles y , decimal. Lo leen las suites de Kotlin y TypeScript.",
+  "maxMontoMinor": 9007199254740991,
+  "monedas": {
+    "PYG": {
+      "decimales": 0,
+      "simbolo": "₲"
+    },
+    "BRL": {
+      "decimales": 2,
+      "simbolo": "R$"
+    },
+    "EUR": {
+      "decimales": 2,
+      "simbolo": "€"
+    },
+    "KWD": {
+      "decimales": 3,
+      "simbolo": "KD"
+    }
+  },
+  "formatear": [
+    {
+      "moneda": "PYG",
+      "minor": 0,
+      "esperado": "₲ 0"
+    },
+    {
+      "moneda": "PYG",
+      "minor": 1,
+      "esperado": "₲ 1"
+    },
+    {
+      "moneda": "PYG",
+      "minor": 999,
+      "esperado": "₲ 999"
+    },
+    {
+      "moneda": "PYG",
+      "minor": 1000,
+      "esperado": "₲ 1.000"
+    },
+    {
+      "moneda": "PYG",
+      "minor": 1234567,
+      "esperado": "₲ 1.234.567"
+    },
+    {
+      "moneda": "PYG",
+      "minor": 10000000,
+      "esperado": "₲ 10.000.000"
+    },
+    {
+      "moneda": "PYG",
+      "minor": -1500,
+      "esperado": "-₲ 1.500"
+    },
+    {
+      "moneda": "PYG",
+      "minor": 9007199254740991,
+      "esperado": "₲ 9.007.199.254.740.991"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 0,
+      "esperado": "R$ 0,00"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 5,
+      "esperado": "R$ 0,05"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 99,
+      "esperado": "R$ 0,99"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 100,
+      "esperado": "R$ 1,00"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 1290,
+      "esperado": "R$ 12,90"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 123456,
+      "esperado": "R$ 1.234,56"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 560000,
+      "esperado": "R$ 5.600,00"
+    },
+    {
+      "moneda": "BRL",
+      "minor": 41200,
+      "esperado": "R$ 412,00"
+    },
+    {
+      "moneda": "BRL",
+      "minor": -90,
+      "esperado": "-R$ 0,90"
+    },
+    {
+      "moneda": "EUR",
+      "minor": 123456,
+      "esperado": "€ 1.234,56"
+    },
+    {
+      "moneda": "KWD",
+      "minor": 1234,
+      "esperado": "KD 1,234"
+    },
+    {
+      "moneda": "KWD",
+      "minor": 1234567,
+      "esperado": "KD 1.234,567"
+    },
+    {
+      "moneda": "KWD",
+      "minor": 5,
+      "esperado": "KD 0,005"
+    }
+  ],
+  "parsear": [
+    {
+      "moneda": "PYG",
+      "texto": "0",
+      "esperado": 0
+    },
+    {
+      "moneda": "PYG",
+      "texto": "1.234.567",
+      "esperado": 1234567
+    },
+    {
+      "moneda": "PYG",
+      "texto": "1234567",
+      "esperado": 1234567
+    },
+    {
+      "moneda": "PYG",
+      "texto": "10.000.000",
+      "esperado": 10000000
+    },
+    {
+      "moneda": "PYG",
+      "texto": "9.007.199.254.740.991",
+      "esperado": 9007199254740991
+    },
+    {
+      "moneda": "PYG",
+      "texto": "",
+      "error": "vacio"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "1,5",
+      "error": "decimales_de_mas"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "1.234,",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "abc",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "1.23",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "1.2345",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "12.345.67",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "007",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "-5",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": " 5",
+      "error": "formato"
+    },
+    {
+      "moneda": "PYG",
+      "texto": "9007199254740992",
+      "error": "fuera_de_rango"
+    },
+    {
+      "moneda": "BRL",
+      "texto": "12,90",
+      "esperado": 1290
+    },
+    {
+      "moneda": "BRL",
+      "texto": "12,9",
+      "esperado": 1290
+    },
+    {
+      "moneda": "BRL",
+      "texto": "12",
+      "esperado": 1200
+    },
+    {
+      "moneda": "BRL",
+      "texto": "0,05",
+      "esperado": 5
+    },
+    {
+      "moneda": "BRL",
+      "texto": "1.234,56",
+      "esperado": 123456
+    },
+    {
+      "moneda": "BRL",
+      "texto": "0,5",
+      "esperado": 50
+    },
+    {
+      "moneda": "BRL",
+      "texto": "5600",
+      "esperado": 560000
+    },
+    {
+      "moneda": "BRL",
+      "texto": "1.234.567,89",
+      "esperado": 123456789
+    },
+    {
+      "moneda": "BRL",
+      "texto": "90.071.992.547.409,91",
+      "esperado": 9007199254740991
+    },
+    {
+      "moneda": "BRL",
+      "texto": "1.234,567",
+      "error": "decimales_de_mas"
+    },
+    {
+      "moneda": "BRL",
+      "texto": ",5",
+      "error": "formato"
+    },
+    {
+      "moneda": "BRL",
+      "texto": "12,",
+      "error": "formato"
+    },
+    {
+      "moneda": "BRL",
+      "texto": "1,2,3",
+      "error": "formato"
+    },
+    {
+      "moneda": "BRL",
+      "texto": "00,5",
+      "error": "formato"
+    },
+    {
+      "moneda": "BRL",
+      "texto": "90.071.992.547.409,92",
+      "error": "fuera_de_rango"
+    },
+    {
+      "moneda": "BRL",
+      "texto": "90.071.992.547.410",
+      "error": "fuera_de_rango"
+    },
+    {
+      "moneda": "KWD",
+      "texto": "1,234",
+      "esperado": 1234
+    },
+    {
+      "moneda": "KWD",
+      "texto": "1.234,567",
+      "esperado": 1234567
+    },
+    {
+      "moneda": "KWD",
+      "texto": "1,2",
+      "esperado": 1200
+    },
+    {
+      "moneda": "EUR",
+      "texto": "1.234,56",
+      "esperado": 123456
+    },
+    {
+      "moneda": "BRL",
+      "texto": "5,",
+      "error": "formato"
+    }
+  ],
+  "formatearEntrada": [
+    {
+      "moneda": "PYG",
+      "crudo": "",
+      "esperado": ""
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "0",
+      "esperado": "0"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "00",
+      "esperado": "0"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "5",
+      "esperado": "5"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "1234",
+      "esperado": "1.234"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "1234567",
+      "esperado": "1.234.567"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "1.2345",
+      "esperado": "12.345"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "12,",
+      "esperado": "12"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "12,5",
+      "esperado": "125"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "ab12",
+      "esperado": "12"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "-5",
+      "esperado": "5"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "9007199254740992",
+      "esperado": "900.719.925.474.099"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "",
+      "esperado": ""
+    },
+    {
+      "moneda": "BRL",
+      "crudo": ",",
+      "esperado": "0,"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "0",
+      "esperado": "0"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "5",
+      "esperado": "5"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1234",
+      "esperado": "1.234"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1234,",
+      "esperado": "1.234,"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1234,5",
+      "esperado": "1.234,5"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1234,56",
+      "esperado": "1.234,56"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1234,567",
+      "esperado": "1.234,56"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1.234,56",
+      "esperado": "1.234,56"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "007",
+      "esperado": "7"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "0,5",
+      "esperado": "0,5"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "00,5",
+      "esperado": "0,5"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1,2,3",
+      "esperado": "1,23"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "9007199254740992",
+      "esperado": "90.071.992.547.409"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "90071992547409,92",
+      "esperado": "90.071.992.547.409,9"
+    },
+    {
+      "moneda": "KWD",
+      "crudo": "1,2345",
+      "esperado": "1,234"
+    },
+    {
+      "moneda": "EUR",
+      "crudo": "12,5",
+      "esperado": "12,5"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1.5",
+      "esperado": "15"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "12,",
+      "esperado": "12,"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "1.5",
+      "esperado": "15"
+    }
+  ],
+  "dividirHaciaAbajo": [
+    {
+      "a": 4060000,
+      "b": 14,
+      "esperado": 290000
+    },
+    {
+      "a": 3300000,
+      "b": 14,
+      "esperado": 235714
+    },
+    {
+      "a": 280000,
+      "b": 14,
+      "esperado": 20000
+    },
+    {
+      "a": 251000,
+      "b": 14,
+      "esperado": 17928
+    },
+    {
+      "a": 7,
+      "b": 2,
+      "esperado": 3
+    },
+    {
+      "a": -7,
+      "b": 2,
+      "esperado": -4
+    },
+    {
+      "a": 0,
+      "b": 5,
+      "esperado": 0
+    },
+    {
+      "a": -1,
+      "b": 14,
+      "esperado": -1
+    },
+    {
+      "a": 9007199254740991,
+      "b": 1,
+      "esperado": 9007199254740991
+    },
+    {
+      "a": 9007199254740991,
+      "b": 2,
+      "esperado": 4503599627370495
+    },
+    {
+      "a": -9007199254740991,
+      "b": 2,
+      "esperado": -4503599627370496
+    },
+    {
+      "a": 10,
+      "b": 0,
+      "error": true
+    },
+    {
+      "a": 10,
+      "b": -2,
+      "error": true
+    },
+    {
+      "a": 10,
+      "b": 1.5,
+      "error": true
+    },
+    {
+      "a": 1.5,
+      "b": 2,
+      "error": true
+    }
+  ]
+}

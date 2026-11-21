@@ -29,7 +29,7 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -qE '^(server/|\.github/workflows/ci-server\.yml)'; then
+          if git diff --name-only "$BASE_SHA" "$HEAD_SHA" | grep -qE '^(server/|conformance/|\.github/workflows/ci-server\.yml)'; then
             echo "server=true" >> "$GITHUB_OUTPUT"
           else
             echo "server=false" >> "$GITHUB_OUTPUT"
