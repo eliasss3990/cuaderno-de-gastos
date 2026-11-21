@@ -307,6 +307,11 @@
       "moneda": "EUR",
       "texto": "1.234,56",
       "esperado": 123456
+    },
+    {
+      "moneda": "BRL",
+      "texto": "5,",
+      "error": "formato"
     }
   ],
   "formatearEntrada": [
@@ -459,6 +464,21 @@
       "moneda": "EUR",
       "crudo": "12,5",
       "esperado": "12,5"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "1.5",
+      "esperado": "15"
+    },
+    {
+      "moneda": "BRL",
+      "crudo": "12,",
+      "esperado": "12,"
+    },
+    {
+      "moneda": "PYG",
+      "crudo": "1.5",
+      "esperado": "15"
     }
   ],
   "dividirHaciaAbajo": [

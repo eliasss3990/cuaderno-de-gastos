@@ -17,7 +17,16 @@ export type ResultadoParseo =
   | { readonly ok: true; readonly minor: number }
   | { readonly ok: false; readonly error: ErrorMonto };
 
+/** Mayor cantidad de decimales que admite una moneda. */
+export const MAX_DECIMALES = 4;
+
 const MAX_BIG = BigInt(MAX_MONTO_MINOR);
+
+function comprobarDecimales(decimales: number): void {
+  if (!Number.isInteger(decimales) || decimales < 0 || decimales > MAX_DECIMALES) {
+    throw new RangeError(`los decimales deben ser un entero entre 0 y ${MAX_DECIMALES}, llegó ${decimales}`);
+  }
+}
 
 function agrupar(enteros: string): string {
   return enteros.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -32,6 +41,7 @@ function comprobarMinor(minor: number): void {
 /** Número sin símbolo: 123456 con 2 decimales -> "1.234,56". Un negativo lleva "-" delante. */
 export function formatearNumero(minor: number, decimales: number): string {
   comprobarMinor(minor);
+  comprobarDecimales(decimales);
   const digitos = String(Math.abs(minor)).padStart(decimales + 1, "0");
   const enteros = digitos.slice(0, digitos.length - decimales);
   const decimal = digitos.slice(digitos.length - decimales);
@@ -50,8 +60,10 @@ const PATRON = /^(0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:\.[0-9]{3})+)(?:,([0-9]+))?$/;
 /**
  * Lee un monto escrito como "1.234,56" (los puntos solo como separador de miles, en grupos de tres).
  * Acepta menos decimales de los que tiene la moneda ("12,9" en reales es 12,90); rechaza de más.
+ * Un texto que termina en coma ("12,") todavía no es un monto: da `formato` (sí es válido mientras se escribe).
  */
 export function parsear(texto: string, moneda: Moneda): ResultadoParseo {
+  comprobarDecimales(moneda.decimales);
   if (texto === "") return { ok: false, error: "vacio" };
   const m = PATRON.exec(texto);
   if (m === null) return { ok: false, error: "formato" };
@@ -71,8 +83,10 @@ function valorDe(enteros: string, decimal: string, decimales: number): bigint {
  * Da formato al texto mientras se escribe. Recibe lo que hay en el campo (dígitos y a lo sumo una coma;
  * se ignora cualquier otro carácter) y devuelve el texto formateado. Quita ceros a la izquierda, descarta
  * decimales de más y, si el valor pasaría el máximo, descarta los últimos dígitos hasta que entre.
+ * Los puntos se ignoran siempre (en pantalla solo aparecen como separador de miles): escribir "1.5" da "15".
  */
 export function formatearEntrada(crudo: string, moneda: Moneda): string {
+  comprobarDecimales(moneda.decimales);
   let enteros = "";
   let decimal = "";
   let hayComa = false;

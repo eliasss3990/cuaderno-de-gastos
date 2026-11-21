@@ -32,7 +32,10 @@ function montoAleatorio(azar: () => number): number {
 
 describe("dinero: propiedades con datos aleatorios", () => {
   const azar = generador(20261121);
-  const casos = Array.from({ length: 3000 }, () => montoAleatorio(azar));
+  // Bordes fijos (cero, el máximo, potencias de diez y su anterior) más datos aleatorios.
+  const bordes = [0, 1, MAX_MONTO_MINOR, MAX_MONTO_MINOR - 1];
+  for (let k = 1; k <= 15; k++) bordes.push(10 ** k, 10 ** k - 1);
+  const casos = [...bordes, ...Array.from({ length: 3000 }, () => montoAleatorio(azar))];
 
   for (const m of MONEDAS) {
     it(`${m.codigo}: parsear(formatearNumero(x)) devuelve x`, () => {
@@ -65,6 +68,16 @@ describe("dinero: propiedades con datos aleatorios", () => {
       }
     });
   }
+
+  it("rechaza monedas con decimales fuera de rango", () => {
+    for (const decimales of [-1, 1.5, 5, Number.NaN]) {
+      const rara: Moneda = { codigo: "XXX", decimales, simbolo: "x" };
+      expect(() => formatearNumero(5, decimales)).toThrow(RangeError);
+      expect(() => formatear(5, rara)).toThrow(RangeError);
+      expect(() => parsear("5", rara)).toThrow(RangeError);
+      expect(() => formatearEntrada("5", rara)).toThrow(RangeError);
+    }
+  });
 
   it("dividirHaciaAbajo cumple q*b <= a < (q+1)*b", () => {
     for (const a of casos) {
