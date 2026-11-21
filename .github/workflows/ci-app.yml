@@ -90,7 +90,12 @@ jobs:
             exit 0
           fi
           get() { grep -oP "$1 = \"?\K[^\"\n]+" "$2" | head -1; }
-          git show "$BASE_SHA:app/build.gradle.kts" > "$RUNNER_TEMP/base.kts"
+          # Primera versión: si main todavía no tiene la app, no hay versión anterior con qué comparar.
+          if ! git show "$BASE_SHA:app/build.gradle.kts" > "$RUNNER_TEMP/base.kts" 2>/dev/null; then
+            echo "main no tiene app/build.gradle.kts: es la primera versión, no se compara."
+            echo "versionCode=$(get versionCode app/build.gradle.kts) versionName=$(get versionName app/build.gradle.kts)"
+            exit 0
+          fi
           old_code=$(get versionCode "$RUNNER_TEMP/base.kts"); new_code=$(get versionCode app/build.gradle.kts)
           old_name=$(get versionName "$RUNNER_TEMP/base.kts"); new_name=$(get versionName app/build.gradle.kts)
           echo "versionCode: $old_code -> $new_code | versionName: $old_name -> $new_name"
