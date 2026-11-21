@@ -154,16 +154,16 @@ jobs:
           path: app/build/reports/tests/testDebugUnitTest
           retention-days: 14
 
-  # Simulador corto de sincronización: se agrega en H1 (plan 07 §4). Se activa con
+  # Simulador corto de sincronización: todavía no existe, este job reserva su lugar. Se activa con
   # cambios en app/, server/ o conformance/ porque usa el servidor real.
   sim-e2e:
-    name: Simulador corto (pendiente H1)
+    name: Simulador corto (aún no disponible)
     if: github.base_ref == 'next' && (needs.changes.outputs.app == 'true' || needs.changes.outputs.server == 'true' || needs.changes.outputs.conformance == 'true')
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: echo "El simulador de sincronización llega en H1 (plan/07 §4). Este job reserva su lugar en el CI."
+      - run: echo "El simulador de sincronización todavía no existe. Este job reserva su lugar en el CI."
 
   app-ok:
     name: App OK

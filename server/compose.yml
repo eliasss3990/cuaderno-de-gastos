@@ -1,4 +1,4 @@
-# Despliegue del servicio (plan/06 §2). En producción lo copia deploy-server.yml a
+# Despliegue del servicio. En producción lo copia deploy-server.yml a
 # /srv/cuaderno y se levanta con `VERSION=x.y.z docker compose --env-file .env up -d`.
 # El .env vive solo en el VPS (CUADERNO_UID, CUADERNO_GID, APP_MIN_VERSION).
 services:

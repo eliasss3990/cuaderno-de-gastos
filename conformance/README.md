@@ -1,1 +1,1 @@
-Vectores de conformidad compartidos Kotlin/TypeScript (plan/07 §3). Vacío hasta H1.
+Vectores de conformidad: archivos JSON con entradas y resultados esperados que leen por igual las pruebas de Kotlin (app) y de TypeScript (servidor). Si una implementación difiere de un vector, su prueba falla.
