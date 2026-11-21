@@ -1,0 +1,88 @@
+name: Desplegar servidor
+
+# Solo por etiqueta server-v* (que debe apuntar a main) o a mano, nunca por
+# pull_request: el runner autoalojado del VPS tiene acceso a Docker, que equivale
+# a administrar el servidor. Corre en el runner `cuaderno-runner` (etiqueta
+# `cuaderno`) dentro del environment `produccion`, con aprobación manual.
+on:
+  push:
+    tags: ['server-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión a desplegar (sin el prefijo server-v), por ejemplo 0.1.0'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  desplegar:
+    name: Desplegar en el VPS
+    runs-on: [self-hosted, cuaderno]
+    environment: produccion
+    timeout-minutes: 20
+    env:
+      COMPOSE_DIR: /srv/cuaderno
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Resolver la versión
+        id: v
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then V="$INPUT_VERSION"; else V="${REF_NAME#server-v}"; fi
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "::error::versión inválida: '$V'"; exit 1; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+      - name: Verificar que la etiqueta esté en main
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          git fetch origin main
+          git rev-parse "refs/tags/server-v$VERSION" >/dev/null 2>&1 || { echo "::error::no existe la etiqueta server-v$VERSION"; exit 1; }
+          git merge-base --is-ancestor "refs/tags/server-v$VERSION" origin/main || { echo "::error::server-v$VERSION no está en main"; exit 1; }
+          git checkout --detach "refs/tags/server-v$VERSION"
+      - name: Guardar la versión actual para la reversa
+        id: prev
+        run: |
+          prev=$(docker inspect -f '{{index .Config.Image}}' cuaderno-server 2>/dev/null | sed 's/.*://' || true)
+          echo "version=$prev" >> "$GITHUB_OUTPUT"
+      - name: Construir la imagen
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: docker build -t "cuaderno-server:$VERSION" server
+      - name: Levantar el servicio
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          cp server/compose.yml "$COMPOSE_DIR/compose.yml"
+          cd "$COMPOSE_DIR"
+          VERSION="$VERSION" docker compose --env-file .env up -d
+      - name: Esperar a que esté healthy
+        run: |
+          for _ in $(seq 1 30); do
+            s=$(docker inspect -f '{{.State.Health.Status}}' cuaderno-server 2>/dev/null || echo ausente)
+            echo "salud: $s"
+            [ "$s" = healthy ] && exit 0
+            sleep 4
+          done
+          exit 1
+      - name: Reversa si algo falló
+        if: failure() && steps.prev.outputs.version != ''
+        env:
+          PREV: ${{ steps.prev.outputs.version }}
+        run: |
+          cd "$COMPOSE_DIR"
+          echo "Reversa a cuaderno-server:$PREV"
+          VERSION="$PREV" docker compose --env-file .env up -d
+      - name: Conservar solo las últimas 3 imágenes
+        if: success()
+        run: |
+          docker images cuaderno-server --format '{{.Tag}}' | sort -rV | tail -n +4 | xargs -r -I{} docker rmi "cuaderno-server:{}" || true

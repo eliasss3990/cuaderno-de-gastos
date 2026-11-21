@@ -1,0 +1,184 @@
+name: CI app
+
+# Corre en PR a next y a main. El filtro por carpeta va en el job "changes" y
+# no en `paths:` del workflow: con `paths:` un PR que no toca app/ nunca recibe
+# el check requerido y queda bloqueado. "App OK" siempre corre y es el check
+# requerido en las protecciones de rama.
+on:
+  pull_request:
+    branches: [next, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-app-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SDK_KEY: android-sdk-37.1-build-tools-37.0.0
+
+jobs:
+  # main solo acepta PR de next o de una rama hotfix/* de este mismo repositorio.
+  enforce-main-source:
+    name: Origen del PR a main
+    if: github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verificar rama de origen del PR
+        # HEAD_REF va por env: el nombre de una rama lo elige quien abre el PR
+        # y interpolarlo en el script sería una inyección de shell.
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+        run: |
+          if [ "$HEAD_REPO" != "$GITHUB_REPOSITORY" ]; then
+            echo "::error::main solo acepta PR de este mismo repositorio, no de forks (viene de '$HEAD_REPO')"
+            exit 1
+          fi
+          if [ "$HEAD_REF" != "next" ] && [[ "$HEAD_REF" != hotfix/* ]]; then
+            echo "::error::main solo acepta PR desde 'next' o desde una rama 'hotfix/*' (viene de '$HEAD_REF')"
+            exit 1
+          fi
+
+  changes:
+    name: Qué cambió
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      app: ${{ steps.diff.outputs.app }}
+      server: ${{ steps.diff.outputs.server }}
+      conformance: ${{ steps.diff.outputs.conformance }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          files=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          has() { echo "$files" | grep -qE "$1" && echo true || echo false; }
+          {
+            echo "app=$(has '^(app/|\.github/workflows/ci-app\.yml)')"
+            echo "server=$(has '^server/')"
+            echo "conformance=$(has '^conformance/')"
+          } >> "$GITHUB_OUTPUT"
+          echo "$files"
+
+  # A main el bump de versión de la app es obligatorio cuando cambia app/** o conformance/**.
+  version-bump:
+    name: Versión de la app
+    if: github.base_ref == 'main'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verificar versionCode y versionName
+        env:
+          APP: ${{ needs.changes.outputs.app }}
+          CONF: ${{ needs.changes.outputs.conformance }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$APP" != "true" ] && [ "$CONF" != "true" ]; then
+            echo "No cambia app/ ni conformance/: no se exige subir la versión."
+            exit 0
+          fi
+          get() { grep -oP "$1 = \"?\K[^\"\n]+" "$2" | head -1; }
+          # Primera versión: si main todavía no tiene la app, no hay versión anterior con qué comparar.
+          if ! git show "$BASE_SHA:app/build.gradle.kts" > "$RUNNER_TEMP/base.kts" 2>/dev/null; then
+            echo "main no tiene app/build.gradle.kts: es la primera versión, no se compara."
+            echo "versionCode=$(get versionCode app/build.gradle.kts) versionName=$(get versionName app/build.gradle.kts)"
+            exit 0
+          fi
+          old_code=$(get versionCode "$RUNNER_TEMP/base.kts"); new_code=$(get versionCode app/build.gradle.kts)
+          old_name=$(get versionName "$RUNNER_TEMP/base.kts"); new_name=$(get versionName app/build.gradle.kts)
+          echo "versionCode: $old_code -> $new_code | versionName: $old_name -> $new_name"
+          if [ "$new_code" -le "$old_code" ]; then
+            echo "::error::versionCode debe subir (era $old_code, es $new_code)"; exit 1
+          fi
+          if [ "$new_name" = "$old_name" ]; then
+            echo "::error::versionName debe cambiar (sigue en $old_name)"; exit 1
+          fi
+
+  app-checks:
+    name: App (lint, pruebas y build debug)
+    # PR a next, o hotfix/* a main (validación reducida: solo lint, ver abajo).
+    if: needs.changes.outputs.app == 'true' && (github.base_ref == 'next' || startsWith(github.head_ref, 'hotfix/'))
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: app
+      - uses: android-actions/setup-android@v4
+      - name: Cachear paquetes del Android SDK
+        id: sdk-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/lib/android/sdk/platforms
+            /usr/local/lib/android/sdk/build-tools
+          key: ${{ env.SDK_KEY }}
+      - name: Instalar paquetes del SDK necesarios
+        if: steps.sdk-cache.outputs.cache-hit != 'true'
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-37.1" "build-tools;37.0.0" > /dev/null
+      - name: Lint
+        working-directory: app
+        run: ./gradlew lintDebug --console=plain
+      - name: Pruebas unitarias
+        if: github.base_ref == 'next'
+        working-directory: app
+        run: ./gradlew testDebugUnitTest --console=plain
+      - name: Compilar APK debug
+        if: github.base_ref == 'next'
+        working-directory: app
+        run: ./gradlew assembleDebug --console=plain
+      - uses: actions/upload-artifact@v4
+        if: always() && github.base_ref == 'next'
+        with:
+          name: resultados-pruebas-app
+          path: app/build/reports/tests/testDebugUnitTest
+          retention-days: 14
+
+  # Simulador corto de sincronización: se agrega en H1 (plan 07 §4). Se activa con
+  # cambios en app/, server/ o conformance/ porque usa el servidor real.
+  sim-e2e:
+    name: Simulador corto (pendiente H1)
+    if: github.base_ref == 'next' && (needs.changes.outputs.app == 'true' || needs.changes.outputs.server == 'true' || needs.changes.outputs.conformance == 'true')
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: echo "El simulador de sincronización llega en H1 (plan/07 §4). Este job reserva su lugar en el CI."
+
+  app-ok:
+    name: App OK
+    if: always()
+    needs: [enforce-main-source, changes, version-bump, app-checks, sim-e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Todos los jobs aplicables pasaron o no correspondían
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "resultados: $RESULTS"
+          for r in $RESULTS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then
+              echo "::error::un job terminó en '$r'"; exit 1
+            fi
+          done

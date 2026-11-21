@@ -1,0 +1,20 @@
+# Despliegue del servicio (plan/06 §2). En producción lo copia deploy-server.yml a
+# /srv/cuaderno y se levanta con `VERSION=x.y.z docker compose --env-file .env up -d`.
+# El .env vive solo en el VPS (CUADERNO_UID, CUADERNO_GID, APP_MIN_VERSION).
+services:
+  cuaderno-server:
+    image: cuaderno-server:${VERSION}
+    container_name: cuaderno-server
+    user: "${CUADERNO_UID}:${CUADERNO_GID}"
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    mem_limit: 256m
+    cpus: 0.5
+    environment:
+      PORT: "8094"
+      LOG_LEVEL: info
+    networks: [proxy]
+    logging: { driver: json-file, options: { max-size: 5m, max-file: "3" } }
+networks:
+  proxy: { external: true }
