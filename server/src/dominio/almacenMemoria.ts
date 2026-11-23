@@ -198,6 +198,8 @@ export class AlmacenMemoria implements Almacen {
   }
 
   guardarOp(op: OpGuardada): number {
+    if (this.ops.has(op.opId)) throw new Error(`la operación ${op.opId} ya está guardada`);
+    if (this.marcas.has(op.hlc)) throw new Error(`la marca ${op.hlc} ya la usa otra operación`);
     this.seq += 1;
     const numero = this.seq;
     this.ops.set(op.opId, { ...op, payload: op.payload === null ? null : copia(op.payload), seq: numero });

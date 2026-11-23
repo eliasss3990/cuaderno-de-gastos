@@ -1,16 +1,32 @@
 import { describe, expect, it } from "vitest";
+import { AlmacenSqlite } from "../../src/almacen/almacenSqlite.js";
+import { abrirBase } from "../../src/almacen/base.js";
 import { AlmacenMemoria } from "../../src/dominio/almacenMemoria.js";
 import type { Almacen, OpGuardada } from "../../src/dominio/operaciones.js";
 
 const MARCA_1 = "0000000000064-0000-018f3a6e-0000-7000-8000-00000000000a";
 const MARCA_2 = "00000000000c8-0000-018f3a6e-0000-7000-8000-00000000000a";
 
-function op(opId: string, extra: Partial<OpGuardada> = {}): OpGuardada {
-  return { opId, tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", hlc: MARCA_1, payload: { concepto: "x" }, redactada: false, padreId: null, ...extra };
+// Cada operación lleva su propia marca (la marca es única por operación), salvo que el test pida una.
+const marcasPorOp = new Map<string, string>();
+function marcaPropia(opId: string): string {
+  let m = marcasPorOp.get(opId);
+  if (m === undefined) {
+    m = `${(1000 + marcasPorOp.size).toString(16).padStart(13, "0")}-0000-018f3a6e-0000-7000-8000-00000000000a`;
+    marcasPorOp.set(opId, m);
+  }
+  return m;
 }
 
-// Contrato que debe cumplir cualquier almacén: hoy el de memoria; el de SQLite se agrega a esta lista.
-describe.each<[string, () => Almacen]>([["memoria", () => new AlmacenMemoria()]])("contrato del almacén: %s", (_nombre, crear) => {
+function op(opId: string, extra: Partial<OpGuardada> = {}): OpGuardada {
+  return { opId, tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", hlc: marcaPropia(opId), payload: { concepto: "x" }, redactada: false, padreId: null, ...extra };
+}
+
+// Contrato que debe cumplir cualquier almacén: el de memoria y el de SQLite pasan exactamente las mismas pruebas.
+describe.each<[string, () => Almacen]>([
+  ["memoria", () => new AlmacenMemoria()],
+  ["sqlite", () => new AlmacenSqlite(abrirBase(":memory:"), "viaje-1")],
+])("contrato del almacén: %s", (_nombre, crear) => {
   it("crear una entidad es idempotente y no borra lo escrito", () => {
     const a = crear();
     expect(a.entidadExiste("expense", "e1")).toBe(false);
@@ -213,6 +229,48 @@ describe.each<[string, () => Almacen]>([["memoria", () => new AlmacenMemoria()]]
     expect(a.contarEntidades("expense")).toBe(1);
   });
 
+  it("no se guarda dos veces la misma operación ni dos operaciones con la misma marca, y no queda nada a medias", () => {
+    const a = crear();
+    a.guardarOp(op("o1", { hlc: MARCA_1 }));
+    expect(() => a.guardarOp(op("o1", { hlc: MARCA_2 }))).toThrow();
+    expect(() => a.guardarOp(op("o2", { hlc: MARCA_1 }))).toThrow();
+    expect(a.opConocida("o2")).toBe(false);
+    expect(a.marcaEnUso(MARCA_2)).toBe(false);
+    expect(a.guardarOp(op("o3", { hlc: MARCA_2 }))).toBe(2); // la secuencia no se movió por los intentos fallidos
+  });
+
+  it("escribir un campo de una entidad que no existe falla con un error claro", () => {
+    expect(() => crear().escribirCampo("expense", "nada", "nota", "x", MARCA_1)).toThrow(/no existe/);
+  });
+
+  it("padreRegistrado devuelve el primer padre registrado y se salta las operaciones sin padre", () => {
+    const a = crear();
+    expect(a.padreRegistrado("attachment", "a1")).toBeNull();
+    a.guardarOp(op("o0", { entidadTipo: "attachment", entidadId: "a1", padreId: null }));
+    expect(a.padreRegistrado("attachment", "a1")).toBeNull();
+    a.guardarOp(op("o1", { entidadTipo: "attachment", entidadId: "a1", padreId: "p1" }));
+    a.guardarOp(op("o2", { entidadTipo: "attachment", entidadId: "a1", padreId: "p2" }));
+    expect(a.padreRegistrado("attachment", "a1")).toBe("p1");
+    expect(a.padreRegistrado("attachment", "otro")).toBeNull();
+  });
+
+  it("una transacción dentro de otra forma parte de ella: si la interna falla y la externa lo captura, lo escrito se conserva", () => {
+    const a = crear();
+    a.transaccion(() => {
+      try {
+        a.transaccion(() => {
+          a.crearEntidad("expense", "e2");
+          throw new Error("falla interna");
+        });
+      } catch {
+        // la externa decide seguir
+      }
+      a.crearEntidad("expense", "e3");
+    });
+    expect(a.entidadExiste("expense", "e2")).toBe(true);
+    expect(a.entidadExiste("expense", "e3")).toBe(true);
+  });
+
   it("idDelViaje devuelve el id del viaje o null", () => {
     const a = crear();
     expect(a.idDelViaje()).toBeNull();
@@ -241,12 +299,17 @@ describe.each<[string, () => Almacen]>([["memoria", () => new AlmacenMemoria()]]
     expect(() => a.cerrarIntervalo(10)).toThrow();
     a.abrirIntervalo(100, "MANUAL");
     expect(() => a.abrirIntervalo(150, "FECHAS")).toThrow();
-    expect(() => a.cerrarIntervalo(100)).toThrow();
-    expect(() => a.cerrarIntervalo(99)).toThrow();
+    expect(() => a.cerrarIntervalo(100)).toThrow(/posterior/);
+    expect(() => a.cerrarIntervalo(99)).toThrow(/posterior/);
     a.cerrarIntervalo(200);
     expect(() => a.cerrarIntervalo(300)).toThrow();
     expect(() => a.abrirIntervalo(199, "FECHAS")).toThrow();
     a.abrirIntervalo(200, "FECHAS");
+    a.cerrarIntervalo(300);
+    // con varios guardados se compara con el último, no con el primero
+    expect(() => a.abrirIntervalo(250, "MANUAL")).toThrow(/superpone/);
+    expect(() => a.abrirIntervalo(299, "MANUAL")).toThrow(/superpone/);
+    a.abrirIntervalo(300, "MANUAL");
   });
 
   it("intervalos de cierre: la lista devuelta no deja modificar el almacén", () => {
