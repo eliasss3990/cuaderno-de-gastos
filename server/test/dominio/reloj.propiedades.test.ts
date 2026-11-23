@@ -10,7 +10,7 @@ import {
   parsearHlc,
   siguienteHlc,
   type Hlc,
-} from "../src/dominio/reloj.js";
+} from "../../src/dominio/reloj.js";
 
 const A = "018f3a6e-0000-7000-8000-000000000001";
 const B = "018f3a6e-0000-7000-8000-000000000002";

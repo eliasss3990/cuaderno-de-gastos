@@ -7,7 +7,7 @@ import {
   formatearNumero,
   parsear,
   type Moneda,
-} from "../src/dominio/dinero.js";
+} from "../../src/dominio/dinero.js";
 
 const MONEDAS: Moneda[] = [
   { codigo: "PYG", decimales: 0, simbolo: "₲" },
