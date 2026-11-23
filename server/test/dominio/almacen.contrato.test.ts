@@ -188,4 +188,28 @@ describe.each<[string, () => Almacen]>([["memoria", () => new AlmacenMemoria()]]
     payload.detalle.n = 99;
     expect(JSON.stringify(a.instantanea())).toBe(antes);
   });
+
+  it("leerCampo devuelve el valor actual y undefined si no hay entidad o campo", () => {
+    const a = crear();
+    expect(a.leerCampo("expense", "e1", "nota")).toBeUndefined();
+    a.crearEntidad("expense", "e1");
+    expect(a.leerCampo("expense", "e1", "nota")).toBeUndefined();
+    a.escribirCampo("expense", "e1", "nota", "a", MARCA_1);
+    a.escribirCampo("expense", "e1", "vacio", null, MARCA_1);
+    expect(a.leerCampo("expense", "e1", "nota")).toBe("a");
+    expect(a.leerCampo("expense", "e1", "vacio")).toBeNull();
+    a.terminar("expense", "e1");
+    expect(a.leerCampo("expense", "e1", "nota")).toBeUndefined();
+  });
+
+  it("contarEntidades cuenta las del tipo y no cuenta las terminadas", () => {
+    const a = crear();
+    expect(a.contarEntidades("shortcut")).toBe(0);
+    for (const id of ["s1", "s2", "s3"]) a.crearEntidad("shortcut", id);
+    a.crearEntidad("expense", "e1");
+    expect(a.contarEntidades("shortcut")).toBe(3);
+    a.terminar("shortcut", "s2");
+    expect(a.contarEntidades("shortcut")).toBe(2);
+    expect(a.contarEntidades("expense")).toBe(1);
+  });
 });

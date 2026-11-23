@@ -211,7 +211,7 @@ const CAMPOS_EFECTIVO = {
 };
 
 /** Campos de dinero que lleva cada tipo de movimiento de efectivo. */
-const DINERO_DEL_MOVIMIENTO: { readonly [tipo: string]: readonly string[] } = {
+export const DINERO_DEL_MOVIMIENTO: { readonly [tipo: string]: readonly string[] } = {
   CAMBIO: ["moneda_sale", "monto_sale_minor", "moneda_entra", "monto_entra_minor"],
   RETIRO: ["moneda_entra", "monto_entra_minor"],
   AJUSTE: ["moneda_ajuste", "saldo_ajuste_minor"],

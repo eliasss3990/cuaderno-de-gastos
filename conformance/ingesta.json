@@ -1,0 +1,1670 @@
+{
+ "version": 1,
+ "descripcion": "Ingesta de operaciones (formato, duplicado, estado y aplicar, en una transaccion) sobre un almacen vacio. `orden` son indices sobre `ops` (pueden repetir una operacion para probar reintentos); `resultados` va alineado con `orden`; `cuentas` es la cantidad de entidades de cada tipo que debe quedar al final.",
+ "escenarios": [
+  {
+   "nombre": "la moneda debe ser una del viaje y la categoría debe existir",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000009",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "EUR",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "currency.enable",
+     "entidadTipo": "trip_currency",
+     "entidadId": "EUR",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "habilitada": 1,
+      "decimales": 2,
+      "simbolo": "€"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000004",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "EUR",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "currency.disable",
+     "entidadTipo": "trip_currency",
+     "entidadId": "EUR",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "habilitada": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000005",
+     "hlc": "0018bcfe56809-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "EUR",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000010",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680a-000a-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda": "USD"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000011",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680b-000b-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000012",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680c-000c-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "concepto": "ok"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000013",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000006",
+     "hlc": "0018bcfe5680d-000d-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "USD",
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "resultados": [
+    "rejected:moneda_no_habilitada",
+    "accepted",
+    "rejected:moneda_no_habilitada",
+    "rejected:entidad_inexistente",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:moneda_no_habilitada",
+    "rejected:entidad_inexistente",
+    "accepted",
+    "rejected:moneda_no_habilitada"
+   ],
+   "cuentas": {
+    "expense": 3
+   }
+  },
+  {
+   "nombre": "todas las entidades con moneda o categoría validan sus referencias",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "fixed.create",
+     "entidadTipo": "fixed_cost",
+     "entidadId": "018f3a6e-3000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Hotel",
+      "moneda": "EUR",
+      "monto_unitario_minor": 1,
+      "cantidad": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "fixed.create",
+     "entidadTipo": "fixed_cost",
+     "entidadId": "018f3a6e-3000-7000-8000-000000000002",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Hotel",
+      "moneda": "BRL",
+      "monto_unitario_minor": 1,
+      "cantidad": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "fixed.update",
+     "entidadTipo": "fixed_cost",
+     "entidadId": "018f3a6e-3000-7000-8000-000000000002",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda": "EUR"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000001",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 1",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099",
+      "orden": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000002",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 2",
+      "monto_minor": 100,
+      "moneda": "EUR",
+      "categoria_id": "otro",
+      "orden": 2
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000003",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 3",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 3
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "shortcut.update",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000003",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56809-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "RETIRO",
+      "cuando": 1700000000000,
+      "moneda_entra": "EUR",
+      "monto_entra_minor": 5
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000010",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000002",
+     "hlc": "0018bcfe5680a-000a-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "AJUSTE",
+      "cuando": 1700000000000,
+      "moneda_ajuste": "EUR",
+      "saldo_ajuste_minor": 5
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000011",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000003",
+     "hlc": "0018bcfe5680b-000b-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "CAMBIO",
+      "cuando": 1700000000000,
+      "moneda_sale": "PYG",
+      "monto_sale_minor": 1,
+      "moneda_entra": "EUR",
+      "monto_entra_minor": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000012",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000004",
+     "hlc": "0018bcfe5680c-000c-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "RETIRO",
+      "cuando": 1700000000000,
+      "moneda_entra": "BRL",
+      "monto_entra_minor": 5
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+   ],
+   "resultados": [
+    "accepted",
+    "rejected:moneda_no_habilitada",
+    "accepted",
+    "rejected:moneda_no_habilitada",
+    "rejected:entidad_inexistente",
+    "rejected:moneda_no_habilitada",
+    "accepted",
+    "rejected:entidad_inexistente",
+    "rejected:moneda_no_habilitada",
+    "rejected:moneda_no_habilitada",
+    "rejected:moneda_no_habilitada",
+    "accepted"
+   ],
+   "cuentas": {
+    "fixed_cost": 1,
+    "shortcut": 1,
+    "cash_movement": 1
+   }
+  },
+  {
+   "nombre": "una categoría archivada se puede seguir usando",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "category.create",
+     "entidadTipo": "category",
+     "entidadId": "018f3a6e-7000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Peajes",
+      "color": "#E8E4F3",
+      "emoji": "🛣️"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "category.archive",
+     "entidadTipo": "category",
+     "entidadId": "018f3a6e-7000-7000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "archivada": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000001",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted"
+   ],
+   "cuentas": {
+    "expense": 1
+   }
+  },
+  {
+   "nombre": "seis atajos como máximo; borrar uno deja crear otro; repetir el alta de uno existente no cuenta",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 1",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000002",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 2",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 2
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000003",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 3",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 3
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000004",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 4",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 4
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000005",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 5",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 5
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000006",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 6",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 6
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000007",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 7",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 7
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "shortcut.delete",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000003",
+     "hlc": "0018bcfe56809-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {}
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000010",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000007",
+     "hlc": "0018bcfe5680a-000a-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 7",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 7
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000011",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000002",
+     "hlc": "0018bcfe5680b-000b-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Renombrado",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 2
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000012",
+     "tipo": "shortcut.create",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000008",
+     "hlc": "0018bcfe5680c-000c-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Atajo 8",
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "orden": 8
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000013",
+     "tipo": "shortcut.update",
+     "entidadTipo": "shortcut",
+     "entidadId": "018f3a6e-4000-7000-8000-000000000099",
+     "hlc": "0018bcfe5680d-000d-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "orden": 3
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:limite_superado",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:limite_superado",
+    "rejected:entidad_inexistente"
+   ],
+   "cuentas": {
+    "shortcut": 6
+   }
+  },
+  {
+   "nombre": "un reintento da duplicado aunque ahora el límite ya no lo admitiría",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000002",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000003",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "attachment.remove",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000001",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "quitado": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000004",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    2
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "duplicate"
+   ],
+   "cuentas": {
+    "attachment": 4
+   }
+  },
+  {
+   "nombre": "tres adjuntos activos por dueño; el propio adjunto no cuenta",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "fixed.create",
+     "entidadTipo": "fixed_cost",
+     "entidadId": "018f3a6e-3000-7000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Hotel",
+      "moneda": "BRL",
+      "monto_unitario_minor": 1,
+      "cantidad": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000001",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000002",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000003",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000004",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000010",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "FIXED_COST",
+      "owner_id": "018f3a6e-3000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "attachment.remove",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000001",
+     "hlc": "0018bcfe56809-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "quitado": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000010",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000005",
+     "hlc": "0018bcfe5680a-000a-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000011",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000002",
+     "hlc": "0018bcfe5680b-000b-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 200,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    6,
+    9,
+    10
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:limite_superado",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:limite_superado",
+    "accepted"
+   ],
+   "cuentas": {
+    "attachment": 5
+   }
+  },
+  {
+   "nombre": "lo ya terminado no se vuelve a mirar: se acepta redactado aunque el límite o la referencia no lo admitirían",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000002",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000003",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "expense.purge",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {}
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000004",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000001",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56809-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda": "EUR"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted"
+   ],
+   "cuentas": {
+    "expense": 0,
+    "attachment": 0
+   }
+  },
+  {
+   "nombre": "la edición de un movimiento de efectivo debe corresponder a su tipo",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "currency.enable",
+     "entidadTipo": "trip_currency",
+     "entidadId": "EUR",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "habilitada": 1,
+      "decimales": 2,
+      "simbolo": "€"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "CAMBIO",
+      "cuando": 1700000000000,
+      "moneda_sale": "PYG",
+      "monto_sale_minor": 322000,
+      "moneda_entra": "BRL",
+      "monto_entra_minor": 23000
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000002",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "AJUSTE",
+      "cuando": 1700000000000,
+      "moneda_ajuste": "BRL",
+      "saldo_ajuste_minor": 52000
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000003",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "RETIRO",
+      "cuando": 1700000000000,
+      "moneda_entra": "BRL",
+      "monto_entra_minor": 50000
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_entra_minor": 24000
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_ajuste": "BRL"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "saldo_ajuste_minor": 1
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56809-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_entra": "PYG"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000010",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680a-000a-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "BRL"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000011",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680b-000b-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "BRL",
+      "moneda_entra": "PYG"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000012",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680c-000c-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_entra": "EUR"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000013",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680d-000d-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_entra": "USD"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000014",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe5680e-000e-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nota": "casa de cambio",
+      "cuando": 1700000000005
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000015",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000002",
+     "hlc": "0018bcfe5680f-000f-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "saldo_ajuste_minor": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000016",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000002",
+     "hlc": "0018bcfe56810-0010-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_entra_minor": 5
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000017",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000002",
+     "hlc": "0018bcfe56811-0011-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "PYG"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000018",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000003",
+     "hlc": "0018bcfe56812-0012-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_entra_minor": 9
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000019",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000003",
+     "hlc": "0018bcfe56813-0013-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "PYG"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000020",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000099",
+     "hlc": "0018bcfe56814-0014-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nota": "x"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:formato",
+    "rejected:formato",
+    "rejected:formato",
+    "rejected:formato",
+    "accepted",
+    "accepted",
+    "rejected:moneda_no_habilitada",
+    "accepted",
+    "accepted",
+    "rejected:formato",
+    "rejected:formato",
+    "accepted",
+    "rejected:formato",
+    "rejected:entidad_inexistente"
+   ],
+   "cuentas": {
+    "cash_movement": 3
+   }
+  },
+  {
+   "nombre": "el formato se mira antes que el estado",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 0,
+      "moneda": "EUR",
+      "categoria_id": "018f3a6e-7000-7000-8000-000000000099",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000077",
+      "mime": "image/jpeg",
+      "bytes": 0,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "attachment.add",
+     "entidadTipo": "attachment",
+     "entidadId": "aaaaaaaa-0000-4000-8000-000000000002",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "owner_tipo": "EXPENSE",
+      "owner_id": "018f3a6e-2000-7000-8000-000000000077",
+      "mime": "image/jpeg",
+      "bytes": 100,
+      "sha256": "abababababababababababababababababababababababababababababababab",
+      "tiene_miniatura": 0
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "resultados": [
+    "accepted",
+    "rejected:formato",
+    "rejected:formato",
+    "rejected:entidad_inexistente"
+   ],
+   "cuentas": {
+    "expense": 0,
+    "attachment": 0
+   }
+  },
+  {
+   "nombre": "el cambio de moneda se valida con lo que quedaría tras resolver los relojes, no con lo que trae la operación",
+   "ops": [
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "PYG",
+        "decimales": 0,
+        "simbolo": "₲"
+       },
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       },
+       {
+        "codigo": "EUR",
+        "decimales": 2,
+        "simbolo": "€"
+       }
+      ]
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "CAMBIO",
+      "cuando": 1700000000000,
+      "moneda_sale": "PYG",
+      "monto_sale_minor": 322000,
+      "moneda_entra": "BRL",
+      "monto_entra_minor": 23000
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "BRL",
+      "moneda_entra": "PYG"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "BRL",
+      "moneda_entra": "EUR"
+     }
+    },
+    {
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "cashmove.update",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-5000-7000-8000-000000000001",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "moneda_sale": "EUR"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    4,
+    3
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:formato"
+   ],
+   "cuentas": {
+    "cash_movement": 1
+   }
+  }
+ ]
+}

@@ -83,6 +83,16 @@ export class AlmacenMemoria implements Almacen {
     return this.lapidas.has(clave(tipo, id));
   }
 
+  leerCampo(tipo: string, id: string, campo: string): Json | undefined {
+    return this.entidades.get(clave(tipo, id))?.fila.campos.get(campo);
+  }
+
+  contarEntidades(tipo: string): number {
+    let n = 0;
+    for (const e of this.entidades.values()) if (e.tipo === tipo) n += 1;
+    return n;
+  }
+
   leerReloj(tipo: string, id: string, campo: string): string | null {
     return this.entidades.get(clave(tipo, id))?.fila.relojes.get(campo) ?? null;
   }

@@ -18,7 +18,7 @@ export interface Operacion {
   readonly payload: Campos;
 }
 
-export type Razon = "formato" | "entidad_inexistente" | "moneda_no_habilitada";
+export type Razon = "formato" | "entidad_inexistente" | "moneda_no_habilitada" | "limite_superado" | "viaje_cerrado";
 
 export type Resultado =
   | { readonly estado: "accepted"; readonly seq: number }
@@ -49,6 +49,10 @@ export interface Almacen {
   marcaEnUso(hlc: string): boolean;
   entidadExiste(tipo: string, id: string): boolean;
   entidadTerminada(tipo: string, id: string): boolean;
+  /** Valor actual de un campo de la entidad, o undefined si no existe la entidad o el campo no tiene valor. */
+  leerCampo(tipo: string, id: string, campo: string): Json | undefined;
+  /** Cuántas entidades de ese tipo existen (las terminadas ya no están). */
+  contarEntidades(tipo: string): number;
   leerReloj(tipo: string, id: string, campo: string): string | null;
   /** Crea la entidad vacía si no existe (no hace nada si ya existe). */
   crearEntidad(tipo: string, id: string): void;
