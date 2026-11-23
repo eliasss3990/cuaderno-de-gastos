@@ -4,16 +4,21 @@
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
+import type { ServicioDeSincronizacion } from "./dominio/operaciones/sincronizacion.js";
 import type { Metricas } from "./observabilidad/metricas.js";
 import type { Registro } from "./observabilidad/registro.js";
 import { exigirVersion } from "./http/autenticacion.js";
 import { crearManejadorDeErrores, manejarNoEncontrado } from "./http/errores.js";
 import { crearRegistroDePedidos, instalarPedidos } from "./http/pedidos.js";
 import { rutasDeIdentidad } from "./http/rutasIdentidad.js";
+import { rutasDeSincronizacion } from "./http/rutasSincronizacion.js";
 import { parsearVersion } from "./http/versiones.js";
 
 export interface DependenciasApi {
   readonly servicio: ServicioDeIdentidad;
+  readonly sincronizacion: ServicioDeSincronizacion;
+  /** Reloj del servidor en milisegundos (la hora que se informa a las apps); por defecto `Date.now`. */
+  readonly ahora?: () => number;
   readonly registro: Registro;
   readonly metricas: Metricas;
   /** `APP_MIN_VERSION`: por debajo de esta versión de la app se responde 426. Sin valor, no se exige ninguna. */
@@ -54,5 +59,6 @@ export function construirApi(dep: DependenciasApi): FastifyInstance {
 
   app.get("/healthz", () => ({ estado: "ok" }));
   rutasDeIdentidad(app, dep.servicio);
+  rutasDeSincronizacion(app, dep.servicio, dep.sincronizacion, dep.ahora ?? Date.now);
   return app;
 }

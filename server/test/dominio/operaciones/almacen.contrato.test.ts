@@ -281,6 +281,29 @@ describe.each<[string, () => Almacen]>([
     expect(a.buscarOp("o3")).toBeNull();
   });
 
+  it("leerOps devuelve las operaciones después de una secuencia, en orden, con tope, y seqMaximo da la última", () => {
+    const a = crear();
+    expect(a.seqMaximo()).toBe(0);
+    expect(a.leerOps(0, 10)).toEqual([]);
+    for (const id of ["o1", "o2", "o3", "o4"]) a.guardarOp(op(id));
+    expect(a.seqMaximo()).toBe(4);
+    expect(a.leerOps(0, 10).map((o) => [o.opId, o.seq])).toEqual([["o1", 1], ["o2", 2], ["o3", 3], ["o4", 4]]);
+    expect(a.leerOps(1, 2).map((o) => o.opId)).toEqual(["o2", "o3"]);
+    expect(a.leerOps(4, 10)).toEqual([]);
+    expect(a.leerOps(0, 10)[0]).toMatchObject({ tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", payload: { concepto: "x" }, redactada: false, padreId: null });
+  });
+
+  it("leerOps muestra las redactadas sin payload y no deja modificar lo guardado", () => {
+    const a = crear();
+    a.guardarOp(op("o1"));
+    a.redactarPorEntidad("expense", "e1");
+    const [leida] = a.leerOps(0, 10);
+    expect(leida).toMatchObject({ opId: "o1", payload: null, redactada: true });
+    a.guardarOp(op("o2", { payload: { concepto: "y" } }));
+    (a.leerOps(1, 10)[0]?.payload as { concepto: string }).concepto = "cambiado";
+    expect(a.leerOps(1, 10)[0]?.payload).toEqual({ concepto: "y" });
+  });
+
   it("ultimaMarcaDe devuelve la mayor marca de ese dispositivo y null si no tiene", () => {
     const a = crear();
     const otro = "018f3a6e-0000-7000-8000-00000000000b";

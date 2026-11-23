@@ -4,7 +4,7 @@
 
 import type { Database, Statement } from "better-sqlite3";
 import type { Instantanea, InstantaneaEntidad } from "../../dominio/operaciones/almacenMemoria.js";
-import type { Almacen, Campos, IntervaloCierre, Json, OpGuardada } from "../../dominio/operaciones/operaciones.js";
+import type { Almacen, Campos, IntervaloCierre, Json, OpGuardada, OpLeida } from "../../dominio/operaciones/operaciones.js";
 
 const ordenar = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 const clave = (tipo: string, id: string): string => `${tipo}\u0000${id}`;
@@ -152,6 +152,25 @@ export class AlmacenSqlite implements Almacen {
   buscarOp(opId: string): { seq: number; hlc: string } | null {
     const fila = this.q("SELECT server_seq, hlc FROM op WHERE trip_id = ? AND op_id = ?").get(this.tripId, opId) as { server_seq: number; hlc: string } | undefined;
     return fila === undefined ? null : { seq: fila.server_seq, hlc: fila.hlc };
+  }
+
+  leerOps(despuesDe: number, limite: number): readonly OpLeida[] {
+    const filas = this.q("SELECT op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, server_seq FROM op WHERE trip_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?").all(this.tripId, despuesDe, limite) as FilaOp[];
+    return filas.map((f) => ({
+      opId: f.op_id,
+      tipo: f.type,
+      entidadTipo: f.entity_type,
+      entidadId: f.entity_id,
+      hlc: f.hlc,
+      payload: f.payload === null ? null : (JSON.parse(f.payload) as Campos),
+      redactada: f.redactada === 1,
+      padreId: f.padre_id,
+      seq: f.server_seq,
+    }));
+  }
+
+  seqMaximo(): number {
+    return (this.q("SELECT COALESCE(MAX(server_seq), 0) AS s FROM op WHERE trip_id = ?").get(this.tripId) as { s: number }).s;
   }
 
   ultimaMarcaDe(dispositivo: string): string | null {

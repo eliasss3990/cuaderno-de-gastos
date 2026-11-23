@@ -1,7 +1,7 @@
 // Almacén en memoria del estado del viaje: sirve a las pruebas y como referencia de lo que debe cumplir
 // cualquier otro almacén (por ejemplo el de SQLite). `instantanea` da una vista ordenada para comparar.
 
-import type { Almacen, Campos, IntervaloCierre, Json, OpGuardada } from "./operaciones.js";
+import type { Almacen, Campos, IntervaloCierre, Json, OpGuardada, OpLeida } from "./operaciones.js";
 
 interface Fila {
   readonly campos: Map<string, Json>;
@@ -217,6 +217,18 @@ export class AlmacenMemoria implements Almacen {
   buscarOp(opId: string): { seq: number; hlc: string } | null {
     const op = this.ops.get(opId);
     return op === undefined ? null : { seq: op.seq, hlc: op.hlc };
+  }
+
+  leerOps(despuesDe: number, limite: number): readonly OpLeida[] {
+    return [...this.ops.values()]
+      .filter((o) => o.seq > despuesDe)
+      .sort((x, y) => x.seq - y.seq)
+      .slice(0, limite)
+      .map((o) => ({ ...o, payload: o.payload === null ? null : (copia(o.payload) as Campos) }));
+  }
+
+  seqMaximo(): number {
+    return this.seq;
   }
 
   ultimaMarcaDe(dispositivo: string): string | null {

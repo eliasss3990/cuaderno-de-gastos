@@ -37,6 +37,11 @@ export interface OpGuardada {
   readonly padreId: string | null;
 }
 
+/** Una operación guardada con su número de secuencia. */
+export interface OpLeida extends OpGuardada {
+  readonly seq: number;
+}
+
 export interface IntervaloCierre {
   readonly desdeMs: number;
   /** null mientras el viaje siga cerrado. */
@@ -86,6 +91,10 @@ export interface Almacen {
   guardarOp(op: OpGuardada): number;
   /** Número de secuencia y marca final guardados de una operación, o null si no se guardó (las rechazadas no se guardan). */
   buscarOp(opId: string): { readonly seq: number; readonly hlc: string } | null;
+  /** Operaciones guardadas con secuencia mayor que `despuesDe`, en orden de secuencia, hasta `limite`. */
+  leerOps(despuesDe: number, limite: number): readonly OpLeida[];
+  /** Mayor número de secuencia guardado (0 si no hay ninguna operación). */
+  seqMaximo(): number;
   /** Mayor marca guardada de ese dispositivo (el tercer componente de la marca), o null si no tiene ninguna. */
   ultimaMarcaDe(dispositivo: string): string | null;
 }
