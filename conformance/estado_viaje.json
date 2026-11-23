@@ -1,0 +1,214 @@
+{
+ "version": 1,
+ "descripcion": "Estado del viaje. `inicios`: primer instante (ms epoch UTC) en que el reloj de la zona marca esa fecha 00:00 (si esa hora no existe, el primer instante que si existe), calculado con zoneinfo de Python, independiente del codigo. `estados`: estado esperado en `ahora`.",
+ "inicios": [
+  {
+   "fecha": "2027-02-18",
+   "zona": "America/Asuncion",
+   "ms": 1802919600000
+  },
+  {
+   "fecha": "2027-02-18",
+   "zona": "America/Sao_Paulo",
+   "ms": 1802919600000
+  },
+  {
+   "fecha": "2027-02-18",
+   "zona": "Africa/Abidjan",
+   "ms": 1802908800000
+  },
+  {
+   "fecha": "2027-03-13",
+   "zona": "America/New_York",
+   "ms": 1804914000000
+  },
+  {
+   "fecha": "2027-03-14",
+   "zona": "America/New_York",
+   "ms": 1805000400000
+  },
+  {
+   "fecha": "2027-11-07",
+   "zona": "America/New_York",
+   "ms": 1825560000000
+  },
+  {
+   "fecha": "2027-03-14",
+   "zona": "America/Havana",
+   "ms": 1805000400000
+  },
+  {
+   "fecha": "2027-03-15",
+   "zona": "America/Havana",
+   "ms": 1805083200000
+  },
+  {
+   "fecha": "2027-02-18",
+   "zona": "Asia/Kolkata",
+   "ms": 1802889000000
+  },
+  {
+   "fecha": "2027-02-18",
+   "zona": "Pacific/Kiritimati",
+   "ms": 1802858400000
+  },
+  {
+   "fecha": "2027-12-31",
+   "zona": "Pacific/Auckland",
+   "ms": 1830164400000
+  },
+  {
+   "fecha": "2028-02-29",
+   "zona": "Europe/Madrid",
+   "ms": 1835391600000
+  },
+  {
+   "fecha": "2027-10-31",
+   "zona": "Europe/Madrid",
+   "ms": 1824933600000
+  },
+  {
+   "fecha": "2027-03-28",
+   "zona": "Europe/Madrid",
+   "ms": 1806188400000
+  },
+  {
+   "fecha": "2027-11-07",
+   "zona": "America/Havana",
+   "ms": 1825560000000
+  },
+  {
+   "fecha": "2027-11-08",
+   "zona": "America/Havana",
+   "ms": 1825650000000
+  }
+ ],
+ "estados": [
+  {
+   "nombre": "sin fechas: planificado",
+   "estadoManual": null,
+   "fechaInicio": null,
+   "fechaFin": null,
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1802228400000,
+   "esperado": "PLANIFICADO"
+  },
+  {
+   "nombre": "un ms antes del inicio",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1802228399999,
+   "esperado": "PLANIFICADO"
+  },
+  {
+   "nombre": "justo al inicio",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1802228400000,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "durante",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1802487600000,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "un ms antes de terminar el dia de fin",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1803005999999,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "justo al terminar el dia de fin",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1803006000000,
+   "esperado": "CERRADO"
+  },
+  {
+   "nombre": "sin fecha de fin nunca cierra",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": null,
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 3606012000000,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "sin fecha de inicio y con fin futuro: planificado",
+   "estadoManual": null,
+   "fechaInicio": null,
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1802228400000,
+   "esperado": "PLANIFICADO"
+  },
+  {
+   "nombre": "sin fecha de inicio y fin pasado: cerrado",
+   "estadoManual": null,
+   "fechaInicio": null,
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1803006000000,
+   "esperado": "CERRADO"
+  },
+  {
+   "nombre": "manual en curso gana a fechas cerradas",
+   "estadoManual": "EN_CURSO",
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1803006000005,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "manual cerrado gana a fechas planificadas",
+   "estadoManual": "CERRADO",
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 1802228399999,
+   "esperado": "CERRADO"
+  },
+  {
+   "nombre": "manual en curso sin fechas",
+   "estadoManual": "EN_CURSO",
+   "fechaInicio": null,
+   "fechaFin": null,
+   "zonaHoraria": "America/Asuncion",
+   "ahora": 0,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "zona adelantada: ya empezo",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "Pacific/Kiritimati",
+   "ahora": 1802167200000,
+   "esperado": "EN_CURSO"
+  },
+  {
+   "nombre": "zona adelantada: aun no",
+   "estadoManual": null,
+   "fechaInicio": "2027-02-10",
+   "fechaFin": "2027-02-18",
+   "zonaHoraria": "Pacific/Kiritimati",
+   "ahora": 1802167199999,
+   "esperado": "PLANIFICADO"
+  }
+ ]
+}
