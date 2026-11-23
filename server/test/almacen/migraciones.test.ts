@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { CONSULTAS } from "../../src/almacen/almacenSqlite.js";
+import { CONSULTAS_IDENTIDAD } from "../../src/almacen/identidadSqlite.js";
 import { abrirBase } from "../../src/almacen/base.js";
 import { MIGRACIONES, migrar, VERSION_ACTUAL, type Migracion } from "../../src/almacen/migraciones.js";
 
@@ -14,7 +15,7 @@ describe("migraciones", () => {
   it("una base nueva recibe todas las migraciones y queda registrada la versión", () => {
     const db = new Database(":memory:");
     expect(migrar(db, 1234)).toEqual(MIGRACIONES.map((m) => m.version));
-    expect(tablas(db)).toEqual(["entity", "entity_field", "entity_tombstone", "op", "schema_migration", "trip_closed_interval"]);
+    expect(tablas(db)).toEqual(["device", "entity", "entity_field", "entity_tombstone", "invitation", "join_attempt", "op", "schema_migration", "trip_closed_interval"]);
     expect(db.prepare("SELECT version, aplicada_en FROM schema_migration ORDER BY version").all()).toEqual(MIGRACIONES.map((m) => ({ version: m.version, aplicada_en: 1234 })));
     expect(VERSION_ACTUAL).toBe(MIGRACIONES.length);
   });
@@ -45,7 +46,7 @@ describe("migraciones", () => {
     const dispositivo = "018f3a6e-0000-7000-8000-00000000000a";
     const hlc = (ms: number) => `${ms.toString(16).padStart(13, "0")}-0000-${dispositivo}`;
     db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada) VALUES ('v', 1, 'o1', 'expense', 'e1', NULL, 'expense.create', ?, '{}', 0)").run(hlc(100));
-    expect(migrar(db, 2)).toEqual([2]);
+    expect(migrar(db, 2, MIGRACIONES.slice(0, 2))).toEqual([2]);
     expect(db.prepare("SELECT dispositivo FROM op").all()).toEqual([{ dispositivo }]);
   });
 
@@ -91,6 +92,21 @@ describe("migraciones", () => {
     // con la marca como última columna, hallar la mayor de un dispositivo es un salto al final del índice, sin leer filas
     const columnas = (db.pragma("index_info(ix_op_dispositivo)") as { name: string }[]).map((c) => c.name);
     expect(columnas).toEqual(["trip_id", "dispositivo", "hlc"]);
+    const identidad: [string, string[]][] = [
+      [CONSULTAS_IDENTIDAD.dispositivoPorToken, ["h"]],
+      [CONSULTAS_IDENTIDAD.contarActivos, ["v"]],
+      [CONSULTAS_IDENTIDAD.dispositivosDelViaje, ["v"]],
+      [CONSULTAS_IDENTIDAD.invitacionPorCodigo, ["h"]],
+      [CONSULTAS_IDENTIDAD.intentosFallidos, ["ip", "1"]],
+      [CONSULTAS_IDENTIDAD.limpiarIntentos, ["1"]],
+    ];
+    // ninguna consulta de identidad recorre una tabla entera
+    for (const [sql, args] of identidad) expect(plan(sql, ...args), sql).not.toMatch(/SCAN (device|invitation|join_attempt)(?! USING)/);
+    expect(plan(CONSULTAS_IDENTIDAD.dispositivoPorToken, "h")).toMatch(/sqlite_autoindex_device/);
+    expect(plan(CONSULTAS_IDENTIDAD.contarActivos, "v")).toContain("ix_device_trip (trip_id=?");
+    expect(plan(CONSULTAS_IDENTIDAD.invitacionPorCodigo, "h")).toMatch(/sqlite_autoindex_invitation/);
+    expect(plan(CONSULTAS_IDENTIDAD.intentosFallidos, "ip", "1")).toContain("ix_join_attempt (ip_hash=? AND intentado_en>?)");
+    expect(plan(CONSULTAS_IDENTIDAD.limpiarIntentos, "1")).toContain("ix_join_attempt_hora (intentado_en<?)");
     // y ninguna recorre toda la tabla de operaciones
     const consultas: [string, string[]][] = [
       [CONSULTAS.padreRegistrado, ["v", "t", "i"]],
@@ -133,6 +149,71 @@ describe("migraciones", () => {
       ins(30, null, "FECHAS");
       expect(() => ins(40, null, "MANUAL")).toThrow(/UNIQUE/); // dos abiertos del mismo viaje
       db.prepare("INSERT INTO trip_closed_interval VALUES ('otro', 10, NULL, 'MANUAL')").run(); // otro viaje, sí
+    });
+
+    it("identidad: la base impide una invitación usada a medias y un intento con un ok que no es 0 ni 1", () => {
+      const hex = (id: string) => id.charCodeAt(0).toString(16).padStart(64, "0");
+      const inv = (id: string, usadaEn: number | null, por: string | null) =>
+        db.prepare("INSERT INTO invitation (invitation_id, trip_id, codigo_hash, creada_en, vence_en, usada_en, usada_por_device_id) VALUES (?, 'v', ?, 1, 9, ?, ?)").run(id, hex(id), usadaEn, por);
+      inv("a", null, null);
+      inv("b", 5, "d1");
+      expect(() => inv("c", 5, null)).toThrow(/CHECK/);
+      expect(() => inv("d", null, "d1")).toThrow(/CHECK/);
+      const intento = (ok: number) => db.prepare("INSERT INTO join_attempt (ip_hash, intentado_en, ok) VALUES (?, 1, ?)").run(hex("i"), ok);
+      intento(0);
+      intento(1);
+      expect(() => intento(2)).toThrow(/CHECK/);
+      expect(() => intento(-1)).toThrow(/CHECK/);
+    });
+
+    it("identidad: la base impide un seq o unos pendientes negativos aunque alguien escriba directo (el repositorio ya los rechaza antes)", () => {
+      const hex = "d".repeat(64);
+      db.prepare("INSERT INTO device (device_id, trip_id, member_id, nombre, token_hash, creado_en) VALUES ('dn', 'v', 'mn', 'x', ?, 1)").run(hex);
+      expect(() => db.prepare("UPDATE device SET ultimo_seq_visto = -1 WHERE device_id = 'dn'").run()).toThrow(/CHECK/);
+      expect(() => db.prepare("UPDATE device SET pendientes = -1 WHERE device_id = 'dn'").run()).toThrow(/CHECK/);
+      db.prepare("UPDATE device SET ultimo_seq_visto = 0, pendientes = 0 WHERE device_id = 'dn'").run();
+    });
+
+    it("identidad: la base impide una revocación anterior a la creación aunque alguien escriba directo", () => {
+      const hex = "c".repeat(64);
+      db.prepare("INSERT INTO device (device_id, trip_id, member_id, nombre, token_hash, creado_en) VALUES ('dz', 'v', 'mz', 'x', ?, 5000)").run(hex);
+      expect(() => db.prepare("UPDATE device SET revocado_en = 4999 WHERE device_id = 'dz'").run()).toThrow(/CHECK/);
+      db.prepare("UPDATE device SET revocado_en = 5000 WHERE device_id = 'dz'").run();
+    });
+
+    it("identidad: la base impide una invitación usada antes de crearse y un texto en una columna entera, aunque alguien escriba directo", () => {
+      const hex = (c: string) => c.repeat(64);
+      const ins = (id: string, creada: number | string, usada: number | null, por: string | null) =>
+        db.prepare("INSERT INTO invitation (invitation_id, trip_id, codigo_hash, creada_en, vence_en, usada_en, usada_por_device_id) VALUES (?, 'v', ?, ?, 99999, ?, ?)").run(id, hex(id), creada, usada, por);
+      ins("e", 100, null, null);
+      ins("f", 100, 100, "dispositivo-f");
+      expect(() => ins("d", 100, 99, "dispositivo-d")).toThrow(/CHECK/);
+      expect(() => ins("a", "abc", null, null)).toThrow(/cannot store TEXT value in INTEGER column|datatype mismatch/);
+      expect(() => ins("b", 1.5, null, null)).toThrow(/cannot store REAL value in INTEGER column|datatype mismatch/);
+    });
+
+    it("identidad: la base impide que un mismo dispositivo consuma dos invitaciones, aunque alguien escriba directo", () => {
+      const ins = (id: string, por: string | null) =>
+        db.prepare("INSERT INTO invitation (invitation_id, trip_id, codigo_hash, creada_en, vence_en, usada_en, usada_por_device_id) VALUES (?, 'v', ?, 1, 9, ?, ?)").run(id, id.repeat(64).slice(0, 64), por === null ? null : 5, por);
+      ins("1", "dispositivo-x");
+      expect(() => ins("2", "dispositivo-x")).toThrow(/UNIQUE/);
+      ins("3", "dispositivo-y");
+      ins("4", null); // varias sin usar sí pueden convivir
+      ins("5", null);
+    });
+
+    it("identidad: las tablas son STRICT", () => {
+      const estricta = (tabla: string) => (db.prepare("SELECT strict FROM pragma_table_list(?)").get(tabla) as { strict: number }).strict;
+      expect([estricta("device"), estricta("invitation"), estricta("join_attempt")]).toEqual([1, 1, 1]);
+    });
+
+    it("identidad: el índice de dispositivos por viaje incluye si está revocado, y el de intentos la hora", () => {
+      const columnas = (indice: string) => (db.pragma(`index_info(${indice})`) as { name: string }[]).map((c) => c.name);
+      expect(columnas("ix_device_trip")).toEqual(["trip_id", "revocado_en"]);
+      expect(columnas("ix_join_attempt")).toEqual(["ip_hash", "intentado_en"]);
+      expect(columnas("ux_device_miembro_activo")).toEqual(["trip_id", "member_id"]);
+      expect(columnas("ix_join_attempt_hora")).toEqual(["intentado_en"]);
+      expect(columnas("ux_invitation_dispositivo")).toEqual(["usada_por_device_id"]);
     });
 
     it("campos: sin entidad no hay campo y al borrar la entidad caen sus campos", () => {
