@@ -13,7 +13,7 @@ import {
   parsearHlc,
   siguienteHlc,
   type Hlc,
-} from "../src/dominio/reloj.js";
+} from "../../src/dominio/reloj.js";
 
 interface Marca { ms: number; contador: number; dispositivo: string }
 type Par = { ms: number; contador: number };
@@ -44,7 +44,7 @@ interface Vectores {
   formatearError: Marca[];
 }
 
-const v = JSON.parse(readFileSync(new URL("../../conformance/reloj.json", import.meta.url), "utf8")) as Vectores;
+const v = JSON.parse(readFileSync(new URL("../../../conformance/reloj.json", import.meta.url), "utf8")) as Vectores;
 
 describe("reloj híbrido: vectores de conformidad", () => {
   it("las constantes de los vectores son las del módulo", () => {

@@ -7,7 +7,7 @@ import {
   formatearEntrada,
   parsear,
   type Moneda,
-} from "../src/dominio/dinero.js";
+} from "../../src/dominio/dinero.js";
 
 interface Vectores {
   maxMontoMinor: number;
@@ -19,7 +19,7 @@ interface Vectores {
 }
 
 const vectores = JSON.parse(
-  readFileSync(new URL("../../conformance/dinero.json", import.meta.url), "utf8"),
+  readFileSync(new URL("../../../conformance/dinero.json", import.meta.url), "utf8"),
 ) as Vectores;
 
 function moneda(codigo: string): Moneda {
