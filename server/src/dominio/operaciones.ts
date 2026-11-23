@@ -84,6 +84,10 @@ export interface Almacen {
   padreRegistrado(tipo: string, id: string): string | null;
   /** Guarda la operación y devuelve su número de secuencia (1, 2, 3… sin huecos). */
   guardarOp(op: OpGuardada): number;
+  /** Número de secuencia y marca final guardados de una operación, o null si no se guardó (las rechazadas no se guardan). */
+  buscarOp(opId: string): { readonly seq: number; readonly hlc: string } | null;
+  /** Mayor marca guardada de ese dispositivo (el tercer componente de la marca), o null si no tiene ninguna. */
+  ultimaMarcaDe(dispositivo: string): string | null;
 }
 
 type Clase = "crear" | "editar" | "terminal" | "moneda";

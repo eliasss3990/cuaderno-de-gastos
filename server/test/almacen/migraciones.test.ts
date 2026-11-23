@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { CONSULTAS } from "../../src/almacen/almacenSqlite.js";
 import { abrirBase } from "../../src/almacen/base.js";
-import { migrar, VERSION_ACTUAL, type Migracion } from "../../src/almacen/migraciones.js";
+import { MIGRACIONES, migrar, VERSION_ACTUAL, type Migracion } from "../../src/almacen/migraciones.js";
 
 const tablas = (db: Database.Database): string[] =>
   (db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[]).map((t) => t.name);
@@ -13,9 +13,10 @@ const tablas = (db: Database.Database): string[] =>
 describe("migraciones", () => {
   it("una base nueva recibe todas las migraciones y queda registrada la versión", () => {
     const db = new Database(":memory:");
-    expect(migrar(db, 1234)).toEqual([1]);
+    expect(migrar(db, 1234)).toEqual(MIGRACIONES.map((m) => m.version));
     expect(tablas(db)).toEqual(["entity", "entity_field", "entity_tombstone", "op", "schema_migration", "trip_closed_interval"]);
-    expect(db.prepare("SELECT version, aplicada_en FROM schema_migration").all()).toEqual([{ version: VERSION_ACTUAL, aplicada_en: 1234 }]);
+    expect(db.prepare("SELECT version, aplicada_en FROM schema_migration ORDER BY version").all()).toEqual(MIGRACIONES.map((m) => ({ version: m.version, aplicada_en: 1234 })));
+    expect(VERSION_ACTUAL).toBe(MIGRACIONES.length);
   });
 
   it("una migración que falla a medias no deja nada y no registra la versión; las anteriores se conservan", () => {
@@ -34,15 +35,25 @@ describe("migraciones", () => {
     const db = new Database(":memory:");
     migrar(db);
     db.prepare("INSERT INTO schema_migration (version, aplicada_en) VALUES (99, 1)").run();
-    expect(() => migrar(db)).toThrow(/versión 99.*hasta la 1/);
-    expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()).toEqual({ n: 2 });
+    expect(() => migrar(db)).toThrow(new RegExp(`versión 99.*hasta la ${VERSION_ACTUAL}`));
+    expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()).toEqual({ n: VERSION_ACTUAL + 1 });
+  });
+
+  it("la migración 2 completa una base que ya tenía operaciones de la versión 1", () => {
+    const db = new Database(":memory:");
+    migrar(db, 1, MIGRACIONES.slice(0, 1));
+    const dispositivo = "018f3a6e-0000-7000-8000-00000000000a";
+    const hlc = (ms: number) => `${ms.toString(16).padStart(13, "0")}-0000-${dispositivo}`;
+    db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada) VALUES ('v', 1, 'o1', 'expense', 'e1', NULL, 'expense.create', ?, '{}', 0)").run(hlc(100));
+    expect(migrar(db, 2)).toEqual([2]);
+    expect(db.prepare("SELECT dispositivo FROM op").all()).toEqual([{ dispositivo }]);
   });
 
   it("volver a migrar no hace nada", () => {
     const db = new Database(":memory:");
     migrar(db);
     expect(migrar(db)).toEqual([]);
-    expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()).toEqual({ n: 1 });
+    expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()).toEqual({ n: VERSION_ACTUAL });
   });
 
   it("abrirBase deja WAL (en archivo), claves foráneas y la espera configurada", () => {
@@ -76,12 +87,17 @@ describe("migraciones", () => {
     expect(plan(CONSULTAS.redactarPorEntidad, "v", "t", "i")).toContain("ix_op_entidad (trip_id=? AND entity_type=? AND entity_id=?)");
     expect(plan(CONSULTAS.redactarPorPadre, "v", "p")).toContain("ix_op_padre");
     expect(plan(CONSULTAS.marcaEnUso, "v", "h")).toContain("ux_op_hlc");
+    expect(plan(CONSULTAS.ultimaMarcaDe, "v", "d")).toContain("ix_op_dispositivo (trip_id=? AND dispositivo=?)");
+    // con la marca como última columna, hallar la mayor de un dispositivo es un salto al final del índice, sin leer filas
+    const columnas = (db.pragma("index_info(ix_op_dispositivo)") as { name: string }[]).map((c) => c.name);
+    expect(columnas).toEqual(["trip_id", "dispositivo", "hlc"]);
     // y ninguna recorre toda la tabla de operaciones
     const consultas: [string, string[]][] = [
       [CONSULTAS.padreRegistrado, ["v", "t", "i"]],
       [CONSULTAS.redactarPorEntidad, ["v", "t", "i"]],
       [CONSULTAS.redactarPorPadre, ["v", "p"]],
       [CONSULTAS.marcaEnUso, ["v", "h"]],
+      [CONSULTAS.ultimaMarcaDe, ["v", "d"]],
     ];
     for (const [sql, args] of consultas) expect(plan(sql, ...args)).not.toMatch(/SCAN op/);
   });

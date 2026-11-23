@@ -9,7 +9,7 @@ export interface Migracion {
   readonly sql: string;
 }
 
-const MIGRACIONES: readonly Migracion[] = [
+export const MIGRACIONES: readonly Migracion[] = [
   {
     version: 1,
     sql: `
@@ -75,6 +75,15 @@ const MIGRACIONES: readonly Migracion[] = [
       ) WITHOUT ROWID;
       -- a lo sumo un intervalo abierto por viaje (defensa de la base, además de la regla del código)
       CREATE UNIQUE INDEX ux_intervalo_abierto ON trip_closed_interval(trip_id) WHERE hasta_ms IS NULL;
+    `,
+  },
+  {
+    version: 2,
+    sql: `
+      -- Dispositivo que generó la marca: es su tercer componente (13 de milisegundos, guion, 4 del contador, guion).
+      -- Sirve para hallar la última marca de un dispositivo sin recorrer el registro.
+      ALTER TABLE op ADD COLUMN dispositivo TEXT GENERATED ALWAYS AS (substr(hlc, 20)) VIRTUAL;
+      CREATE INDEX ix_op_dispositivo ON op(trip_id, dispositivo, hlc);
     `,
   },
 ];

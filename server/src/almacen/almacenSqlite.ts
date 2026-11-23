@@ -17,6 +17,7 @@ export const CONSULTAS = {
   redactarPorEntidad: "UPDATE op INDEXED BY ix_op_entidad SET payload = NULL, redactada = 1 WHERE trip_id = ? AND entity_type = ? AND entity_id = ?",
   redactarPorPadre: "UPDATE op INDEXED BY ix_op_padre SET payload = NULL, redactada = 1 WHERE trip_id = ? AND padre_id = ?",
   marcaEnUso: "SELECT 1 FROM op WHERE trip_id = ? AND hlc = ?",
+  ultimaMarcaDe: "SELECT MAX(hlc) AS hlc FROM op WHERE trip_id = ? AND dispositivo = ?",
 } as const;
 
 interface FilaOp {
@@ -146,6 +147,16 @@ export class AlmacenSqlite implements Almacen {
       "INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     ).run(this.tripId, s, op.opId, op.entidadTipo, op.entidadId, op.padreId, op.tipo, op.hlc, op.payload === null ? null : JSON.stringify(op.payload), op.redactada ? 1 : 0);
     return s;
+  }
+
+  buscarOp(opId: string): { seq: number; hlc: string } | null {
+    const fila = this.q("SELECT server_seq, hlc FROM op WHERE trip_id = ? AND op_id = ?").get(this.tripId, opId) as { server_seq: number; hlc: string } | undefined;
+    return fila === undefined ? null : { seq: fila.server_seq, hlc: fila.hlc };
+  }
+
+  ultimaMarcaDe(dispositivo: string): string | null {
+    const fila = this.q(CONSULTAS.ultimaMarcaDe).get(this.tripId, dispositivo) as { hlc: string | null };
+    return fila.hlc;
   }
 
   /** Vista ordenada del estado, con el mismo formato que la del almacén en memoria (para compararlos). */

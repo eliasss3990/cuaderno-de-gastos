@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { AlmacenSqlite } from "../../src/almacen/almacenSqlite.js";
 import { abrirBase } from "../../src/almacen/base.js";
+import { VERSION_ACTUAL } from "../../src/almacen/migraciones.js";
 import { Ingesta } from "../../src/dominio/ingesta.js";
 import type { Operacion } from "../../src/dominio/operaciones.js";
 
@@ -40,7 +41,7 @@ describe("base SQLite en archivo", () => {
     const ruta = nueva();
     abrirBase(ruta).close();
     const db = abrirBase(ruta);
-    expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()).toEqual({ n: 1 });
+    expect(db.prepare("SELECT COUNT(*) AS n FROM schema_migration").get()).toEqual({ n: VERSION_ACTUAL });
     db.close();
   });
 
@@ -64,6 +65,10 @@ describe("base SQLite en archivo", () => {
     expect(b.entidadTerminada("expense", "e1")).toBe(false);
     expect(b.marcaEnUso(MARCA(1))).toBe(false);
     expect(b.opConocida("o1")).toBe(false);
+    expect(b.buscarOp("o1")).toBeNull();
+    expect(a.buscarOp("o1")).toEqual({ seq: 1, hlc: MARCA(1) });
+    expect(b.ultimaMarcaDe("018f3a6e-0000-7000-8000-00000000000a")).toBeNull();
+    expect(a.ultimaMarcaDe("018f3a6e-0000-7000-8000-00000000000a")).toBe(MARCA(1));
     expect(a.opConocida("o1")).toBe(true);
     expect(b.secuencias()).toEqual([]);
     expect(b.guardarOp({ opId: "o2", tipo: "trip.create", entidadTipo: "trip", entidadId: "t2", hlc: MARCA(1), payload: {}, redactada: false, padreId: null })).toBe(1);
