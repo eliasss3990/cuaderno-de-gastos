@@ -2,7 +2,7 @@
 // corren antes de leer el cuerpo, así un pedido sin token nunca llega a validar su JSON.
 
 import type { FastifyRequest, onRequestHookHandler } from "fastify";
-import type { ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
+import { ErrorDeServicio, type ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
 import { abreviarId } from "../observabilidad/registro.js";
 import { ErrorHttp } from "./errores.js";
 import { compararVersiones, parsearVersion } from "./versiones.js";
@@ -23,6 +23,12 @@ export function exigirVersion(minima: readonly number[]): onRequestHookHandler {
     const version = parsearVersion(request.headers["x-app-version"]);
     hecho(version !== null && compararVersiones(version, minima) < 0 ? new ErrorHttp(426, "app_desactualizada", "Actualizá la app") : undefined);
   };
+}
+
+/** El dispositivo autenticado, si el viaje del camino es el suyo; si no, `no_existe` (no revela que el viaje existe). */
+export function delViaje<T extends { tripId: string }>(trip: string, dispositivo: T | null): T {
+  if (dispositivo === null || dispositivo.tripId !== trip) throw new ErrorDeServicio("no_existe", "el viaje no existe");
+  return dispositivo;
 }
 
 /** Autentica al dispositivo (anota lo que informa en `X-Ultimo-Seq` y `X-Pendientes`) y deja su registro con `trip_id` y `device_id`. */

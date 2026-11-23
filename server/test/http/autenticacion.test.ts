@@ -155,7 +155,7 @@ describe("la versión mínima de la app (APP_MIN_VERSION)", () => {
     expect(() => entornoApi()).not.toThrow();
     const e = entornoApi();
     for (const mala of ["abc", "", "1.2.3.4.5", "-1"]) {
-      expect(() => construirApi({ servicio: e.servicio, registro: e.registro, metricas: e.metricas, versionMinima: mala })).toThrow(RangeError);
+      expect(() => construirApi({ servicio: e.servicio, sincronizacion: e.sincronizacion, registro: e.registro, metricas: e.metricas, versionMinima: mala })).toThrow(RangeError);
     }
   });
 });

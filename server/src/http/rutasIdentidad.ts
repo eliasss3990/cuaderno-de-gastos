@@ -2,8 +2,8 @@
 // un campo de más o de otro tipo es 400 (la validación no convierte tipos ni borra campos).
 
 import type { FastifyInstance } from "fastify";
-import { ErrorDeServicio, type ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
-import { exigirDispositivo } from "./autenticacion.js";
+import type { ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
+import { delViaje, exigirDispositivo } from "./autenticacion.js";
 import { ipDelPedido } from "./pedidos.js";
 
 const texto = { type: "string" } as const;
@@ -107,10 +107,4 @@ export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdent
       return reply.status(204).send();
     },
   );
-}
-
-/** El dispositivo autenticado, si el viaje del camino es el suyo; si no, `no_existe` (no revela que el viaje existe). */
-function delViaje<T extends { tripId: string }>(trip: string, dispositivo: T | null): T {
-  if (dispositivo === null || dispositivo.tripId !== trip) throw new ErrorDeServicio("no_existe", "el viaje no existe");
-  return dispositivo;
 }
