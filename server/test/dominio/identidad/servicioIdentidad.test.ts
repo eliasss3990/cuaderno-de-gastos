@@ -16,6 +16,8 @@ const carpetas: string[] = [];
 afterEach(() => { for (const c of carpetas.splice(0)) rmSync(c, { recursive: true, force: true }); });
 
 const AHORA = 1802000000000;
+/** El valor secreto de las huellas (32 bytes): solo para pruebas. */
+const PEPPER = Uint8Array.from({ length: 32 }, (_, i) => i + 1);
 const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** Una fuente de azar determinista pero distinta en cada llamada (no es segura: solo para pruebas). */
@@ -49,7 +51,7 @@ function entorno(fabrica?: (db: Database, id: string) => AlmacenSqlite) {
   const db = abrirBase(":memory:");
   const identidad = new IdentidadQueFalla(db);
   const reloj = { ahora: AHORA };
-  const servicio = new ServicioDeIdentidad({ identidad, almacenDe: (id) => (fabrica ?? ((d, i) => new AlmacenSqlite(d, i)))(db, id), ahora: () => reloj.ahora, aleatorio: azarDeterminista() });
+  const servicio = new ServicioDeIdentidad({ identidad, almacenDe: (id) => (fabrica ?? ((d, i) => new AlmacenSqlite(d, i)))(db, id), pepper: PEPPER, ahora: () => reloj.ahora, aleatorio: azarDeterminista() });
   const contar = (tabla: string) => (db.prepare(`SELECT COUNT(*) AS n FROM ${tabla}`).get() as { n: number }).n;
   const vacio = () => ["entity", "entity_field", "entity_tombstone", "op", "device", "invitation"].every((t) => contar(t) === 0);
   return { db, identidad, servicio, reloj, contar, vacio, almacen: (id: string) => new AlmacenSqlite(db, id) };
@@ -171,7 +173,7 @@ describe("crear un viaje: reglas fijas", () => {
       const k = sorteo++ % 6;
       return Uint8Array.from({ length: n }, (_, j) => (k * 40 + j * 3 + 5) & 255);
     };
-    const servicio = new ServicioDeIdentidad({ identidad, almacenDe: (id) => new AlmacenSqlite(db, id), ahora: () => AHORA, aleatorio: repetida });
+    const servicio = new ServicioDeIdentidad({ identidad, almacenDe: (id) => new AlmacenSqlite(db, id), pepper: PEPPER, ahora: () => AHORA, aleatorio: repetida });
     const primero = servicio.crearViaje(DATOS);
     const contar = (t: string) => (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
     const antes = [contar("entity"), contar("entity_field"), contar("op"), contar("device")];
@@ -298,7 +300,7 @@ describe("crear un viaje con datos inválidos", () => {
     const ruta = join(carpeta, "viaje.db");
     const dbA = abrirBase(ruta, { esperaMs: 0 });
     const dbB = abrirBase(ruta, { esperaMs: 0 });
-    const servicio = new ServicioDeIdentidad({ identidad: new IdentidadSqlite(dbA), almacenDe: (id) => new AlmacenSqlite(dbB, id), ahora: () => AHORA, aleatorio: azarDeterminista() });
+    const servicio = new ServicioDeIdentidad({ identidad: new IdentidadSqlite(dbA), almacenDe: (id) => new AlmacenSqlite(dbB, id), pepper: PEPPER, ahora: () => AHORA, aleatorio: azarDeterminista() });
     let error: unknown;
     try { servicio.crearViaje(DATOS); } catch (e) { error = e; }
     expect((error as { code?: string } | undefined)?.code).toBe("SQLITE_BUSY");
@@ -308,7 +310,7 @@ describe("crear un viaje con datos inválidos", () => {
 
   it("un reloj del servidor inválido es un error del servidor (RangeError), no del cliente, y no escribe nada", () => {
     const db = abrirBase(":memory:");
-    const servicio = new ServicioDeIdentidad({ identidad: new IdentidadSqlite(db), almacenDe: (id) => new AlmacenSqlite(db, id), ahora: () => NaN, aleatorio: azarDeterminista() });
+    const servicio = new ServicioDeIdentidad({ identidad: new IdentidadSqlite(db), almacenDe: (id) => new AlmacenSqlite(db, id), pepper: PEPPER, ahora: () => NaN, aleatorio: azarDeterminista() });
     let error: unknown;
     try { servicio.crearViaje(DATOS); } catch (e) { error = e; }
     expect(error).toBeInstanceOf(RangeError);
@@ -330,7 +332,7 @@ describe("crear un viaje con datos inválidos", () => {
     const dbIdentidad = abrirBase(":memory:");
     const dbViajes = abrirBase(":memory:");
     const identidad = new IdentidadQueFalla(dbIdentidad);
-    const servicio = new ServicioDeIdentidad({ identidad, almacenDe: (id) => new AlmacenSqlite(dbViajes, id), ahora: () => AHORA, aleatorio: azarDeterminista() });
+    const servicio = new ServicioDeIdentidad({ identidad, almacenDe: (id) => new AlmacenSqlite(dbViajes, id), pepper: PEPPER, ahora: () => AHORA, aleatorio: azarDeterminista() });
     identidad.fallar = true;
     expect(() => servicio.crearViaje(DATOS)).toThrow(/falla inyectada/);
     const n = (db: Database, t: string) => (db.prepare(`SELECT COUNT(*) AS n FROM ${t}`).get() as { n: number }).n;
