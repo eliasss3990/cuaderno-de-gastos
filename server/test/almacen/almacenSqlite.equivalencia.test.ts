@@ -4,6 +4,8 @@ import { AlmacenSqlite } from "../../src/almacen/almacenSqlite.js";
 import { abrirBase } from "../../src/almacen/base.js";
 import { AlmacenMemoria, type Instantanea } from "../../src/dominio/almacenMemoria.js";
 import { Ingesta } from "../../src/dominio/ingesta.js";
+import { RecepcionDeOperaciones } from "../../src/dominio/recepcion.js";
+import { formatearHlc, parsearHlc } from "../../src/dominio/reloj.js";
 import { MotorOperaciones, type IntervaloCierre, type Operacion, type Resultado } from "../../src/dominio/operaciones.js";
 import { barajar, conDuplicados, generador, generar } from "../ayudas/operacionesAleatorias.js";
 
@@ -80,5 +82,59 @@ describe("almacén SQLite: igual que el de memoria en la ingesta, el cierre y lo
       const enSqlite = correr(sqlite(), ops, orden, []);
       expect(enSqlite, `caso ${caso}`).toEqual(enMemoria);
     }
+  });
+
+  describe("recepción de lotes", () => {
+    const recibir = (almacen: AlmacenMemoria | AlmacenSqlite, pasos: { ops: readonly Operacion[]; dispositivo: string; ahora: number }[]) => {
+      let ahora = 0;
+      const recepcion = new RecepcionDeOperaciones(almacen, () => ahora);
+      const resultados = pasos.map((p) => {
+        ahora = p.ahora;
+        return recepcion.procesarLote(p.ops, p.dispositivo);
+      });
+      return { resultados, estado: almacen.instantanea(), secuencias: almacen.secuencias() };
+    };
+
+    it("los escenarios de recepción dan lo esperado y lo mismo en los dos almacenes", () => {
+      const { escenarios } = leer<{ escenarios: { nombre: string; dispositivo: string; ops: Operacion[]; lotes: { ahora: number; dispositivo?: string; ops: number[] }[] }[] }>("recepcion.json");
+      for (const e of escenarios) {
+        const pasos = e.lotes.map((l) => ({ ops: l.ops.map((i) => e.ops[i] as Operacion), dispositivo: l.dispositivo ?? e.dispositivo, ahora: l.ahora }));
+        expect(recibir(sqlite(), pasos), e.nombre).toEqual(recibir(new AlmacenMemoria(), pasos));
+      }
+    });
+
+    it("200 recorridos aleatorios con marcas del futuro, duplicados y dos dispositivos dan lo mismo en los dos almacenes", () => {
+      const azar = generador(20261125);
+      let corregidas = 0;
+      let duplicadasConMarca = 0;
+      for (let caso = 0; caso < 200; caso++) {
+        const ops = generar(azar);
+        // la mitad de las marcas se adelanta más de 5 minutos respecto de la hora del servidor (1000)
+        const movidas = ops.map((o) => {
+          const m = parsearHlc(o.hlc);
+          if (!m.ok || azar() < 0.5) return o;
+          return { ...o, hlc: formatearHlc({ ...m.hlc, ms: m.hlc.ms + 400_000 + Math.floor(azar() * 500_000) }) };
+        });
+        const llegada = conDuplicados(azar, caso % 2 === 0 ? [movidas[0] as Operacion, ...barajar(azar, movidas.slice(1))] : barajar(azar, movidas));
+        const pasos = llegada.map((o) => {
+          const m = parsearHlc(o.hlc);
+          return { ops: [o], dispositivo: m.ok ? m.hlc.dispositivo : "", ahora: 1000 };
+        });
+        const enSqlite = sqlite();
+        const resultado = recibir(enSqlite, pasos);
+        expect(resultado, `caso ${caso}`).toEqual(recibir(new AlmacenMemoria(), pasos));
+        resultado.resultados.forEach((lote, k) => {
+          const r = lote[0];
+          if (r === undefined || r.estado === "rejected") return;
+          // la marca que se devuelve es la que quedó guardada, y la secuencia es la guardada
+          expect(enSqlite.buscarOp(r.opId), `caso ${caso}`).toEqual({ seq: r.seq, hlc: r.hlc });
+          const enviada = (pasos[k] as { ops: readonly Operacion[] }).ops[0] as Operacion;
+          if (r.estado === "accepted" && r.hlc !== enviada.hlc) corregidas += 1;
+          if (r.estado === "duplicate") duplicadasConMarca += 1;
+        });
+      }
+      expect(corregidas).toBeGreaterThan(100); // la prueba sí ejercita la corrección
+      expect(duplicadasConMarca).toBeGreaterThan(20);
+    });
   });
 });

@@ -29,6 +29,8 @@ export interface Instantanea {
 
 type Guardada = OpGuardada & { readonly seq: number };
 
+/** Índice (desde 0) donde empieza el dispositivo en la marca: 13 de milisegundos, guion, 4 del contador y otro guion. */
+const DISPOSITIVO_DESDE = 19;
 const clave = (tipo: string, id: string): string => `${tipo}\u0000${id}`;
 const ordenar = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 const copia = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;
@@ -210,6 +212,19 @@ export class AlmacenMemoria implements Almacen {
       this.seq = numero - 1;
     });
     return numero;
+  }
+
+  buscarOp(opId: string): { seq: number; hlc: string } | null {
+    const op = this.ops.get(opId);
+    return op === undefined ? null : { seq: op.seq, hlc: op.hlc };
+  }
+
+  ultimaMarcaDe(dispositivo: string): string | null {
+    let mayor: string | null = null;
+    for (const hlc of this.marcas) {
+      if (hlc.slice(DISPOSITIVO_DESDE) === dispositivo && (mayor === null || hlc > mayor)) mayor = hlc;
+    }
+    return mayor;
   }
 
   /** Vista ordenada del estado: sin números de secuencia, para comparar estados entre órdenes de llegada. */

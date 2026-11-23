@@ -271,6 +271,32 @@ describe.each<[string, () => Almacen]>([
     expect(a.entidadExiste("expense", "e3")).toBe(true);
   });
 
+  it("buscarOp devuelve la secuencia y la marca guardadas, y null si no se guardó", () => {
+    const a = crear();
+    expect(a.buscarOp("o1")).toBeNull();
+    a.guardarOp(op("o1", { hlc: MARCA_1 }));
+    a.guardarOp(op("o2", { hlc: MARCA_2 }));
+    expect(a.buscarOp("o1")).toEqual({ seq: 1, hlc: MARCA_1 });
+    expect(a.buscarOp("o2")).toEqual({ seq: 2, hlc: MARCA_2 });
+    expect(a.buscarOp("o3")).toBeNull();
+  });
+
+  it("ultimaMarcaDe devuelve la mayor marca de ese dispositivo y null si no tiene", () => {
+    const a = crear();
+    const otro = "018f3a6e-0000-7000-8000-00000000000b";
+    const marca = (ms: number, contador: number, dispositivo: string) => `${ms.toString(16).padStart(13, "0")}-${contador.toString(16).padStart(4, "0")}-${dispositivo}`;
+    const mia = "018f3a6e-0000-7000-8000-00000000000a";
+    expect(a.ultimaMarcaDe(mia)).toBeNull();
+    a.guardarOp(op("o1", { hlc: marca(100, 5, mia) }));
+    a.guardarOp(op("o2", { hlc: marca(300, 0, mia) }));
+    a.guardarOp(op("o3", { hlc: marca(200, 9, mia) }));
+    a.guardarOp(op("o4", { hlc: marca(900, 0, otro) }));
+    a.guardarOp(op("o5", { hlc: marca(300, 1, mia) }));
+    expect(a.ultimaMarcaDe(mia)).toBe(marca(300, 1, mia));
+    expect(a.ultimaMarcaDe(otro)).toBe(marca(900, 0, otro));
+    expect(a.ultimaMarcaDe("018f3a6e-0000-7000-8000-00000000000c")).toBeNull();
+  });
+
   it("idDelViaje devuelve el id del viaje o null", () => {
     const a = crear();
     expect(a.idDelViaje()).toBeNull();
