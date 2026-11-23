@@ -82,7 +82,7 @@ describe("almacén SQLite: igual que el de memoria en la ingesta, el cierre y lo
       const enSqlite = correr(sqlite(), ops, orden, []);
       expect(enSqlite, `caso ${caso}`).toEqual(enMemoria);
     }
-  });
+  }, 60_000);
 
   describe("recepción de lotes", () => {
     const recibir = (almacen: AlmacenMemoria | AlmacenSqlite, pasos: { ops: readonly Operacion[]; dispositivo: string; ahora: number }[]) => {
@@ -101,7 +101,7 @@ describe("almacén SQLite: igual que el de memoria en la ingesta, el cierre y lo
         const pasos = e.lotes.map((l) => ({ ops: l.ops.map((i) => e.ops[i] as Operacion), dispositivo: l.dispositivo ?? e.dispositivo, ahora: l.ahora }));
         expect(recibir(sqlite(), pasos), e.nombre).toEqual(recibir(new AlmacenMemoria(), pasos));
       }
-    }, 60_000);
+    });
 
     it("200 recorridos aleatorios con marcas del futuro, duplicados y dos dispositivos dan lo mismo en los dos almacenes", () => {
       const azar = generador(20261125);

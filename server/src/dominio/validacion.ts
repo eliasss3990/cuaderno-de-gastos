@@ -51,6 +51,11 @@ function texto(max: number, variasLineas = false): Regla {
   };
 }
 
+/** La regla de los textos de una línea (apodo, nombres), para quien necesite la misma fuera de las operaciones. Devuelve el motivo del rechazo o null. */
+export function validarTextoDeUnaLinea(valor: unknown, max: number): string | null {
+  return texto(max)(valor as Json); // la regla ya comprueba que sea texto
+}
+
 function conPatron(patron: RegExp, descripcion: string): Regla {
   return (v) => (typeof v === "string" && patron.test(v) ? null : `debe ser ${descripcion}`);
 }
