@@ -1,6 +1,6 @@
 // Generador de operaciones de formato válido con referencias que a veces no existen, para pruebas de propiedades.
-import type { Campos, Operacion } from "../../src/dominio/operaciones.js";
-import { formatearHlc } from "../../src/dominio/reloj.js";
+import type { Campos, Operacion } from "../../src/dominio/operaciones/operaciones.js";
+import { formatearHlc } from "../../src/dominio/base/reloj.js";
 
 const DISPOSITIVOS = ["018f3a6e-0000-7000-8000-00000000000a", "018f3a6e-0000-7000-8000-00000000000b"];
 
