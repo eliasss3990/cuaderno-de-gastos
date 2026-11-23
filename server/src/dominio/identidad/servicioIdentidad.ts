@@ -135,7 +135,7 @@ function nombreDeDispositivo(valor: unknown): string {
   if (motivo !== null) return falla(motivo);
   const texto = nombre as string;
   if (INVISIBLES.test(texto)) return falla("no admite caracteres invisibles");
-  if (texto.replace(NO_VISIBLE, "") === "") return falla("no puede ser solo espacios o caracteres invisibles");
+  if (texto.replaceAll(NO_VISIBLE, "") === "") return falla("no puede ser solo espacios o caracteres invisibles");
   return texto;
 }
 

@@ -64,7 +64,7 @@ export function generarCodigo(aleatorio: Aleatorio = aleatorioDelSistema): strin
  */
 export function normalizarCodigo(texto: unknown): string | null {
   if (typeof texto !== "string") return null;
-  const sinSeparadores = texto.replace(/[\s\u2010-\u2015\u2212-]/g, "");
+  const sinSeparadores = texto.replaceAll(/[\s\u2010-\u2015\u2212-]/g, "");
   if (/[^\x00-\x7f]/.test(sinSeparadores)) return null;
   const limpio = sinSeparadores.toUpperCase();
   if (limpio.length !== LARGO_CODIGO) return null;
