@@ -71,5 +71,5 @@ export function entornoApi(opciones: { versionMinima?: string; servicio?: Servic
   const contador = (nombre: string, etiquetas: Record<string, string>) =>
     metricas.resumen().contadores.find((s) => s.nombre === nombre && JSON.stringify(s.etiquetas) === JSON.stringify(etiquetas))?.valor;
 
-  return { app, db, identidad, reloj, servicio, registro, metricas, con, crearViaje, invitar, unirse, sumar, contador };
+  return { app, db, identidad, reloj, servicio, sincronizacion, registro, metricas, con, crearViaje, invitar, unirse, sumar, contador };
 }
