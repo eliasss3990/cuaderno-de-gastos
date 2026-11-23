@@ -4,6 +4,7 @@
 // viaje, dispositivo u operación, ni una ruta con parámetros) de hasta 64 caracteres con solo letras, números y . : / _ - Cada combinación es una serie y hay
 // un tope. El resumen se escribe sin limpiar: ni los nombres ni las etiquetas deben llevar datos (se rechaza lo que parece uno).
 
+import { tareaPeriodica } from "./periodico.js";
 import { marcarLimpio, pareceUnDato, type Registro } from "./registro.js";
 
 export type Etiquetas = Readonly<Record<string, string>>;
@@ -239,20 +240,18 @@ export interface OpcionesDelResumen {
 
 /** Imprime el resumen en el log (`metricas_resumen`) cada `cadaMs` (una hora). Devuelve la función que lo detiene. */
 export function iniciarResumenPeriodico(opciones: OpcionesDelResumen): () => void {
-  const cadaMs = opciones.cadaMs ?? CADA_HORA_MS;
-  if (!Number.isFinite(cadaMs) || cadaMs <= 0) throw new RangeError("el intervalo del resumen debe ser un número positivo");
-  const programar = opciones.programar ?? ((accion, ms) => setInterval(accion, ms));
-  const cancelar = opciones.cancelar ?? ((t) => clearInterval(t as ReturnType<typeof setInterval>));
-  const temporizador = programar(() => {
+  const accion = (): void => {
     try {
       opciones.registro.info("metricas_resumen", resumenACampos(opciones.metricas.tomarResumen()));
     } catch {
       /* un fallo al escribir el resumen no debe tumbar el proceso: el próximo intento sigue */
     }
-  }, cadaMs);
-  // un temporizador que solo imprime un resumen no debe impedir que el proceso termine
-  if (typeof temporizador === "object" && temporizador !== null && "unref" in temporizador && typeof temporizador.unref === "function") temporizador.unref();
-  return () => cancelar(temporizador);
+  };
+  return tareaPeriodica(accion, {
+    cadaMs: opciones.cadaMs ?? CADA_HORA_MS,
+    ...(opciones.programar === undefined ? {} : { programar: opciones.programar }),
+    ...(opciones.cancelar === undefined ? {} : { cancelar: opciones.cancelar }),
+  });
 }
 
 /** Empieza a medir una duración; la función devuelta la anota con `medir` y la devuelve (en milisegundos). */
