@@ -29,7 +29,7 @@ function comprobarDecimales(decimales: number): void {
 }
 
 function agrupar(enteros: string): string {
-  return enteros.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return enteros.replaceAll(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
 function comprobarMinor(minor: number): void {

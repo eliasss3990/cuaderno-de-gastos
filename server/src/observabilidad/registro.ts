@@ -56,7 +56,7 @@ const SENSIBLE = /token|secret|passw|cookie|authoriz|apikey|bearer|jwt|session|c
 /** Un código: el nombre empieza por `codigo` o termina en `code` (`codigo_viaje`, `joinCode`). */
 const CODIGO = /^codigo|code$/;
 
-const normalizar = (nombre: string): string => nombre.toLowerCase().replace(/[^a-z0-9]/g, "");
+const normalizar = (nombre: string): string => nombre.toLowerCase().replaceAll(/[^a-z0-9]/g, "");
 const esSensible = (nombre: string): boolean => {
   const n = normalizar(nombre);
   return PROHIBIDOS.has(n) || SENSIBLE.test(n) || CODIGO.test(n);
@@ -89,14 +89,14 @@ function ocultarEnTexto(entrada: string): string {
     }
   }
   return texto
-    .replace(COOKIE, `$1${OCULTO}`)
-    .replace(AUTORIZACION, `$1${OCULTO}`)
-    .replace(USUARIO_Y_CLAVE, `$1${OCULTO}@`)
-    .replace(CAMPO_JSON, `$1"${OCULTO}"`)
-    .replace(BEARER, `Bearer ${OCULTO}`)
-    .replace(PARAMETRO, `$1$2${OCULTO}`)
-    .replace(JWT, OCULTO)
-    .replace(FORMA_DE_TOKEN, OCULTO);
+    .replaceAll(COOKIE, `$1${OCULTO}`)
+    .replaceAll(AUTORIZACION, `$1${OCULTO}`)
+    .replaceAll(USUARIO_Y_CLAVE, `$1${OCULTO}@`)
+    .replaceAll(CAMPO_JSON, `$1"${OCULTO}"`)
+    .replaceAll(BEARER, `Bearer ${OCULTO}`)
+    .replaceAll(PARAMETRO, `$1$2${OCULTO}`)
+    .replaceAll(JWT, OCULTO)
+    .replaceAll(FORMA_DE_TOKEN, OCULTO);
 }
 
 const CORRIDA_LARGA = /[\w-]{32,}/;
