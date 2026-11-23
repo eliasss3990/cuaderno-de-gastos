@@ -1,7 +1,7 @@
 // Almacén en memoria del estado del viaje: sirve a las pruebas y como referencia de lo que debe cumplir
 // cualquier otro almacén (por ejemplo el de SQLite). `instantanea` da una vista ordenada para comparar.
 
-import type { Almacen, Campos, Json, OpGuardada } from "./operaciones.js";
+import type { Almacen, Campos, IntervaloCierre, Json, OpGuardada } from "./operaciones.js";
 
 interface Fila {
   readonly campos: Map<string, Json>;
@@ -44,6 +44,7 @@ export class AlmacenMemoria implements Almacen {
   private readonly lapidas = new Map<string, { tipo: string; id: string }>();
   private readonly ops = new Map<string, Guardada>();
   private readonly marcas = new Set<string>();
+  private intervalos: IntervaloCierre[] = [];
   private seq = 0;
   /** Pasos para deshacer lo hecho dentro de la transacción en curso (null si no hay ninguna). */
   private diario: (() => void)[] | null = null;
@@ -81,6 +82,32 @@ export class AlmacenMemoria implements Almacen {
 
   entidadTerminada(tipo: string, id: string): boolean {
     return this.lapidas.has(clave(tipo, id));
+  }
+
+  idDelViaje(): string | null {
+    for (const e of this.entidades.values()) if (e.tipo === "trip") return e.id;
+    return null;
+  }
+
+  intervalosDeCierre(): readonly IntervaloCierre[] {
+    return this.intervalos.map((i) => ({ ...i }));
+  }
+
+  abrirIntervalo(desdeMs: number, causa: IntervaloCierre["causa"]): void {
+    const ultimo = this.intervalos[this.intervalos.length - 1];
+    if (ultimo !== undefined && (ultimo.hastaMs === null || desdeMs < ultimo.hastaMs)) throw new Error("el intervalo se superpone con el anterior");
+    const antes = this.intervalos;
+    this.intervalos = [...antes, { desdeMs, hastaMs: null, causa }];
+    this.deshacer(() => (this.intervalos = antes));
+  }
+
+  cerrarIntervalo(hastaMs: number): void {
+    const ultimo = this.intervalos[this.intervalos.length - 1];
+    if (ultimo === undefined || ultimo.hastaMs !== null) throw new Error("no hay un intervalo abierto");
+    if (hastaMs <= ultimo.desdeMs) throw new Error("el fin debe ser posterior al inicio");
+    const antes = this.intervalos;
+    this.intervalos = [...antes.slice(0, -1), { ...ultimo, hastaMs }];
+    this.deshacer(() => (this.intervalos = antes));
   }
 
   leerCampo(tipo: string, id: string, campo: string): Json | undefined {

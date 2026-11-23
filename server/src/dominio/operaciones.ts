@@ -37,6 +37,13 @@ export interface OpGuardada {
   readonly padreId: string | null;
 }
 
+export interface IntervaloCierre {
+  readonly desdeMs: number;
+  /** null mientras el viaje siga cerrado. */
+  readonly hastaMs: number | null;
+  readonly causa: "MANUAL" | "FECHAS";
+}
+
 export interface Almacen {
   /**
    * Ejecuta `fn` como una unidad: si lanza un error se deshace todo lo escrito dentro. Aplicar una operación
@@ -50,6 +57,14 @@ export interface Almacen {
   entidadExiste(tipo: string, id: string): boolean;
   entidadTerminada(tipo: string, id: string): boolean;
   /** Valor actual de un campo de la entidad, o undefined si no existe la entidad o el campo no tiene valor. */
+  /** Id del viaje, o null si todavía no se creó. */
+  idDelViaje(): string | null;
+  /** Períodos en que el viaje estuvo cerrado, por inicio ascendente; a lo sumo el último está abierto. */
+  intervalosDeCierre(): readonly IntervaloCierre[];
+  /** Abre un intervalo de cierre; debe empezar después de que termine el anterior y no puede haber otro abierto. */
+  abrirIntervalo(desdeMs: number, causa: IntervaloCierre["causa"]): void;
+  /** Cierra el intervalo abierto; `hastaMs` debe ser mayor que su inicio. */
+  cerrarIntervalo(hastaMs: number): void;
   leerCampo(tipo: string, id: string, campo: string): Json | undefined;
   /** Cuántas entidades de ese tipo existen (las terminadas ya no están). */
   contarEntidades(tipo: string): number;

@@ -212,4 +212,61 @@ describe.each<[string, () => Almacen]>([["memoria", () => new AlmacenMemoria()]]
     expect(a.contarEntidades("shortcut")).toBe(2);
     expect(a.contarEntidades("expense")).toBe(1);
   });
+
+  it("idDelViaje devuelve el id del viaje o null", () => {
+    const a = crear();
+    expect(a.idDelViaje()).toBeNull();
+    a.crearEntidad("expense", "e1");
+    expect(a.idDelViaje()).toBeNull();
+    a.crearEntidad("trip", "v1");
+    expect(a.idDelViaje()).toBe("v1");
+  });
+
+  it("intervalos de cierre: abrir, cerrar y consultar en orden", () => {
+    const a = crear();
+    expect(a.intervalosDeCierre()).toEqual([]);
+    a.abrirIntervalo(100, "MANUAL");
+    expect(a.intervalosDeCierre()).toEqual([{ desdeMs: 100, hastaMs: null, causa: "MANUAL" }]);
+    a.cerrarIntervalo(200);
+    a.abrirIntervalo(200, "FECHAS");
+    a.cerrarIntervalo(300);
+    expect(a.intervalosDeCierre()).toEqual([
+      { desdeMs: 100, hastaMs: 200, causa: "MANUAL" },
+      { desdeMs: 200, hastaMs: 300, causa: "FECHAS" },
+    ]);
+  });
+
+  it("intervalos de cierre: rechaza superposiciones, dos abiertos y cierres sin sentido", () => {
+    const a = crear();
+    expect(() => a.cerrarIntervalo(10)).toThrow();
+    a.abrirIntervalo(100, "MANUAL");
+    expect(() => a.abrirIntervalo(150, "FECHAS")).toThrow();
+    expect(() => a.cerrarIntervalo(100)).toThrow();
+    expect(() => a.cerrarIntervalo(99)).toThrow();
+    a.cerrarIntervalo(200);
+    expect(() => a.cerrarIntervalo(300)).toThrow();
+    expect(() => a.abrirIntervalo(199, "FECHAS")).toThrow();
+    a.abrirIntervalo(200, "FECHAS");
+  });
+
+  it("intervalos de cierre: la lista devuelta no deja modificar el almacén", () => {
+    const a = crear();
+    a.abrirIntervalo(100, "MANUAL");
+    const lista = a.intervalosDeCierre() as unknown as { hastaMs: number | null }[];
+    (lista[0] as { hastaMs: number | null }).hastaMs = 5;
+    expect(a.intervalosDeCierre()[0]?.hastaMs).toBeNull();
+  });
+
+  it("intervalos de cierre: una transacción que falla los deshace", () => {
+    const a = crear();
+    a.abrirIntervalo(100, "MANUAL");
+    expect(() =>
+      a.transaccion(() => {
+        a.cerrarIntervalo(200);
+        a.abrirIntervalo(300, "FECHAS");
+        throw new Error("falla");
+      }),
+    ).toThrow("falla");
+    expect(a.intervalosDeCierre()).toEqual([{ desdeMs: 100, hastaMs: null, causa: "MANUAL" }]);
+  });
 });
