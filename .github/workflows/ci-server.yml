@@ -72,13 +72,25 @@ jobs:
         run: docker build -t cuaderno-server:ci server
       - name: Probar el contenedor sin root y con solo lectura
         run: |
-          docker run -d --name cdg --user 1234:1234 --read-only --memory 256m -p 8094:8094 cuaderno-server:ci
+          # como en el despliegue: raíz de solo lectura, la carpeta de datos montada y el pepper como archivo
+          mkdir -p "$RUNNER_TEMP/datos"
+          chmod 777 "$RUNNER_TEMP/datos"
+          openssl rand -hex 32 > "$RUNNER_TEMP/pepper.txt"
+          chmod 644 "$RUNNER_TEMP/pepper.txt"
+          docker run -d --name cdg --user 1234:1234 --read-only --tmpfs /tmp --memory 256m -p 8094:8094 \
+            -e DATA_DIR=/data -e PEPPER_FILE=/run/secrets/pepper -e APP_MIN_VERSION=0.1.0 \
+            -v "$RUNNER_TEMP/datos:/data" -v "$RUNNER_TEMP/pepper.txt:/run/secrets/pepper:ro" cuaderno-server:ci
+          ok=0
           for _ in $(seq 1 20); do
-            if curl -fsS http://127.0.0.1:8094/healthz; then echo; exit 0; fi
+            if curl -fsS http://127.0.0.1:8094/healthz; then echo; ok=1; break; fi
             sleep 2
           done
-          docker logs cdg
-          exit 1
+          if [ "$ok" != 1 ]; then docker logs cdg; exit 1; fi
+          # el apagado ordenado: SIGTERM, salida con código 0 y la base creada en la carpeta de datos
+          docker stop -t 10 cdg
+          codigo=$(docker inspect -f '{{.State.ExitCode}}' cdg)
+          if [ "$codigo" != 0 ]; then echo "salió con código $codigo"; docker logs cdg; exit 1; fi
+          test -f "$RUNNER_TEMP/datos/cuaderno.db"
 
   servidor-ok:
     name: Servidor OK
