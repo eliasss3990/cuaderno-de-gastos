@@ -86,6 +86,60 @@ export const MIGRACIONES: readonly Migracion[] = [
       CREATE INDEX ix_op_dispositivo ON op(trip_id, dispositivo, hlc);
     `,
   },
+  {
+    version: 3,
+    sql: `
+      -- Dispositivos autorizados de un viaje. El token nunca se guarda: solo su huella (SHA-256 en 64 hexadecimales
+      -- en minúscula; un token en claro no cumple la forma). length() y GLOB se detienen en un NUL, por eso también
+      -- se comprueba el largo en bytes. El integrante es una entidad más del viaje (la crea
+      -- member.join), por eso member_id no es una clave foránea. Las tablas son STRICT: un texto o un decimal en una
+      -- columna entera falla en vez de romper las comparaciones en silencio.
+      CREATE TABLE device (
+        device_id         TEXT    PRIMARY KEY,
+        trip_id           TEXT    NOT NULL,
+        member_id         TEXT    NOT NULL,
+        nombre            TEXT    NOT NULL,
+        token_hash        TEXT    NOT NULL UNIQUE CHECK (length(token_hash) = 64 AND length(CAST(token_hash AS BLOB)) = 64 AND token_hash NOT GLOB '*[^0-9a-f]*'),
+        creado_en         INTEGER NOT NULL,
+        revocado_en       INTEGER,
+        ultimo_visto_en   INTEGER,
+        ultimo_seq_visto  INTEGER NOT NULL DEFAULT 0 CHECK (ultimo_seq_visto >= 0),
+        pendientes        INTEGER NOT NULL DEFAULT 0 CHECK (pendientes >= 0),
+        CHECK (revocado_en IS NULL OR revocado_en >= creado_en)
+      ) STRICT;
+      CREATE INDEX ix_device_trip ON device(trip_id, revocado_en);
+      -- un integrante tiene un solo dispositivo activo: reemplazar un celular revoca al viejo (el viejo ya no cuenta)
+      CREATE UNIQUE INDEX ux_device_miembro_activo ON device(trip_id, member_id) WHERE revocado_en IS NULL;
+
+      -- Invitaciones de un solo uso; el código nunca se guarda: solo su huella.
+      CREATE TABLE invitation (
+        invitation_id        TEXT    PRIMARY KEY,
+        trip_id              TEXT    NOT NULL,
+        codigo_hash          TEXT    NOT NULL UNIQUE CHECK (length(codigo_hash) = 64 AND length(CAST(codigo_hash AS BLOB)) = 64 AND codigo_hash NOT GLOB '*[^0-9a-f]*'),
+        reemplaza_member_id  TEXT,
+        creada_en            INTEGER NOT NULL,
+        vence_en             INTEGER NOT NULL,
+        usada_en             INTEGER,
+        usada_por_device_id  TEXT,
+        CHECK (vence_en > creada_en),
+        CHECK (usada_en IS NULL OR usada_en >= creada_en),
+        CHECK ((usada_en IS NULL) = (usada_por_device_id IS NULL))
+      ) STRICT;
+
+      -- un dispositivo consume a lo sumo una invitación (en un índice único los NULL son distintos: las sin usar conviven)
+      CREATE UNIQUE INDEX ux_invitation_dispositivo ON invitation(usada_por_device_id);
+
+      -- Intentos de unirse por huella de la IP, para limitar la frecuencia.
+      CREATE TABLE join_attempt (
+        ip_hash       TEXT    NOT NULL CHECK (length(ip_hash) = 64 AND length(CAST(ip_hash AS BLOB)) = 64 AND ip_hash NOT GLOB '*[^0-9a-f]*'),
+        intentado_en  INTEGER NOT NULL,
+        ok            INTEGER NOT NULL CHECK (ok IN (0,1))
+      ) STRICT;
+      CREATE INDEX ix_join_attempt ON join_attempt(ip_hash, intentado_en);
+      -- limpiar lo viejo no recorre la tabla (un ataque la hace crecer entre limpiezas)
+      CREATE INDEX ix_join_attempt_hora ON join_attempt(intentado_en);
+    `,
+  },
 ];
 
 export const VERSION_ACTUAL = MIGRACIONES[MIGRACIONES.length - 1]?.version ?? 0;
