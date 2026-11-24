@@ -5,7 +5,14 @@ import { randomBytes } from "node:crypto";
 import { createReadStream } from "node:fs";
 import { mkdir, open, readdir, rename, stat, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import { UUID, type ArchivoAbierto, type ArchivosDeAdjuntos, type RefDeArchivo } from "../../dominio/adjuntos/archivos.js";
+import { 
+  clasificarNombre, 
+  UUID, 
+  type ArchivoAbierto, 
+  type ArchivoGuardado, 
+  type ArchivosDeAdjuntos, 
+  type RefDeArchivo 
+} from "../../dominio/adjuntos/archivos.js";
 
 const EXTENSIONES = new Set(["jpg", "png", "webp", "pdf"]);
 
@@ -51,6 +58,53 @@ export class ArchivosEnDisco implements ArchivosDeAdjuntos {
     }
   }
 
+  async listarViajes(): Promise<string[]> {
+    try {
+      const entradas = await readdir(this.raiz, { withFileTypes: true });
+      return entradas.filter((e) => e.isDirectory() && UUID.test(e.name)).map((e) => e.name);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw e;
+    }
+  }
+
+  async listar(tripId: string): Promise<ArchivoGuardado[]> {
+    if (!UUID.test(tripId)) throw new RangeError("el viaje no es un UUID");
+    let nombres: string[];
+    try {
+      nombres = await readdir(join(this.raiz, tripId));
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") return [];
+      throw e;
+    }
+    // un archivo que desaparece mientras se lista (otra subida o el propio barrido) simplemente no aparece
+    const encontrados = await Promise.all(
+      nombres.map(async (nombre): Promise<ArchivoGuardado | null> => {
+        const info = await stat(join(this.raiz, tripId, nombre)).catch(() => null);
+        if (info === null || !info.isFile()) return null;
+        const { tipo, adjuntoId } = clasificarNombre(nombre);
+        return { 
+          tripId, 
+          nombre, 
+          tipo, 
+          adjuntoId, 
+          bytes: info.size, 
+          modificadoEn: info.mtimeMs 
+        };
+      }),
+    );
+    return encontrados.filter((archivo): archivo is ArchivoGuardado => archivo !== null);
+  }
+
+  async borrar(archivo: ArchivoGuardado): Promise<void> {
+    if (!UUID.test(archivo.tripId)) throw new RangeError("el viaje no es un UUID");
+    // el nombre se vuelve a clasificar acá: solo se borra lo que el servidor arma, venga lo que venga en `archivo`
+    if (clasificarNombre(archivo.nombre).tipo === "desconocido") throw new RangeError("el nombre no es de un archivo del servidor");
+    await unlink(join(this.raiz, archivo.tripId, archivo.nombre)).catch((e: NodeJS.ErrnoException) => {
+      if (e.code !== "ENOENT") throw e;
+    });
+  }
+
   async bytesDelViaje(tripId: string): Promise<number> {
     if (!UUID.test(tripId)) throw new RangeError("el viaje no es un UUID");
     let nombres: string[];
@@ -60,13 +114,18 @@ export class ArchivosEnDisco implements ArchivosDeAdjuntos {
       if ((e as NodeJS.ErrnoException).code === "ENOENT") return 0;
       throw e;
     }
-    let total = 0;
-    for (const nombre of nombres) {
-      if (nombre.endsWith(".tmp")) continue; // una subida en curso todavía no cuenta
-      const info = await stat(join(this.raiz, tripId, nombre)).catch(() => null);
-      if (info?.isFile() === true) total += info.size;
-    }
-    return total;
+    // una subida en curso (.tmp) todavía no cuenta
+    const tamanos = await Promise.all(
+      nombres
+        .filter((nombre) => !nombre.endsWith(".tmp"))
+        .map(async (nombre) => {
+          const info = await stat(join(this.raiz, tripId, nombre)).catch(() => null);
+          return info?.isFile() === true 
+            ? info.size 
+            : 0;
+        }),
+    );
+    return tamanos.reduce((suma, bytes) => suma + bytes, 0);
   }
 
   async abrir(ref: RefDeArchivo): Promise<ArchivoAbierto | null> {

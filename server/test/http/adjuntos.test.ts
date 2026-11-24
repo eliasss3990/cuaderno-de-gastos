@@ -336,6 +336,38 @@ describe("errores de bajada y aislamiento", () => {
   });
 });
 
+describe("purgar un gasto y barrer", () => {
+  it("los archivos del adjunto purgado se borran en el barrido, los de los otros se conservan y el espacio se libera", async () => {
+    const { e, a, registrar, subir, bajar, subirOps, op } = await entorno();
+    const fotoA = png(400);
+    const fotoB = jpeg(300);
+    const idA = await registrar(fotoA, "image/png", 1);
+    const idB = await registrar(fotoB, "image/jpeg", 0);
+    await subir(idA, fotoA, { tipo: "image/png" });
+    await subir(idA, jpeg(60), { miniatura: true });
+    await subir(idB, fotoB, { tipo: "image/jpeg" });
+    expect(e.archivos.guardados.size).toBe(3);
+    // el adjunto A es de otro gasto: se purga ese gasto y el B sigue vivo
+    const otroGasto = "018f3a6e-2000-7000-8000-000000000002";
+    const idC = uuid(950);
+    await subirOps(a, [op(a, "expense.create", "expense", otroGasto, { monto_minor: 100, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: AHORA - 10_000, dia_imputado: "2027-02-18" }, 940)]);
+    const fotoC = pdf(500);
+    await subirOps(a, [op(a, "attachment.add", "attachment", idC, { owner_tipo: "EXPENSE", owner_id: otroGasto, mime: "application/pdf", bytes: fotoC.length, sha256: sha256(fotoC), tiene_miniatura: 0 }, 941)]);
+    await subir(idC, fotoC, { tipo: "application/pdf" });
+    expect((await subirOps(a, [op(a, "expense.purge", "expense", otroGasto, {}, 942)]))[0]?.estado).toBe("accepted");
+    expect((await bajar(idC)).statusCode).toBe(404);
+    // todavía no pasó la gracia: no se toca nada
+    expect((await e.adjuntos.barrer(Date.now())).huerfanosBorrados).toBe(0);
+    expect(e.archivos.guardados.size).toBe(4);
+    const r = await e.adjuntos.barrer(Date.now() + 11 * 60 * 1000);
+    expect([r.huerfanosBorrados, r.bytesLiberados]).toEqual([1, 500]);
+    expect(e.archivos.guardados.size).toBe(3);
+    expect((await e.archivos.bytesDelViaje(a.trip_id))).toBe(400 + 60 + 300);
+    expect((await bajar(idA)).statusCode).toBe(200);
+    expect((await bajar(idB)).statusCode).toBe(200);
+  });
+});
+
 describe("coincideEtag", () => {
   it("compara con una o varias etiquetas, débiles o con *", () => {
     expect(coincideEtag(undefined, '"a"')).toBe(false);

@@ -5,13 +5,45 @@ import { createHash } from "node:crypto";
 import type { Almacen } from "../operaciones/operaciones.js";
 import { MAX_BYTES_IMAGEN, MAX_BYTES_PDF } from "../operaciones/validacion.js";
 import { inspeccionar, inspeccionarMiniatura, type Inspeccion } from "./formatos.js";
-import { detectarTipo, EXTENSION_DE, UUID, type ArchivoAbierto, type ArchivosDeAdjuntos, type Mime, type RefDeArchivo, type Variante } from "./archivos.js";
+import { 
+  detectarTipo, 
+  EXTENSION_DE, 
+  UUID, 
+  type ArchivoAbierto, 
+  type ArchivoGuardado, 
+  type ArchivosDeAdjuntos, 
+  type Mime, 
+  type RefDeArchivo, 
+  type Variante 
+} from "./archivos.js";
 
 /** Lo más que pesa una miniatura (la app genera unos 20 a 40 KB). */
 export const MAX_BYTES_MINIATURA = 256 * 1024;
 
 /** Espacio que pueden ocupar los archivos de un viaje (unas 3.000 fotos de 300 KB): un celular roto o robado no llena el disco. */
 export const MAX_BYTES_POR_VIAJE = 1024 * 1024 * 1024;
+
+/** Un archivo más nuevo que esto no se toca en el barrido: puede ser una subida en curso o cruzada con una purga. */
+export const GRACIA_DEL_BARRIDO_MS = 10 * 60 * 1000;
+
+export interface ResultadoDelBarrido {
+  readonly revisados: number;
+  /** Archivos y miniaturas de adjuntos que la base dio por terminados (purgados). */
+  readonly huerfanosBorrados: number;
+  /** Subidas que quedaron a medias. */
+  readonly temporalesBorrados: number;
+  readonly bytesLiberados: number;
+  /** Archivos de adjuntos que la base ni conoce ni dio por terminados (por ejemplo, tras restaurar un respaldo viejo): no se tocan. */
+  readonly sinRegistro: number;
+  /** Nombres que el servidor no arma: no se tocan. */
+  readonly desconocidos: number;
+  /** Carpetas de viajes que la base no conoce: no se tocan (por ejemplo, tras restaurar un respaldo viejo). */
+  readonly viajesDesconocidos: number;
+  readonly errores: number;
+}
+
+/** Los contadores del barrido mientras se van llenando. */
+type Contadores = { -readonly [K in keyof ResultadoDelBarrido]: ResultadoDelBarrido[K] };
 
 export type CodigoDeErrorDeAdjunto =
   | "formato_invalido"
@@ -107,6 +139,71 @@ export class ServicioDeAdjuntos {
   private exigirEstructura(r: Inspeccion): void {
     if (r.ok) return;
     throw new ErrorDeAdjunto(r.causa === "dimensiones" ? "adjunto_demasiado_grande" : "tipo_no_permitido", r.motivo);
+  }
+
+  /**
+   * Borra los archivos que sobran: los de adjuntos que la base **dio por terminados** (purgados; tienen lápida) y las subidas
+   * que quedaron a medias. Un archivo se borra solo si la base prueba que el adjunto terminó, no porque no lo encuentre: tras
+   * restaurar un respaldo viejo faltarían adjuntos que sí existen. Lo que tiene menos de `graciaMs` no se toca, y tampoco lo
+   * que no se entiende, los archivos sin registro ni lápida ni las carpetas de viajes que la base no conoce. Un adjunto solo
+   * "quitado" conserva sus archivos. Un error en un archivo no frena a los demás.
+   */
+  async barrer(
+    ahoraMs: number, 
+    graciaMs: number = GRACIA_DEL_BARRIDO_MS
+  ): Promise<ResultadoDelBarrido> {
+    const r: Contadores = { revisados: 0, huerfanosBorrados: 0, temporalesBorrados: 0, bytesLiberados: 0, sinRegistro: 0, desconocidos: 0, viajesDesconocidos: 0, errores: 0 };
+    const viajes = await this.dep.archivos.listarViajes();
+    await Promise.all(viajes.map((tripId) => this.barrerViaje(tripId, ahoraMs, graciaMs, r)));
+    return r;
+  }
+
+  private async barrerViaje(
+    tripId: string, 
+    ahoraMs: number, 
+    graciaMs: number, 
+    r: Contadores
+  ): Promise<void> {
+    try {
+      if (this.dep.almacenDe(tripId).idDelViaje() === null) {
+        r.viajesDesconocidos += 1;
+        return;
+      }
+      const archivos = await this.dep.archivos.listar(tripId);
+      await Promise.all(archivos.map((archivo) => this.barrerArchivo(tripId, archivo, ahoraMs, graciaMs, r)));
+    } catch {
+      r.errores += 1;
+    }
+  }
+
+  private async barrerArchivo(
+    tripId: string, 
+    archivo: ArchivoGuardado, 
+    ahoraMs: number, 
+    graciaMs: number, 
+    r: Contadores
+  ): Promise<void> {
+    r.revisados += 1;
+    if (archivo.tipo === "desconocido") {
+      r.desconocidos += 1;
+      return;
+    }
+    if (ahoraMs - archivo.modificadoEn < graciaMs) return;
+    try {
+      if (archivo.tipo === "temporal") {
+        await this.dep.archivos.borrar(archivo);
+        r.temporalesBorrados += 1;
+        r.bytesLiberados += archivo.bytes;
+      } else if (archivo.adjuntoId !== null && this.dep.almacenDe(tripId).entidadTerminada("attachment", archivo.adjuntoId)) {
+        await this.dep.archivos.borrar(archivo);
+        r.huerfanosBorrados += 1;
+        r.bytesLiberados += archivo.bytes;
+      } else if (this.registrado(tripId, archivo.adjuntoId ?? "") === null) {
+        r.sinRegistro += 1;
+      }
+    } catch {
+      r.errores += 1;
+    }
   }
 
   private ref(tripId: string, adjuntoId: string, variante: Variante, mime: Mime): RefDeArchivo {

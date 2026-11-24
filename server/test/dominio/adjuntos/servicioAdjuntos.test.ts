@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
-import { ErrorDeAdjunto, MAX_BYTES_MINIATURA, MAX_BYTES_POR_VIAJE, ServicioDeAdjuntos } from "../../../src/dominio/adjuntos/servicioAdjuntos.js";
+import { ErrorDeAdjunto, GRACIA_DEL_BARRIDO_MS, MAX_BYTES_MINIATURA, MAX_BYTES_POR_VIAJE, ServicioDeAdjuntos } from "../../../src/dominio/adjuntos/servicioAdjuntos.js";
 import { MAX_BYTES_IMAGEN, MAX_BYTES_PDF } from "../../../src/dominio/operaciones/validacion.js";
 import { MAX_LADO_MINIATURA_PX, MAX_LADO_PX } from "../../../src/dominio/adjuntos/formatos.js";
 import { jpeg, pdf, png, sha256, webp, type Mime } from "../../ayudas/adjuntos.js";
@@ -303,5 +303,195 @@ describe("espacio por viaje", () => {
     expect((await servicio.subir(TRIP, ADJ, "archivo", a)).guardado).toBe(true);
     expect((await falla(servicio.subir(TRIP, ADJ, "miniatura", jpeg(101)))).codigo).toBe("adjunto_demasiado_grande");
     expect((await servicio.subir(TRIP, ADJ, "miniatura", jpeg(100))).guardado).toBe(true);
+  });
+});
+
+describe("barrer: archivos que sobran", () => {
+  const HORA = 3_600_000;
+  const AHORA = 1_800_000_000_000;
+  const OTRO = "aaaaaaaa-0000-4000-8000-000000000002";
+  const TERCERO = "aaaaaaaa-0000-4000-8000-000000000003";
+  const TEMPORAL = "0123456789abcdef.tmp";
+  const CERO = { revisados: 0, huerfanosBorrados: 0, temporalesBorrados: 0, bytesLiberados: 0, sinRegistro: 0, desconocidos: 0, viajesDesconocidos: 0, errores: 0 };
+
+  /** Un viaje conocido, con archivos guardados `HORA` atrás (más viejos que la gracia). */
+  function viaje() {
+    const almacen = new AlmacenMemoria();
+    almacen.crearEntidad("trip", TRIP);
+    const archivos = new ArchivosEnMemoria(() => AHORA);
+    const servicio = new ServicioDeAdjuntos({ almacenDe: () => almacen, archivos });
+    const registrar = (id: string, extra: Partial<Declarado> = {}) => {
+      almacen.crearEntidad("attachment", id);
+      const declarado: Declarado = { mime: "image/jpeg", bytes: 100, sha256: "a".repeat(64), tiene_miniatura: 1, ...extra };
+      for (const [campo, valor] of Object.entries(declarado)) almacen.escribirCampo("attachment", id, campo, valor, marca());
+    };
+    /** Un adjunto que se purgó: tiene lápida. */
+    const purgar = (id: string) => {
+      registrar(id);
+      almacen.terminar("attachment", id);
+    };
+    const poner = (nombre: string, bytes = 100, hace = HORA) => archivos.poner(TRIP, nombre, bytes, AHORA - hace);
+    return { almacen, archivos, servicio, registrar, purgar, poner };
+  }
+
+  it("borra el archivo y la miniatura de un adjunto terminado y deja los de un adjunto vivo", async () => {
+    const { archivos, servicio, registrar, purgar, poner } = viaje();
+    registrar(ADJ);
+    purgar(OTRO);
+    for (const id of [ADJ, OTRO]) {
+      poner(`${id}.jpg`, 1000);
+      poner(`${id}.thumb.jpg`, 50);
+    }
+    const r = await servicio.barrer(AHORA);
+    expect([...archivos.guardados.keys()].sort()).toEqual([`${TRIP}/${ADJ}.jpg`, `${TRIP}/${ADJ}.thumb.jpg`]);
+    expect(r).toEqual({ ...CERO, revisados: 4, huerfanosBorrados: 2, bytesLiberados: 1050 });
+  });
+
+  it("un archivo de un adjunto que la base no conoce ni dio por terminado NO se borra (por ejemplo, tras restaurar un respaldo viejo), y se cuenta", async () => {
+    const { archivos, servicio, poner } = viaje();
+    poner(`${TERCERO}.pdf`, 700);
+    poner(`${TERCERO}.thumb.jpg`, 20);
+    const r = await servicio.barrer(AHORA);
+    expect(archivos.guardados.size).toBe(2);
+    expect(archivos.borrados).toEqual([]);
+    expect(r).toEqual({ ...CERO, revisados: 2, sinRegistro: 2 });
+  });
+
+  it("un adjunto registrado, quitado o con la miniatura sin declarar conserva todos sus archivos y no cuenta como sin registro", async () => {
+    const { archivos, servicio, registrar, poner } = viaje();
+    registrar(ADJ, { quitado: 1 });
+    registrar(OTRO, { tiene_miniatura: 0 });
+    for (const id of [ADJ, OTRO]) {
+      poner(`${id}.jpg`);
+      poner(`${id}.thumb.jpg`);
+    }
+    const r = await servicio.barrer(AHORA);
+    expect(archivos.guardados.size).toBe(4);
+    expect([r.huerfanosBorrados, r.sinRegistro]).toEqual([0, 0]);
+  });
+
+  it("la lápida manda aunque el archivo sea de una extensión distinta de la declarada", async () => {
+    const { archivos, servicio, purgar, poner } = viaje();
+    purgar(ADJ);
+    poner(`${ADJ}.png`);
+    poner(`${ADJ}.webp`);
+    poner(`${ADJ}.pdf`);
+    expect((await servicio.barrer(AHORA)).huerfanosBorrados).toBe(3);
+    expect(archivos.guardados.size).toBe(0);
+  });
+
+  it("no toca lo que tiene menos de la gracia, y justo en la gracia ya se borra", async () => {
+    const { archivos, servicio, purgar, poner } = viaje();
+    for (const id of [ADJ, OTRO, TERCERO]) purgar(id);
+    poner(`${ADJ}.jpg`, 10, GRACIA_DEL_BARRIDO_MS - 1);
+    poner(`${OTRO}.jpg`, 10, GRACIA_DEL_BARRIDO_MS);
+    poner(`${TERCERO}.jpg`, 10, 0);
+    const r = await servicio.barrer(AHORA);
+    expect([...archivos.guardados.keys()].sort()).toEqual([`${TRIP}/${ADJ}.jpg`, `${TRIP}/${TERCERO}.jpg`]);
+    expect(r.huerfanosBorrados).toBe(1);
+  });
+
+  it("la gracia por defecto es de 10 minutos y se puede pedir otra", async () => {
+    expect(GRACIA_DEL_BARRIDO_MS).toBe(10 * 60 * 1000);
+    const { archivos, servicio, purgar, poner } = viaje();
+    purgar(ADJ);
+    poner(`${ADJ}.jpg`, 10, 5000);
+    expect((await servicio.barrer(AHORA)).huerfanosBorrados).toBe(0);
+    expect((await servicio.barrer(AHORA, 5000)).huerfanosBorrados).toBe(1);
+    expect(archivos.guardados.size).toBe(0);
+  });
+
+  it("borra las subidas que quedaron a medias solo si son viejas", async () => {
+    const { archivos, servicio, poner } = viaje();
+    poner(TEMPORAL, 300);
+    poner("fedcba9876543210.tmp", 20, 1000);
+    const r = await servicio.barrer(AHORA);
+    expect([...archivos.guardados.keys()]).toEqual([`${TRIP}/fedcba9876543210.tmp`]);
+    expect([r.temporalesBorrados, r.huerfanosBorrados, r.bytesLiberados]).toEqual([1, 0, 300]);
+  });
+
+  it("no toca ni borra lo que no entiende, aunque sea viejo, y lo cuenta", async () => {
+    const { archivos, servicio, poner } = viaje();
+    for (const nombre of ["notas.txt", `${ADJ}.exe`, `${ADJ}.thumb.png`, "ABCDEF.tmp", `${ADJ.toUpperCase()}.jpg`]) poner(nombre);
+    const r = await servicio.barrer(AHORA);
+    expect(archivos.guardados.size).toBe(5);
+    expect([r.desconocidos, r.huerfanosBorrados, r.temporalesBorrados, r.sinRegistro, archivos.borrados.length]).toEqual([5, 0, 0, 0, 0]);
+  });
+
+  it("un viaje que la base no conoce no se toca (ni sus temporales), y se cuenta", async () => {
+    const almacen = new AlmacenMemoria();
+    almacen.crearEntidad("trip", TRIP);
+    almacen.crearEntidad("attachment", OTRO);
+    almacen.terminar("attachment", OTRO);
+    const archivos = new ArchivosEnMemoria(() => AHORA);
+    const ajeno = "018f3a6e-0000-7000-8000-0000000000ff";
+    const vacio = new AlmacenMemoria();
+    vacio.crearEntidad("attachment", ADJ);
+    vacio.terminar("attachment", ADJ);
+    const servicio = new ServicioDeAdjuntos({ almacenDe: (id) => (id === TRIP ? almacen : vacio), archivos });
+    archivos.poner(ajeno, `${ADJ}.jpg`, 500, AHORA - HORA);
+    archivos.poner(ajeno, TEMPORAL, 500, AHORA - HORA);
+    archivos.poner(TRIP, `${OTRO}.jpg`, 100, AHORA - HORA);
+    const r = await servicio.barrer(AHORA);
+    expect([...archivos.guardados.keys()].sort()).toEqual([`${ajeno}/${TEMPORAL}`, `${ajeno}/${ADJ}.jpg`].sort());
+    expect([r.viajesDesconocidos, r.huerfanosBorrados, r.revisados]).toEqual([1, 1, 1]);
+  });
+
+  it("un error al borrar un archivo no frena a los demás y se cuenta", async () => {
+    const { archivos, servicio, purgar, poner } = viaje();
+    for (const id of [ADJ, OTRO, TERCERO]) {
+      purgar(id);
+      poner(`${id}.jpg`);
+    }
+    archivos.fallanAlBorrar.add(`${TRIP}/${OTRO}.jpg`);
+    const r = await servicio.barrer(AHORA);
+    expect([...archivos.guardados.keys()]).toEqual([`${TRIP}/${OTRO}.jpg`]);
+    expect([r.huerfanosBorrados, r.errores]).toEqual([2, 1]);
+  });
+
+  it("un error de la base al decidir no borra nada y se cuenta como error (no como sin registro)", async () => {
+    const { almacen, archivos, servicio, purgar, poner } = viaje();
+    purgar(ADJ);
+    poner(`${ADJ}.jpg`);
+    almacen.entidadTerminada = () => {
+      throw new Error("base ilegible");
+    };
+    const r = await servicio.barrer(AHORA);
+    expect(archivos.guardados.size).toBe(1);
+    expect([r.errores, r.huerfanosBorrados, r.sinRegistro]).toEqual([1, 0, 0]);
+  });
+
+  it("un error al listar un viaje no frena a los otros viajes", async () => {
+    const almacen = new AlmacenMemoria();
+    almacen.crearEntidad("trip", TRIP);
+    almacen.crearEntidad("attachment", OTRO);
+    almacen.terminar("attachment", OTRO);
+    const archivos = new ArchivosEnMemoria(() => AHORA);
+    const roto = "018f3a6e-0000-7000-8000-0000000000aa";
+    const original = archivos.listar.bind(archivos);
+    archivos.listar = async (tripId) => {
+      if (tripId === roto) throw new Error("no se puede listar");
+      return original(tripId);
+    };
+    const servicio = new ServicioDeAdjuntos({ almacenDe: () => almacen, archivos });
+    archivos.poner(roto, `${ADJ}.jpg`, 10, AHORA - HORA);
+    archivos.poner(TRIP, `${OTRO}.jpg`, 10, AHORA - HORA);
+    const r = await servicio.barrer(AHORA);
+    expect([r.errores, r.huerfanosBorrados]).toEqual([1, 1]);
+    expect(archivos.guardados.has(`${TRIP}/${OTRO}.jpg`)).toBe(false);
+  });
+
+  it("sin nada guardado no hace nada", async () => {
+    const { servicio } = viaje();
+    expect(await servicio.barrer(AHORA)).toEqual(CERO);
+  });
+
+  it("después de barrer, el espacio de lo borrado vuelve a estar disponible en la cuota del viaje", async () => {
+    const { archivos, servicio, purgar, poner } = viaje();
+    purgar(OTRO);
+    poner(`${OTRO}.jpg`, 900);
+    expect(await archivos.bytesDelViaje(TRIP)).toBe(900);
+    await servicio.barrer(AHORA);
+    expect(await archivos.bytesDelViaje(TRIP)).toBe(0);
   });
 });

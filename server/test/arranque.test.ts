@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -63,7 +63,7 @@ describe("arrancar", () => {
     await expect(fetch(`${url}/healthz`)).rejects.toThrow();
   });
 
-  it("al detenerlo cancela sus dos temporizadores (el resumen y el mantenimiento) y cierra la base sin dejar archivos WAL", async () => {
+  it("al detenerlo cancela sus tres temporizadores (el resumen, el mantenimiento y el barrido de adjuntos) y cierra la base sin dejar archivos WAL", async () => {
     const e = entorno();
     const espia = vi.spyOn(globalThis, "clearInterval");
     const espiaDelPlazo = vi.spyOn(globalThis, "clearTimeout");
@@ -74,7 +74,7 @@ describe("arrancar", () => {
       espia.mockClear();
       espiaDelPlazo.mockClear();
       await servidor.detener();
-      expect(espia).toHaveBeenCalledTimes(2);
+      expect(espia).toHaveBeenCalledTimes(3);
       expect(espiaDelPlazo).toHaveBeenCalled(); // y el temporizador del plazo de apagado
       expect(existsSync(join(e.datos, `${NOMBRE_DE_LA_BASE}-wal`))).toBe(false);
       expect(existsSync(join(e.datos, `${NOMBRE_DE_LA_BASE}-shm`))).toBe(false);
@@ -162,6 +162,39 @@ describe("arrancar", () => {
     expect(r.status).toBe(200);
     expect(Buffer.from(await r.arrayBuffer()).equals(contenido)).toBe(true);
     expect(readdirSync(join(e.adjuntos, alta.trip_id)).filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("el servidor real barre solo los archivos de un adjunto purgado cuando pasa su gracia, y deja los de los adjuntos vivos", async () => {
+    const e = entorno();
+    const servidor = await arrancar(configuracion(e), { registro: new RegistroDeMemoria(), cadaMsDelBarrido: 25 });
+    servidores.push(servidor);
+    const url = `http://127.0.0.1:${servidor.puerto}`;
+    const alta = (await (await post(`${url}/v1/trips`, VIAJE)).json()) as { trip_id: string; device_id: string; token: string };
+    const auth = { authorization: `Bearer ${alta.token}` };
+    let n = 0;
+    const marca = () => `${(Date.now() - 20_000 + ++n).toString(16).padStart(13, "0")}-${n.toString(16).padStart(4, "0")}-${alta.device_id}`;
+    const op = (tipo: string, entidad: string, id: string, payload: object) => ({ op_id: `018f3a6e-9000-7000-8000-${String(n + 1).padStart(12, "0")}`, type: tipo, entity_type: entidad, entity_id: id, hlc: marca(), payload });
+    const foto = jpeg(1000);
+    const registrar = (id: string, dueno: string) => op("attachment.add", "attachment", id, { owner_tipo: "EXPENSE", owner_id: dueno, mime: "image/jpeg", bytes: foto.length, sha256: createHash("sha256").update(foto).digest("hex"), tiene_miniatura: 0 });
+    const gasto = (id: string) => op("expense.create", "expense", id, { monto_minor: 1000, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: Date.now() - 10_000, dia_imputado: "2027-02-18" });
+    const G1 = "018f3a6e-2000-7000-8000-000000000001";
+    const G2 = "018f3a6e-2000-7000-8000-000000000002";
+    const VIVO = "aaaaaaaa-0000-4000-8000-000000000001";
+    const PURGADO = "aaaaaaaa-0000-4000-8000-000000000002";
+    const subirOps = async (ops: object[]) => ((await (await post(`${url}/v1/trips/${alta.trip_id}/ops`, { ops }, auth)).json()) as { resultados: { estado: string }[] }).resultados.map((r) => r.estado);
+    expect(await subirOps([gasto(G1), gasto(G2), registrar(VIVO, G1), registrar(PURGADO, G2)])).toEqual(["accepted", "accepted", "accepted", "accepted"]);
+    for (const id of [VIVO, PURGADO]) expect((await fetch(`${url}/v1/trips/${alta.trip_id}/attachments/${id}`, { method: "PUT", headers: { ...auth, "content-type": "image/jpeg" }, body: new Uint8Array(foto) })).status).toBe(204);
+    expect(await subirOps([op("expense.purge", "expense", G2, {})])).toEqual(["accepted"]);
+    const carpeta = join(e.adjuntos, alta.trip_id);
+    expect(readdirSync(carpeta).sort()).toEqual([`${VIVO}.jpg`, `${PURGADO}.jpg`]);
+    // los archivos son nuevos: el barrido todavía no los toca
+    await new Promise((ok) => setTimeout(ok, 120));
+    expect(readdirSync(carpeta)).toHaveLength(2);
+    // al pasar la gracia (se simula con la hora de modificación) se borra solo el del adjunto purgado
+    const hace = (Date.now() - 3_600_000) / 1000;
+    for (const nombre of readdirSync(carpeta)) utimesSync(join(carpeta, nombre), hace, hace);
+    for (let i = 0; i < 100 && readdirSync(carpeta).length > 1; i++) await new Promise((ok) => setTimeout(ok, 25));
+    expect(readdirSync(carpeta)).toEqual([`${VIVO}.jpg`]);
   });
 
   it("los datos sobreviven a un reinicio: el token de antes sigue sirviendo", async () => {
@@ -287,7 +320,7 @@ describe("lo que impide arrancar sale con un mensaje claro y sin dejar nada abie
     let error: NodeJS.ErrnoException;
     try {
       error = (await falla(otro, { puerto: primero.servidor.puerto })) as NodeJS.ErrnoException;
-      expect(espia).toHaveBeenCalledTimes(2); // canceló los dos temporizadores que había creado
+      expect(espia).toHaveBeenCalledTimes(3); // canceló los tres temporizadores que había creado
     } finally {
       espia.mockRestore();
     }
