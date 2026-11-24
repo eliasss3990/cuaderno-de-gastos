@@ -1,4 +1,5 @@
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -7,6 +8,7 @@ import { arrancar, CADA_DIEZ_MINUTOS_MS, iniciarMantenimiento, NOMBRE_DE_LA_BASE
 import type { Configuracion } from "../src/configuracion.js";
 import { ErrorDeConfiguracion } from "../src/configuracion.js";
 import { RegistroDeMemoria } from "./ayudas/registroDeMemoria.js";
+import { jpeg } from "./ayudas/adjuntos.js";
 import { entornoApi, NUEVO, VIAJE } from "./ayudas/entornoApi.js";
 
 const PEPPER_A = "a".repeat(64);
@@ -133,6 +135,33 @@ describe("arrancar", () => {
     const { url } = await levantar(e, { versionMinima: "0.2.0" });
     expect((await post(`${url}/v1/trips`, VIAJE, { "x-app-version": "0.1.0" })).status).toBe(426);
     expect((await post(`${url}/v1/trips`, VIAJE, { "x-app-version": "0.2.0" })).status).toBe(201);
+  });
+
+  it("un adjunto subido queda en ADJUNTOS_DIR, sobrevive a un reinicio y no deja temporales", async () => {
+    const e = entorno();
+    const primero = await levantar(e);
+    const alta = (await (await post(`${primero.url}/v1/trips`, VIAJE)).json()) as { trip_id: string; device_id: string; token: string };
+    const auth = { authorization: `Bearer ${alta.token}` };
+    const marca = (n: number) => `${(Date.now() - 20_000 + n).toString(16).padStart(13, "0")}-${n.toString(16).padStart(4, "0")}-${alta.device_id}`;
+    const contenido = jpeg(1000);
+    const gasto = "018f3a6e-2000-7000-8000-000000000001";
+    const adjunto = "aaaaaaaa-0000-4000-8000-000000000001";
+    const ops = [
+      { op_id: "018f3a6e-9000-7000-8000-000000000001", type: "expense.create", entity_type: "expense", entity_id: gasto, hlc: marca(1), payload: { monto_minor: 1000, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: Date.now() - 10_000, dia_imputado: "2027-02-18" } },
+      { op_id: "018f3a6e-9000-7000-8000-000000000002", type: "attachment.add", entity_type: "attachment", entity_id: adjunto, hlc: marca(2), payload: { owner_tipo: "EXPENSE", owner_id: gasto, mime: "image/jpeg", bytes: contenido.length, sha256: createHash("sha256").update(contenido).digest("hex"), tiene_miniatura: 0 } },
+    ];
+    const subidas = (await (await post(`${primero.url}/v1/trips/${alta.trip_id}/ops`, { ops }, auth)).json()) as { resultados: { estado: string }[] };
+    expect(subidas.resultados.map((r) => r.estado)).toEqual(["accepted", "accepted"]);
+    const url = (base: string) => `${base}/v1/trips/${alta.trip_id}/attachments/${adjunto}`;
+    expect((await fetch(url(primero.url), { method: "PUT", headers: { ...auth, "content-type": "image/jpeg" }, body: new Uint8Array(contenido) })).status).toBe(204);
+    expect(readdirSync(join(e.adjuntos, alta.trip_id))).toEqual([`${adjunto}.jpg`]);
+    await primero.servidor.detener();
+
+    const segundo = await levantar(e);
+    const r = await fetch(url(segundo.url), { headers: auth });
+    expect(r.status).toBe(200);
+    expect(Buffer.from(await r.arrayBuffer()).equals(contenido)).toBe(true);
+    expect(readdirSync(join(e.adjuntos, alta.trip_id)).filter((n) => n.endsWith(".tmp"))).toEqual([]);
   });
 
   it("los datos sobreviven a un reinicio: el token de antes sigue sirviendo", async () => {

@@ -3,6 +3,7 @@
 
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance } from "fastify";
+import type { ServicioDeAdjuntos } from "./dominio/adjuntos/servicioAdjuntos.js";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
 import type { CanalEnVivo } from "./dominio/operaciones/canalEnVivo.js";
 import type { ServicioDeSincronizacion } from "./dominio/operaciones/sincronizacion.js";
@@ -11,6 +12,7 @@ import type { Registro } from "./observabilidad/registro.js";
 import { exigirVersion } from "./http/autenticacion.js";
 import { crearManejadorDeErrores, manejarNoEncontrado } from "./http/errores.js";
 import { crearRegistroDePedidos, instalarPedidos } from "./http/pedidos.js";
+import { rutasDeAdjuntos } from "./http/rutasAdjuntos.js";
 import { rutasDeIdentidad } from "./http/rutasIdentidad.js";
 import { rutasDeSincronizacion } from "./http/rutasSincronizacion.js";
 import { parsearVersion } from "./http/versiones.js";
@@ -18,6 +20,7 @@ import { parsearVersion } from "./http/versiones.js";
 export interface DependenciasApi {
   readonly servicio: ServicioDeIdentidad;
   readonly sincronizacion: ServicioDeSincronizacion;
+  readonly adjuntos: ServicioDeAdjuntos;
   /** El mismo canal que usa `sincronizacion` para avisar; la API lo cierra al apagarse. */
   readonly canal: CanalEnVivo;
   /** Cada cuántos milisegundos se escribe un latido en el canal en vivo; por defecto 20 s. */
@@ -64,6 +67,7 @@ export function construirApi(dep: DependenciasApi): FastifyInstance {
 
   app.get("/healthz", () => ({ estado: "ok" }));
   rutasDeIdentidad(app, dep.servicio, dep.canal);
+  rutasDeAdjuntos(app, { identidad: dep.servicio, adjuntos: dep.adjuntos, metricas: dep.metricas });
   // al apagar, los canales abiertos se cierran antes de esperar a que terminen los pedidos (si no, el cierre aguardaría el plazo entero)
   app.addHook("preClose", () => {
     dep.canal.cerrarTodo();

@@ -5,8 +5,10 @@ import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import type { Database } from "better-sqlite3";
 import { abrirBase } from "./almacen/base/base.js";
+import { ArchivosEnDisco } from "./almacen/archivos/archivosEnDisco.js";
 import { servicioDeIdentidadSobre } from "./almacen/identidad/servicioSqlite.js";
 import { construirApi } from "./api.js";
+import { ServicioDeAdjuntos } from "./dominio/adjuntos/servicioAdjuntos.js";
 import { ErrorDeConfiguracion, type Configuracion } from "./configuracion.js";
 import { leerPepper } from "./dominio/identidad/credenciales.js";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
@@ -104,8 +106,9 @@ export async function arrancar(config: Configuracion, opciones: { registro?: Reg
     const servicio = servicioDeIdentidadSobre(db, { ahora: () => Date.now(), pepper });
     const canal = new CanalEnMemoria();
     const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => Date.now(), canal });
+    const adjuntos = new ServicioDeAdjuntos({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), archivos: new ArchivosEnDisco(config.dirAdjuntos) });
     temporizadores.push(iniciarResumenPeriodico({ metricas, registro }), iniciarMantenimiento({ servicio, registro }));
-    app = construirApi({ servicio, sincronizacion, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
+    app = construirApi({ servicio, sincronizacion, adjuntos, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
     await app.listen({ port: config.puerto, host: "0.0.0.0" });
 
     const direccion = app.server.address();

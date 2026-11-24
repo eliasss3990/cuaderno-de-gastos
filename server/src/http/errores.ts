@@ -1,6 +1,7 @@
 // Errores de la API: cuerpo `{"error":{"codigo","mensaje"}}` y el estado HTTP de cada código.
 
 import type { FastifyError, FastifyReply, FastifyRequest } from "fastify";
+import { ErrorDeAdjunto, type CodigoDeErrorDeAdjunto } from "../dominio/adjuntos/servicioAdjuntos.js";
 import { ErrorDeServicio, type CodigoDeError } from "../dominio/identidad/servicioIdentidad.js";
 import type { Registro } from "../observabilidad/registro.js";
 
@@ -27,6 +28,16 @@ const ESTADO_DE_SERVICIO: Record<CodigoDeError, number> = {
   demasiados_intentos: 429,
 };
 
+const ESTADO_DE_ADJUNTO: Record<CodigoDeErrorDeAdjunto, number> = {
+  formato_invalido: 400,
+  no_existe: 404,
+  no_subido: 404,
+  adjunto_no_registrado: 409,
+  adjunto_demasiado_grande: 413,
+  tipo_no_permitido: 415,
+  hash_no_coincide: 422,
+};
+
 export const cuerpoDeError = (codigo: string, mensaje: string) => ({ error: { codigo, mensaje } });
 
 /** El primer error de validación como `campo: motivo`, sin valores del pedido. */
@@ -48,6 +59,14 @@ export function crearManejadorDeErrores(raiz: Registro) {
       estado = ESTADO_DE_SERVICIO[error.codigo];
       codigo = error.codigo;
       mensaje = error.message;
+    } else if (error instanceof ErrorDeAdjunto) {
+      estado = ESTADO_DE_ADJUNTO[error.codigo];
+      codigo = error.codigo;
+      mensaje = error.message;
+    } else if (fastify.code === "FST_ERR_CTP_BODY_TOO_LARGE" && request.routeOptions?.url?.includes("/attachments/")) {
+      ({ estado, codigo, mensaje } = { estado: 413, codigo: "adjunto_demasiado_grande", mensaje: "el archivo es demasiado grande" });
+    } else if (fastify.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE" && request.routeOptions?.url?.includes("/attachments/")) {
+      ({ estado, codigo, mensaje } = { estado: 415, codigo: "tipo_no_permitido", mensaje: "el tipo del archivo no está permitido" });
     } else if (error instanceof ErrorHttp) {
       ({ estado, codigo } = error);
       mensaje = error.message;
