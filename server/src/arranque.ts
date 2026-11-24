@@ -22,6 +22,7 @@ import { crearRegistroPino, type OpcionesDelRegistro } from "./observabilidad/re
 
 export const NOMBRE_DE_LA_BASE = "cuaderno.db";
 export const CADA_DIEZ_MINUTOS_MS = 10 * 60 * 1000;
+export const CADA_HORA_MS = 60 * 60 * 1000;
 /** Docker manda SIGKILL a los 10 s: pasado este plazo se cortan las conexiones que sigan abiertas para poder cerrar la base. */
 export const PLAZO_DE_APAGADO_MS = 8000;
 
@@ -77,6 +78,7 @@ export function iniciarBarridoDeAdjuntos(opciones: {
         sin_registro: r.sinRegistro,
         desconocidos: r.desconocidos,
         viajes_desconocidos: r.viajesDesconocidos,
+        viajes_sin_cambios: r.viajesSinCambios,
         errores: r.errores,
       };
       if (r.errores > 0) opciones.registro.warn("adjuntos_barrido", campos);
@@ -92,7 +94,7 @@ export function iniciarBarridoDeAdjuntos(opciones: {
         enCurso = null;
       });
     },
-    { cadaMs: CADA_DIEZ_MINUTOS_MS, ...opciones.periodo },
+    { cadaMs: CADA_HORA_MS, ...opciones.periodo },
   );
   return {
     detener: async () => {
@@ -146,7 +148,7 @@ export async function arrancar(
     registro?: Registro;
     destino?: OpcionesDelRegistro["destino"];
     plazoDeApagadoMs?: number;
-    /** Cada cuánto se barren los archivos de adjuntos que sobran; por defecto, cada 10 minutos. Lo usan las pruebas. */
+    /** Cada cuánto se barren los archivos de adjuntos que sobran; por defecto, cada hora. Lo usan las pruebas. */
     cadaMsDelBarrido?: number;
   } = {},
 ): Promise<Servidor> {

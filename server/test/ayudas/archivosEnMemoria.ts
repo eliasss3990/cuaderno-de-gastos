@@ -13,6 +13,8 @@ export class ArchivosEnMemoria implements ArchivosDeAdjuntos {
   /** Cuándo se escribió cada archivo, en milisegundos. */
   readonly modificados = new Map<string, number>();
   guardadosEnTotal = 0;
+  /** Las carpetas de viaje que existen: como en el disco, siguen ahí aunque se borre su último archivo. */
+  private readonly carpetas = new Set<string>();
   /** Los flujos que se abrieron para servir, para comprobar que se cierran. */
   readonly abiertos: Readable[] = [];
   /** Los archivos que se pidió borrar, en orden. */
@@ -28,6 +30,7 @@ export class ArchivosEnMemoria implements ArchivosDeAdjuntos {
 
   /** Pone un archivo con un nombre cualquiera (un temporal, algo desconocido) y la hora de modificación que se pida. */
   poner(tripId: string, nombre: string, bytes: number, modificadoEn: number = this.ahora()): void {
+    this.carpetas.add(tripId);
     this.guardados.set(`${tripId}/${nombre}`, new Uint8Array(bytes));
     this.modificados.set(`${tripId}/${nombre}`, modificadoEn);
   }
@@ -43,14 +46,13 @@ export class ArchivosEnMemoria implements ArchivosDeAdjuntos {
 
   async guardar(ref: RefDeArchivo, bytes: Uint8Array): Promise<void> {
     this.guardadosEnTotal += 1;
+    this.carpetas.add(ref.tripId);
     this.guardados.set(this.clave(ref), Uint8Array.from(bytes));
     this.modificados.set(this.clave(ref), this.ahora());
   }
 
   async listarViajes(): Promise<string[]> {
-    return [...new Set([...this.guardados.keys()].map(
-      (clave) => clave.slice(0, clave.indexOf("/"))
-    ))];
+    return [...this.carpetas];
   }
 
   async listar(tripId: string): Promise<ArchivoGuardado[]> {

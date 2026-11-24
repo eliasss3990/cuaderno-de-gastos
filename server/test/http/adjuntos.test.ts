@@ -359,7 +359,7 @@ describe("purgar un gasto y barrer", () => {
     // todavía no pasó la gracia: no se toca nada
     expect((await e.adjuntos.barrer(Date.now())).huerfanosBorrados).toBe(0);
     expect(e.archivos.guardados.size).toBe(4);
-    const r = await e.adjuntos.barrer(Date.now() + 11 * 60 * 1000);
+    const r = await e.adjuntos.barrer(Date.now() + 61 * 60 * 1000);
     expect([r.huerfanosBorrados, r.bytesLiberados]).toEqual([1, 500]);
     expect(e.archivos.guardados.size).toBe(3);
     expect((await e.archivos.bytesDelViaje(a.trip_id))).toBe(400 + 60 + 300);

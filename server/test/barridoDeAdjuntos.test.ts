@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
-import { CADA_DIEZ_MINUTOS_MS, ESPERA_DEL_BARRIDO_MS, iniciarBarridoDeAdjuntos } from "../src/arranque.js";
+import { CADA_HORA_MS, ESPERA_DEL_BARRIDO_MS, iniciarBarridoDeAdjuntos } from "../src/arranque.js";
 import type { ResultadoDelBarrido } from "../src/dominio/adjuntos/servicioAdjuntos.js";
 import { RegistroDeMemoria } from "./ayudas/registroDeMemoria.js";
 
-const VACIO: ResultadoDelBarrido = { revisados: 0, huerfanosBorrados: 0, temporalesBorrados: 0, bytesLiberados: 0, sinRegistro: 0, desconocidos: 0, viajesDesconocidos: 0, errores: 0 };
+const VACIO: ResultadoDelBarrido = { revisados: 0, huerfanosBorrados: 0, temporalesBorrados: 0, bytesLiberados: 0, sinRegistro: 0, desconocidos: 0, viajesDesconocidos: 0, viajesSinCambios: 0, errores: 0 };
 
 /** Un temporizador falso que deja disparar la acción a mano. */
 function reloj() {
@@ -20,7 +20,7 @@ function reloj() {
 const esperar = (ms = 0) => new Promise((ok) => setTimeout(ok, ms));
 
 describe("iniciarBarridoDeAdjuntos", () => {
-  it("se programa cada 10 minutos y detenerlo cancela el temporizador", async () => {
+  it("se programa cada hora y detenerlo cancela el temporizador", async () => {
     let cadaMs = 0;
     const cancelados: unknown[] = [];
     const t = {};
@@ -29,7 +29,8 @@ describe("iniciarBarridoDeAdjuntos", () => {
       registro: new RegistroDeMemoria(),
       periodo: { programar: (_a, ms) => ((cadaMs = ms), t), cancelar: (x) => cancelados.push(x) },
     });
-    expect(cadaMs).toBe(CADA_DIEZ_MINUTOS_MS);
+    expect(CADA_HORA_MS).toBe(3_600_000);
+    expect(cadaMs).toBe(3_600_000);
     await detener();
     expect(cancelados).toEqual([t]);
   });
@@ -61,11 +62,11 @@ describe("iniciarBarridoDeAdjuntos", () => {
       return registro.entradas.at(-1);
     };
     expect(await disparar()).toMatchObject({ nivel: "debug", evento: "adjuntos_barrido", campos: { revisados: 0, errores: 0 } });
-    resultado = { revisados: 9, huerfanosBorrados: 2, temporalesBorrados: 1, bytesLiberados: 4096, sinRegistro: 5, desconocidos: 3, viajesDesconocidos: 1, errores: 0 };
+    resultado = { revisados: 9, huerfanosBorrados: 2, temporalesBorrados: 1, bytesLiberados: 4096, sinRegistro: 5, desconocidos: 3, viajesDesconocidos: 1, viajesSinCambios: 7, errores: 0 };
     expect(await disparar()).toEqual({
       nivel: "info",
       evento: "adjuntos_barrido",
-      campos: { revisados: 9, huerfanos_borrados: 2, temporales_borrados: 1, bytes_liberados: 4096, sin_registro: 5, desconocidos: 3, viajes_desconocidos: 1, errores: 0 },
+      campos: { revisados: 9, huerfanos_borrados: 2, temporales_borrados: 1, bytes_liberados: 4096, sin_registro: 5, desconocidos: 3, viajes_desconocidos: 1, viajes_sin_cambios: 7, errores: 0 },
     });
     resultado = { ...VACIO, huerfanosBorrados: 1, errores: 2 };
     expect(await disparar()).toMatchObject({ nivel: "warn", evento: "adjuntos_barrido", campos: { errores: 2, huerfanos_borrados: 1 } });

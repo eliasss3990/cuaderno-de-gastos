@@ -24,7 +24,10 @@ export const MAX_BYTES_MINIATURA = 256 * 1024;
 export const MAX_BYTES_POR_VIAJE = 1024 * 1024 * 1024;
 
 /** Un archivo más nuevo que esto no se toca en el barrido: puede ser una subida en curso o cruzada con una purga. */
-export const GRACIA_DEL_BARRIDO_MS = 10 * 60 * 1000;
+export const GRACIA_DEL_BARRIDO_MS = 60 * 60 * 1000;
+
+/** Aunque un viaje no tenga cambios, se revisa completo cada tanto: cubre una carrera estrecha entre una subida y una purga. */
+export const REVISION_COMPLETA_DEL_BARRIDO_MS = 24 * 60 * 60 * 1000;
 
 export interface ResultadoDelBarrido {
   readonly revisados: number;
@@ -39,6 +42,8 @@ export interface ResultadoDelBarrido {
   readonly desconocidos: number;
   /** Carpetas de viajes que la base no conoce: no se tocan (por ejemplo, tras restaurar un respaldo viejo). */
   readonly viajesDesconocidos: number;
+  /** Viajes sin operaciones nuevas ni nada esperando desde el barrido anterior: ni se listan sus archivos. */
+  readonly viajesSinCambios: number;
   readonly errores: number;
 }
 
@@ -92,6 +97,12 @@ export interface ResultadoDeSubida {
 }
 
 export class ServicioDeAdjuntos {
+  /**
+   * Cómo quedó cada viaje en el último barrido: su cabeza de entonces y si quedó limpio (nada esperando la gracia ni con errores).
+   * Vive en memoria: tras un reinicio se barre todo una vez.
+   */
+  private readonly estadoDelBarrido = new Map<string, { readonly cabeza: number; readonly limpio: boolean; readonly revisadoEn: number }>();
+
   constructor(private readonly dep: DependenciasDeAdjuntos) {}
 
   async subir(tripId: string, adjuntoId: string, variante: Variante, contenido: Uint8Array): Promise<ResultadoDeSubida> {
@@ -147,48 +158,62 @@ export class ServicioDeAdjuntos {
    * restaurar un respaldo viejo faltarían adjuntos que sí existen. Lo que tiene menos de `graciaMs` no se toca, y tampoco lo
    * que no se entiende, los archivos sin registro ni lápida ni las carpetas de viajes que la base no conoce. Un adjunto solo
    * "quitado" conserva sus archivos. Un error en un archivo no frena a los demás.
+   *
+   * Un viaje se revisa solo si desde el barrido anterior tuvo operaciones nuevas (cambió su cabeza: una purga siempre la cambia),
+   * si había archivos esperando la gracia o errores, o si pasaron 24 horas de la última revisión completa; un viaje quieto ni se lista.
    */
   async barrer(
     ahoraMs: number, 
     graciaMs: number = GRACIA_DEL_BARRIDO_MS
   ): Promise<ResultadoDelBarrido> {
-    const r: Contadores = { revisados: 0, huerfanosBorrados: 0, temporalesBorrados: 0, bytesLiberados: 0, sinRegistro: 0, desconocidos: 0, viajesDesconocidos: 0, errores: 0 };
+    const r: Contadores = { revisados: 0, huerfanosBorrados: 0, temporalesBorrados: 0, bytesLiberados: 0, sinRegistro: 0, desconocidos: 0, viajesDesconocidos: 0, viajesSinCambios: 0, errores: 0 };
     const viajes = await this.dep.archivos.listarViajes();
     await Promise.all(viajes.map((tripId) => this.barrerViaje(tripId, ahoraMs, graciaMs, r)));
     return r;
   }
 
   private async barrerViaje(
-    tripId: string, 
-    ahoraMs: number, 
-    graciaMs: number, 
-    r: Contadores
+    tripId: string,
+    ahoraMs: number,
+    graciaMs: number,
+    r: Contadores,
   ): Promise<void> {
     try {
-      if (this.dep.almacenDe(tripId).idDelViaje() === null) {
+      const almacen = this.dep.almacenDe(tripId);
+      if (almacen.idDelViaje() === null) {
         r.viajesDesconocidos += 1;
         return;
       }
+      // la cabeza se lee ANTES de listar: una operación que llegue durante el barrido se verá en el siguiente
+      const cabeza = almacen.seqMaximo();
+      const previo = this.estadoDelBarrido.get(tripId);
+      if (previo?.cabeza === cabeza && previo.limpio && ahoraMs - previo.revisadoEn < REVISION_COMPLETA_DEL_BARRIDO_MS) {
+        r.viajesSinCambios += 1;
+        return;
+      }
       const archivos = await this.dep.archivos.listar(tripId);
-      await Promise.all(archivos.map((archivo) => this.barrerArchivo(tripId, archivo, ahoraMs, graciaMs, r)));
+      const limpios = await Promise.all(archivos.map((archivo) => this.barrerArchivo(tripId, archivo, ahoraMs, graciaMs, r)));
+      this.estadoDelBarrido.set(tripId, { cabeza, limpio: limpios.every(Boolean), revisadoEn: ahoraMs });
     } catch {
+      // el estado no se actualiza: el viaje se vuelve a revisar en el próximo barrido
       r.errores += 1;
     }
   }
 
+  /** Devuelve false si el archivo queda esperando (todavía dentro de la gracia) o si falló: el viaje se vuelve a revisar. */
   private async barrerArchivo(
-    tripId: string, 
-    archivo: ArchivoGuardado, 
-    ahoraMs: number, 
-    graciaMs: number, 
-    r: Contadores
-  ): Promise<void> {
+    tripId: string,
+    archivo: ArchivoGuardado,
+    ahoraMs: number,
+    graciaMs: number,
+    r: Contadores,
+  ): Promise<boolean> {
     r.revisados += 1;
     if (archivo.tipo === "desconocido") {
       r.desconocidos += 1;
-      return;
+      return true;
     }
-    if (ahoraMs - archivo.modificadoEn < graciaMs) return;
+    if (ahoraMs - archivo.modificadoEn < graciaMs) return false;
     try {
       if (archivo.tipo === "temporal") {
         await this.dep.archivos.borrar(archivo);
@@ -201,8 +226,10 @@ export class ServicioDeAdjuntos {
       } else if (this.registrado(tripId, archivo.adjuntoId ?? "") === null) {
         r.sinRegistro += 1;
       }
+      return true;
     } catch {
       r.errores += 1;
+      return false;
     }
   }
 

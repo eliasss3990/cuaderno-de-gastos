@@ -191,7 +191,7 @@ describe("arrancar", () => {
     await new Promise((ok) => setTimeout(ok, 120));
     expect(readdirSync(carpeta)).toHaveLength(2);
     // al pasar la gracia (se simula con la hora de modificación) se borra solo el del adjunto purgado
-    const hace = (Date.now() - 3_600_000) / 1000;
+    const hace = (Date.now() - 2 * 3_600_000) / 1000;
     for (const nombre of readdirSync(carpeta)) utimesSync(join(carpeta, nombre), hace, hace);
     for (let i = 0; i < 100 && readdirSync(carpeta).length > 1; i++) await new Promise((ok) => setTimeout(ok, 25));
     expect(readdirSync(carpeta)).toEqual([`${VIVO}.jpg`]);
