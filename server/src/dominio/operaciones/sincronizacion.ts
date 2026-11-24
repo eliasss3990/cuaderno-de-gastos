@@ -3,6 +3,7 @@
 
 import { ErrorDeServicio } from "../identidad/servicioIdentidad.js";
 import type { Almacen, Operacion, OpLeida } from "./operaciones.js";
+import type { CanalEnVivo } from "./canalEnVivo.js";
 import { LoteInvalidoError, RecepcionDeOperaciones, type ResultadoDeOperacion } from "./recepcion.js";
 
 export const MAX_OPERACIONES_POR_PAGINA = 200;
@@ -24,16 +25,21 @@ export interface DependenciasDeSincronizacion {
   readonly almacenDe: (tripId: string) => Almacen;
   /** Reloj del servidor (ms). */
   readonly ahora: () => number;
+  /** Se avisa por acá cuando un lote deja operaciones nuevas. */
+  readonly canal?: CanalEnVivo;
 }
 
 export class ServicioDeSincronizacion {
   constructor(private readonly dep: DependenciasDeSincronizacion) {}
 
   subir(actor: ActorDeSincronizacion, operaciones: readonly unknown[]): ResultadoDeOperacion[] {
-    const recepcion = new RecepcionDeOperaciones(this.dep.almacenDe(actor.tripId), this.dep.ahora);
+    const almacen = this.dep.almacenDe(actor.tripId);
+    const recepcion = new RecepcionDeOperaciones(almacen, this.dep.ahora);
     try {
       // lo que no tenga forma de operación lo rechaza la ingesta
-      return recepcion.procesarLote(operaciones as readonly Operacion[], actor.deviceId);
+      const resultados = recepcion.procesarLote(operaciones as readonly Operacion[], actor.deviceId);
+      if (resultados.some((r) => r.estado === "accepted")) this.dep.canal?.notificar(actor.tripId, almacen.seqMaximo());
+      return resultados;
     } catch (e) {
       if (e instanceof LoteInvalidoError) throw new ErrorDeServicio("formato_invalido", e.message);
       throw e;

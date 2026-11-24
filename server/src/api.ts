@@ -4,6 +4,7 @@
 import { randomUUID } from "node:crypto";
 import Fastify, { type FastifyInstance } from "fastify";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
+import type { CanalEnVivo } from "./dominio/operaciones/canalEnVivo.js";
 import type { ServicioDeSincronizacion } from "./dominio/operaciones/sincronizacion.js";
 import type { Metricas } from "./observabilidad/metricas.js";
 import type { Registro } from "./observabilidad/registro.js";
@@ -17,6 +18,10 @@ import { parsearVersion } from "./http/versiones.js";
 export interface DependenciasApi {
   readonly servicio: ServicioDeIdentidad;
   readonly sincronizacion: ServicioDeSincronizacion;
+  /** El mismo canal que usa `sincronizacion` para avisar; la API lo cierra al apagarse. */
+  readonly canal: CanalEnVivo;
+  /** Cada cuántos milisegundos se escribe un latido en el canal en vivo; por defecto 20 s. */
+  readonly latidoMs?: number;
   /** Reloj del servidor en milisegundos (la hora que se informa a las apps); por defecto `Date.now`. */
   readonly ahora?: () => number;
   readonly registro: Registro;
@@ -58,7 +63,11 @@ export function construirApi(dep: DependenciasApi): FastifyInstance {
   app.setNotFoundHandler(manejarNoEncontrado);
 
   app.get("/healthz", () => ({ estado: "ok" }));
-  rutasDeIdentidad(app, dep.servicio);
-  rutasDeSincronizacion(app, dep.servicio, dep.sincronizacion, dep.ahora ?? Date.now);
+  rutasDeIdentidad(app, dep.servicio, dep.canal);
+  // al apagar, los canales abiertos se cierran antes de esperar a que terminen los pedidos (si no, el cierre aguardaría el plazo entero)
+  app.addHook("preClose", () => {
+    dep.canal.cerrarTodo();
+  });
+  rutasDeSincronizacion(app, { identidad: dep.servicio, sincronizacion: dep.sincronizacion, canal: dep.canal, metricas: dep.metricas, ahora: dep.ahora ?? Date.now, ...(dep.latidoMs === undefined ? {} : { latidoMs: dep.latidoMs }) });
   return app;
 }

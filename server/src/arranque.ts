@@ -11,6 +11,7 @@ import { ErrorDeConfiguracion, type Configuracion } from "./configuracion.js";
 import { leerPepper } from "./dominio/identidad/credenciales.js";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
 import { AlmacenSqlite } from "./almacen/operaciones/almacenSqlite.js";
+import { CanalEnMemoria } from "./dominio/operaciones/canalEnVivo.js";
 import { ServicioDeSincronizacion } from "./dominio/operaciones/sincronizacion.js";
 import { iniciarResumenPeriodico, MAX_SERIES, MetricasEnMemoria } from "./observabilidad/metricas.js";
 import { tareaPeriodica, type OpcionesPeriodicas } from "./observabilidad/periodico.js";
@@ -100,9 +101,10 @@ export async function arrancar(config: Configuracion, opciones: { registro?: Reg
   try {
     const metricas = new MetricasEnMemoria(MAX_SERIES, false);
     const servicio = servicioDeIdentidadSobre(db, { ahora: () => Date.now(), pepper });
-    const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => Date.now() });
+    const canal = new CanalEnMemoria();
+    const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => Date.now(), canal });
     temporizadores.push(iniciarResumenPeriodico({ metricas, registro }), iniciarMantenimiento({ servicio, registro }));
-    app = construirApi({ servicio, sincronizacion, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
+    app = construirApi({ servicio, sincronizacion, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
     await app.listen({ port: config.puerto, host: "0.0.0.0" });
 
     const direccion = app.server.address();

@@ -3,6 +3,7 @@
 
 import type { FastifyInstance } from "fastify";
 import type { ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
+import type { CanalEnVivo } from "../dominio/operaciones/canalEnVivo.js";
 import { delViaje, exigirDispositivo } from "./autenticacion.js";
 import { ipDelPedido } from "./pedidos.js";
 
@@ -58,7 +59,7 @@ interface CuerpoUnirse {
   emoji?: string;
 }
 
-export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdentidad): void {
+export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdentidad, canal?: CanalEnVivo): void {
   app.post<{ Body: CuerpoCrearViaje }>("/v1/trips", { schema: { body: CREAR_VIAJE } }, (request, reply) => {
     const b = request.body;
     const alta = servicio.crearViaje({
@@ -103,7 +104,10 @@ export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdent
     "/v1/trips/:trip/devices/:device/revoke",
     { onRequest: exigirDispositivo(servicio) },
     (request, reply) => {
-      servicio.revocar(delViaje(request.params.trip, request.dispositivo), request.params.device);
+      const actor = delViaje(request.params.trip, request.dispositivo);
+      servicio.revocar(actor, request.params.device);
+      // un dispositivo revocado no sigue recibiendo avisos del viaje
+      canal?.expulsar(actor.tripId, request.params.device);
       return reply.status(204).send();
     },
   );
