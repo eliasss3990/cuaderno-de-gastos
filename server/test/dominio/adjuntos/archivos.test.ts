@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectarTipo, EXTENSION_DE, UUID } from "../../../src/dominio/adjuntos/archivos.js";
+import { clasificarNombre, detectarTipo, EXTENSION_DE, UUID } from "../../../src/dominio/adjuntos/archivos.js";
 import { jpeg, pdf, png, webp } from "../../ayudas/adjuntos.js";
 
 describe("detectarTipo", () => {
@@ -54,3 +54,30 @@ describe("identificadores y extensiones", () => {
     }
   });
 });
+
+describe("clasificarNombre", () => {
+  const ID = "aaaaaaaa-0000-4000-8000-000000000001";
+
+  it("reconoce un archivo por cada extensión permitida y devuelve a qué adjunto pertenece", () => {
+    for (const ext of ["jpg", "png", "webp", "pdf"]) expect([ext, clasificarNombre(`${ID}.${ext}`)]).toEqual([ext, { tipo: "archivo", adjuntoId: ID }]);
+  });
+
+  it("reconoce la miniatura (solo .thumb.jpg) y devuelve su adjunto", () => {
+    expect(clasificarNombre(`${ID}.thumb.jpg`)).toEqual({ tipo: "miniatura", adjuntoId: ID });
+    for (const malo of [`${ID}.thumb.png`, `${ID}.thumb.jpg.bak`, `x${ID}.thumb.jpg`, `${ID}.thumb`]) expect([malo, clasificarNombre(malo).tipo]).toEqual([malo, "desconocido"]);
+  });
+
+  it("reconoce un temporal: 16 hexadecimales en minúscula y .tmp, sin adjunto", () => {
+    expect(clasificarNombre("0123456789abcdef.tmp")).toEqual({ tipo: "temporal", adjuntoId: null });
+    for (const malo of ["0123456789abcde.tmp", "0123456789abcdef0.tmp", "0123456789ABCDEF.tmp", "0123456789abcdeg.tmp", "x0123456789abcdef.tmp", "0123456789abcdef.tmp.bak", "0123456789abcdef.tmpx", ".tmp"]) {
+      expect([malo, clasificarNombre(malo)]).toEqual([malo, { tipo: "desconocido", adjuntoId: null }]);
+    }
+  });
+
+  it("todo lo demás es desconocido: otras extensiones, mayúsculas, texto antes o después y rutas", () => {
+    for (const malo of ["", "notas.txt", `${ID}.exe`, `${ID}.gif`, `${ID}`, `${ID}.`, `${ID}.jpg.bak`, `x${ID}.jpg`, `${ID.toUpperCase()}.jpg`, `${ID.slice(1)}.jpg`, `../${ID}.jpg`, `${ID}.jpg/`, `${ID}.jpg\n`, `${ID}.JPG`, `a/${ID}.pdf`]) {
+      expect([malo, clasificarNombre(malo)]).toEqual([malo, { tipo: "desconocido", adjuntoId: null }]);
+    }
+  });
+});
+

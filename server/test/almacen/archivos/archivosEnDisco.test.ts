@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, symlinkSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -143,5 +143,84 @@ describe("ArchivosEnDisco", () => {
   it("bytesDelViaje solo acepta un UUID", async () => {
     const { disco } = raiz();
     for (const malo of ["../x", "", "no-es-uuid"]) await expect(disco.bytesDelViaje(malo)).rejects.toThrow(RangeError);
+  });
+
+  it("listarViajes devuelve solo las carpetas que se llaman como un UUID", async () => {
+    const { dir, disco } = raiz();
+    expect(await disco.listarViajes()).toEqual([]);
+    mkdirSync(join(dir, TRIP));
+    mkdirSync(join(dir, TRIP2));
+    mkdirSync(join(dir, "otra-carpeta"));
+    mkdirSync(join(dir, TRIP.toUpperCase()));
+    writeFileSync(join(dir, "018f3a6e-0000-7000-8000-0000000000aa"), "es un archivo, no una carpeta");
+    expect((await disco.listarViajes()).sort()).toEqual([TRIP, TRIP2]);
+  });
+
+  it("listarViajes sin la carpeta raíz devuelve una lista vacía", async () => {
+    const { dir, disco } = raiz();
+    rmSync(dir, { recursive: true, force: true });
+    expect(await disco.listarViajes()).toEqual([]);
+  });
+
+  it("listar clasifica cada archivo, da su tamaño y su hora de modificación, y se salta las carpetas", async () => {
+    const { dir, disco } = raiz();
+    await disco.guardar(ref(), Buffer.alloc(120));
+    await disco.guardar(ref({ variante: "miniatura" }), Buffer.alloc(30));
+    writeFileSync(join(dir, TRIP, "0123456789abcdef.tmp"), Buffer.alloc(7));
+    writeFileSync(join(dir, TRIP, "notas.txt"), Buffer.alloc(5));
+    mkdirSync(join(dir, TRIP, "carpeta"));
+    const hace = (Date.now() - 3_600_000) / 1000;
+    utimesSync(join(dir, TRIP, `${ADJ}.jpg`), hace, hace);
+    const archivos = (await disco.listar(TRIP)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+    expect(archivos.map((a) => [a.nombre, a.tipo, a.adjuntoId, a.bytes])).toEqual([
+      ["0123456789abcdef.tmp", "temporal", null, 7],
+      [`${ADJ}.jpg`, "archivo", ADJ, 120],
+      [`${ADJ}.thumb.jpg`, "miniatura", ADJ, 30],
+      ["notas.txt", "desconocido", null, 5],
+    ]);
+    expect(archivos.every((a) => a.tripId === TRIP)).toBe(true);
+    const viejo = archivos.find((a) => a.nombre === `${ADJ}.jpg`)!;
+    expect(Math.abs(viejo.modificadoEn - hace * 1000)).toBeLessThan(2000);
+    expect(Date.now() - (archivos.find((a) => a.tipo === "miniatura")?.modificadoEn ?? 0)).toBeLessThan(60_000);
+  });
+
+  it("listar de un viaje sin carpeta es vacío y solo acepta un UUID", async () => {
+    const { disco } = raiz();
+    expect(await disco.listar(TRIP)).toEqual([]);
+    for (const malo of ["../x", "", "no-es-uuid"]) await expect(disco.listar(malo)).rejects.toThrow(RangeError);
+  });
+
+  it("borrar saca el archivo y no toca los demás; si ya no está, no hace nada", async () => {
+    const { dir, disco } = raiz();
+    await disco.guardar(ref(), Buffer.alloc(10));
+    await disco.guardar(ref({ variante: "miniatura" }), Buffer.alloc(10));
+    const [archivo] = (await disco.listar(TRIP)).filter((a) => a.tipo === "archivo");
+    await disco.borrar(archivo!);
+    expect(readdirSync(join(dir, TRIP))).toEqual([`${ADJ}.thumb.jpg`]);
+    await expect(disco.borrar(archivo!)).resolves.toBeUndefined();
+  });
+
+  it("borrar propaga los errores que no son \"ya no está\" (por ejemplo, un nombre que en el disco es una carpeta)", async () => {
+    const { dir, disco } = raiz();
+    mkdirSync(join(dir, TRIP, `${ADJ}.jpg`), { recursive: true });
+    await expect(disco.borrar({ tripId: TRIP, nombre: `${ADJ}.jpg`, tipo: "archivo", adjuntoId: ADJ, bytes: 0, modificadoEn: 0 })).rejects.toThrow();
+    expect(existsSync(join(dir, TRIP, `${ADJ}.jpg`))).toBe(true);
+  });
+
+  it("borrar un temporal funciona, y un nombre que el servidor no arma o un viaje que no es UUID es RangeError y no borra nada", async () => {
+    const { dir, disco } = raiz();
+    mkdirSync(join(dir, TRIP));
+    writeFileSync(join(dir, TRIP, "0123456789abcdef.tmp"), "x");
+    writeFileSync(join(dir, TRIP, "notas.txt"), "x");
+    writeFileSync(join(dir, "fuera.txt"), "x");
+    const base = { tripId: TRIP, adjuntoId: null, bytes: 1, modificadoEn: 0 } as const;
+    await disco.borrar({ ...base, nombre: "0123456789abcdef.tmp", tipo: "temporal" });
+    expect(existsSync(join(dir, TRIP, "0123456789abcdef.tmp"))).toBe(false);
+    for (const nombre of ["notas.txt", "../fuera.txt", "../../etc/passwd", `../${ADJ}.jpg`, "", ".", ".."]) {
+      await expect(disco.borrar({ ...base, nombre, tipo: "archivo" }), nombre).rejects.toThrow(RangeError);
+    }
+    await expect(disco.borrar({ ...base, tripId: "../x", nombre: `${ADJ}.jpg`, tipo: "archivo" })).rejects.toThrow(RangeError);
+    expect(existsSync(join(dir, TRIP, "notas.txt"))).toBe(true);
+    expect(existsSync(join(dir, "fuera.txt"))).toBe(true);
   });
 });

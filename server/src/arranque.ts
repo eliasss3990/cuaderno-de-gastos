@@ -22,6 +22,7 @@ import { crearRegistroPino, type OpcionesDelRegistro } from "./observabilidad/re
 
 export const NOMBRE_DE_LA_BASE = "cuaderno.db";
 export const CADA_DIEZ_MINUTOS_MS = 10 * 60 * 1000;
+export const CADA_HORA_MS = 60 * 60 * 1000;
 /** Docker manda SIGKILL a los 10 s: pasado este plazo se cortan las conexiones que sigan abiertas para poder cerrar la base. */
 export const PLAZO_DE_APAGADO_MS = 8000;
 
@@ -49,6 +50,67 @@ export function iniciarMantenimiento(opciones: {
     }
   };
   return tareaPeriodica(accion, { cadaMs: CADA_DIEZ_MINUTOS_MS, ...opciones.periodo });
+}
+
+/** Cuánto se espera, como mucho, a un barrido en curso al apagar (Docker mata el proceso a los 10 s). */
+export const ESPERA_DEL_BARRIDO_MS = 2000;
+
+/**
+ * Cada tanto borra los archivos de adjuntos que sobran (de adjuntos purgados y subidas a medias). Nunca corren dos barridos a
+ * la vez. `detener` para el temporizador y espera un momento al barrido que esté en curso.
+ */
+export function iniciarBarridoDeAdjuntos(opciones: {
+  servicio: Pick<ServicioDeAdjuntos, "barrer">;
+  registro: Registro;
+  ahora?: () => number;
+  periodo?: Partial<OpcionesPeriodicas>;
+  esperaMs?: number;
+}): { detener(): Promise<void> } {
+  let enCurso: Promise<void> | null = null;
+  const barrer = async (): Promise<void> => {
+    try {
+      const r = await opciones.servicio.barrer((opciones.ahora ?? Date.now)());
+      const campos = {
+        revisados: r.revisados,
+        huerfanos_borrados: r.huerfanosBorrados,
+        temporales_borrados: r.temporalesBorrados,
+        bytes_liberados: r.bytesLiberados,
+        sin_registro: r.sinRegistro,
+        desconocidos: r.desconocidos,
+        viajes_desconocidos: r.viajesDesconocidos,
+        viajes_sin_cambios: r.viajesSinCambios,
+        errores: r.errores,
+      };
+      if (r.errores > 0) opciones.registro.warn("adjuntos_barrido", campos);
+      else if (r.huerfanosBorrados + r.temporalesBorrados > 0) opciones.registro.info("adjuntos_barrido", campos);
+      else opciones.registro.debug("adjuntos_barrido", campos);
+    } catch (err) {
+      opciones.registro.error("adjuntos_barrido_fallo", { err });
+    }
+  };
+  const parar = tareaPeriodica(
+    () => {
+      enCurso ??= barrer().finally(() => {
+        enCurso = null;
+      });
+    },
+    { cadaMs: CADA_HORA_MS, ...opciones.periodo },
+  );
+  return {
+    detener: async () => {
+      parar();
+      if (enCurso === null) return;
+      let temporizador: ReturnType<typeof setTimeout> | undefined;
+      const espera = new Promise<void>((listo) => {
+        temporizador = setTimeout(listo, opciones.esperaMs ?? ESPERA_DEL_BARRIDO_MS);
+      });
+      try {
+        await Promise.race([enCurso, espera]);
+      } finally {
+        clearTimeout(temporizador);
+      }
+    },
+  };
 }
 
 function leerElPepper(archivo: string): Uint8Array {
@@ -80,7 +142,16 @@ function comprobarLaCarpeta(dir: string, nombre: string): void {
   }
 }
 
-export async function arrancar(config: Configuracion, opciones: { registro?: Registro; destino?: OpcionesDelRegistro["destino"]; plazoDeApagadoMs?: number } = {}): Promise<Servidor> {
+export async function arrancar(
+  config: Configuracion,
+  opciones: {
+    registro?: Registro;
+    destino?: OpcionesDelRegistro["destino"];
+    plazoDeApagadoMs?: number;
+    /** Cada cuánto se barren los archivos de adjuntos que sobran; por defecto, cada hora. Lo usan las pruebas. */
+    cadaMsDelBarrido?: number;
+  } = {},
+): Promise<Servidor> {
   const registro = opciones.registro ?? crearRegistroPino({ nivel: config.nivelDeLog, ...(opciones.destino === undefined ? {} : { destino: opciones.destino }) });
   comprobarLaCarpeta(config.dirDatos, "DATA_DIR");
   comprobarLaCarpeta(config.dirAdjuntos, "ADJUNTOS_DIR");
@@ -89,9 +160,11 @@ export async function arrancar(config: Configuracion, opciones: { registro?: Reg
   const db: Database = abrirBase(join(config.dirDatos, NOMBRE_DE_LA_BASE));
   const temporizadores: (() => void)[] = [];
   let app: FastifyInstance | undefined;
+  let barridoDeAdjuntos: { detener(): Promise<void> } | undefined;
   /** Cierra en orden: los temporizadores, la API (deja terminar los pedidos en curso, hasta el plazo) y al final la base. */
   const cerrar = async (): Promise<void> => {
     for (const parar of temporizadores) parar();
+    await barridoDeAdjuntos?.detener();
     const cortar = setTimeout(() => app?.server.closeAllConnections(), opciones.plazoDeApagadoMs ?? PLAZO_DE_APAGADO_MS);
     try {
       await app?.close();
@@ -108,6 +181,14 @@ export async function arrancar(config: Configuracion, opciones: { registro?: Reg
     const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => Date.now(), canal });
     const adjuntos = new ServicioDeAdjuntos({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), archivos: new ArchivosEnDisco(config.dirAdjuntos) });
     temporizadores.push(iniciarResumenPeriodico({ metricas, registro }), iniciarMantenimiento({ servicio, registro }));
+    barridoDeAdjuntos = iniciarBarridoDeAdjuntos({
+      servicio: adjuntos,
+      registro,
+      ...(opciones.cadaMsDelBarrido === undefined 
+        ? {} 
+        : { periodo: { cadaMs: opciones.cadaMsDelBarrido } }
+      ),
+    });
     app = construirApi({ servicio, sincronizacion, adjuntos, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
     await app.listen({ port: config.puerto, host: "0.0.0.0" });
 
