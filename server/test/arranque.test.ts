@@ -26,9 +26,11 @@ function entorno(pepper = PEPPER_A, conDatos = true) {
   writeFileSync(archivoPepper, pepper);
   const datos = join(dir, "datos");
   if (conDatos) mkdirSync(datos);
-  return { dir, datos, archivoPepper };
+  const adjuntos = join(dir, "adjuntos");
+  mkdirSync(adjuntos);
+  return { dir, datos, adjuntos, archivoPepper };
 }
-const configuracion = (e: ReturnType<typeof entorno>, extra: Partial<Configuracion> = {}): Configuracion => ({ puerto: 0, dirDatos: e.datos, archivoPepper: e.archivoPepper, nivelDeLog: "silent", ...extra });
+const configuracion = (e: ReturnType<typeof entorno>, extra: Partial<Configuracion> = {}): Configuracion => ({ puerto: 0, dirDatos: e.datos, dirAdjuntos: e.adjuntos, archivoPepper: e.archivoPepper, nivelDeLog: "silent", ...extra });
 async function levantar(e: ReturnType<typeof entorno>, extra: Partial<Configuracion> = {}, registro = new RegistroDeMemoria()) {
   const servidor = await arrancar(configuracion(e, extra), { registro });
   servidores.push(servidor);
@@ -193,6 +195,27 @@ describe("lo que impide arrancar sale con un mensaje claro y sin dejar nada abie
     writeFileSync(join(e.dir, "marca"), "");
     const archivo = await falla(e, { dirDatos: join(e.dir, "marca") });
     expect(archivo.message).toContain("DATA_DIR no es una carpeta que exista");
+  });
+
+  it("una carpeta de adjuntos que no existe o que es un archivo", async () => {
+    const e = entorno();
+    const noExiste = await falla(e, { dirAdjuntos: join(e.dir, "no-existe") });
+    expect(noExiste).toBeInstanceOf(ErrorDeConfiguracion);
+    expect(noExiste.message).toBe(`ADJUNTOS_DIR no es una carpeta que exista (${join(e.dir, "no-existe")})`);
+    writeFileSync(join(e.dir, "marca"), "");
+    expect((await falla(e, { dirAdjuntos: join(e.dir, "marca") })).message).toContain("ADJUNTOS_DIR no es una carpeta que exista");
+  });
+
+  it.skipIf(process.getuid?.() === 0)("una carpeta de adjuntos que no se puede escribir falla con un mensaje claro", async () => {
+    const e = entorno();
+    chmodSync(e.adjuntos, 0o500);
+    try {
+      const error = await falla(e);
+      expect(error).toBeInstanceOf(ErrorDeConfiguracion);
+      expect(error.message).toBe(`ADJUNTOS_DIR no se puede escribir (${e.adjuntos})`);
+    } finally {
+      chmodSync(e.adjuntos, 0o700);
+    }
   });
 
   it.skipIf(process.getuid?.() === 0)("una carpeta de datos que no se puede escribir falla con un mensaje claro", async () => {

@@ -62,6 +62,9 @@ jobs:
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: |
+          # las carpetas de datos y de adjuntos las tiene que poder escribir el usuario del contenedor: si no existen, Docker las
+          # crearía como root y el servidor no arrancaría
+          mkdir -m 700 -p "$COMPOSE_DIR/data" "$COMPOSE_DIR/adjuntos"
           cp server/compose.yml "$COMPOSE_DIR/compose.yml"
           cd "$COMPOSE_DIR"
           VERSION="$VERSION" docker compose --env-file .env up -d

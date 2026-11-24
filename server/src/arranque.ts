@@ -63,24 +63,25 @@ function leerElPepper(archivo: string): Uint8Array {
   }
 }
 
-function comprobarLaCarpeta(dir: string): void {
+function comprobarLaCarpeta(dir: string, nombre: string): void {
   let esCarpeta = false;
   try {
     esCarpeta = statSync(dir).isDirectory();
   } catch {
     /* no existe o no se puede leer */
   }
-  if (!esCarpeta) throw new ErrorDeConfiguracion(`DATA_DIR no es una carpeta que exista (${dir})`);
+  if (!esCarpeta) throw new ErrorDeConfiguracion(`${nombre} no es una carpeta que exista (${dir})`);
   try {
     accessSync(dir, constants.W_OK);
   } catch {
-    throw new ErrorDeConfiguracion(`DATA_DIR no se puede escribir (${dir})`);
+    throw new ErrorDeConfiguracion(`${nombre} no se puede escribir (${dir})`);
   }
 }
 
 export async function arrancar(config: Configuracion, opciones: { registro?: Registro; destino?: OpcionesDelRegistro["destino"]; plazoDeApagadoMs?: number } = {}): Promise<Servidor> {
   const registro = opciones.registro ?? crearRegistroPino({ nivel: config.nivelDeLog, ...(opciones.destino === undefined ? {} : { destino: opciones.destino }) });
-  comprobarLaCarpeta(config.dirDatos);
+  comprobarLaCarpeta(config.dirDatos, "DATA_DIR");
+  comprobarLaCarpeta(config.dirAdjuntos, "ADJUNTOS_DIR");
   const pepper = leerElPepper(config.archivoPepper);
 
   const db: Database = abrirBase(join(config.dirDatos, NOMBRE_DE_LA_BASE));
