@@ -8,6 +8,8 @@ export interface Configuracion {
   readonly puerto: number;
   /** Carpeta de los datos (debe existir): ahí vive `cuaderno.db`. */
   readonly dirDatos: string;
+  /** Carpeta de los archivos de los adjuntos (debe existir). */
+  readonly dirAdjuntos: string;
   /** Archivo con el valor secreto de las huellas de códigos e IP. */
   readonly archivoPepper: string;
   readonly nivelDeLog: Nivel | "silent";
@@ -24,7 +26,7 @@ export class ErrorDeConfiguracion extends Error {
 
 const PUERTO_POR_DEFECTO = 8094;
 
-/** `PORT`, `DATA_DIR`, `PEPPER_FILE`, `LOG_LEVEL` y `APP_MIN_VERSION`; lanza `ErrorDeConfiguracion` con todos los problemas juntos. */
+/** `PORT`, `DATA_DIR`, `ADJUNTOS_DIR`, `PEPPER_FILE`, `LOG_LEVEL` y `APP_MIN_VERSION`; lanza `ErrorDeConfiguracion` con todos los problemas juntos. */
 export function leerConfiguracion(env: Readonly<Record<string, string | undefined>>): Configuracion {
   const errores: string[] = [];
   const valor = (nombre: string): string => (env[nombre] ?? "").trim();
@@ -36,6 +38,8 @@ export function leerConfiguracion(env: Readonly<Record<string, string | undefine
   }
   const dirDatos = valor("DATA_DIR");
   if (dirDatos === "") errores.push("falta DATA_DIR (la carpeta de los datos)");
+  const dirAdjuntos = valor("ADJUNTOS_DIR");
+  if (dirAdjuntos === "") errores.push("falta ADJUNTOS_DIR (la carpeta de los archivos adjuntos)");
   const archivoPepper = valor("PEPPER_FILE");
   if (archivoPepper === "") errores.push("falta PEPPER_FILE (el archivo con el valor secreto)");
   let nivelDeLog: Configuracion["nivelDeLog"] = "info";
@@ -48,5 +52,5 @@ export function leerConfiguracion(env: Readonly<Record<string, string | undefine
   if (versionMinima !== "" && parsearVersion(versionMinima) === null) errores.push(`APP_MIN_VERSION no es una versión (llegó "${versionMinima}")`);
 
   if (errores.length > 0) throw new ErrorDeConfiguracion(`configuración inválida: ${errores.join("; ")}`);
-  return { puerto, dirDatos, archivoPepper, nivelDeLog, ...(versionMinima === "" ? {} : { versionMinima }) };
+  return { puerto, dirDatos, dirAdjuntos, archivoPepper, nivelDeLog, ...(versionMinima === "" ? {} : { versionMinima }) };
 }

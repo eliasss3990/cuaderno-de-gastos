@@ -5,8 +5,10 @@ import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import type { Database } from "better-sqlite3";
 import { abrirBase } from "./almacen/base/base.js";
+import { ArchivosEnDisco } from "./almacen/archivos/archivosEnDisco.js";
 import { servicioDeIdentidadSobre } from "./almacen/identidad/servicioSqlite.js";
 import { construirApi } from "./api.js";
+import { ServicioDeAdjuntos } from "./dominio/adjuntos/servicioAdjuntos.js";
 import { ErrorDeConfiguracion, type Configuracion } from "./configuracion.js";
 import { leerPepper } from "./dominio/identidad/credenciales.js";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
@@ -63,24 +65,25 @@ function leerElPepper(archivo: string): Uint8Array {
   }
 }
 
-function comprobarLaCarpeta(dir: string): void {
+function comprobarLaCarpeta(dir: string, nombre: string): void {
   let esCarpeta = false;
   try {
     esCarpeta = statSync(dir).isDirectory();
   } catch {
     /* no existe o no se puede leer */
   }
-  if (!esCarpeta) throw new ErrorDeConfiguracion(`DATA_DIR no es una carpeta que exista (${dir})`);
+  if (!esCarpeta) throw new ErrorDeConfiguracion(`${nombre} no es una carpeta que exista (${dir})`);
   try {
     accessSync(dir, constants.W_OK);
   } catch {
-    throw new ErrorDeConfiguracion(`DATA_DIR no se puede escribir (${dir})`);
+    throw new ErrorDeConfiguracion(`${nombre} no se puede escribir (${dir})`);
   }
 }
 
 export async function arrancar(config: Configuracion, opciones: { registro?: Registro; destino?: OpcionesDelRegistro["destino"]; plazoDeApagadoMs?: number } = {}): Promise<Servidor> {
   const registro = opciones.registro ?? crearRegistroPino({ nivel: config.nivelDeLog, ...(opciones.destino === undefined ? {} : { destino: opciones.destino }) });
-  comprobarLaCarpeta(config.dirDatos);
+  comprobarLaCarpeta(config.dirDatos, "DATA_DIR");
+  comprobarLaCarpeta(config.dirAdjuntos, "ADJUNTOS_DIR");
   const pepper = leerElPepper(config.archivoPepper);
 
   const db: Database = abrirBase(join(config.dirDatos, NOMBRE_DE_LA_BASE));
@@ -103,8 +106,9 @@ export async function arrancar(config: Configuracion, opciones: { registro?: Reg
     const servicio = servicioDeIdentidadSobre(db, { ahora: () => Date.now(), pepper });
     const canal = new CanalEnMemoria();
     const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => Date.now(), canal });
+    const adjuntos = new ServicioDeAdjuntos({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), archivos: new ArchivosEnDisco(config.dirAdjuntos) });
     temporizadores.push(iniciarResumenPeriodico({ metricas, registro }), iniciarMantenimiento({ servicio, registro }));
-    app = construirApi({ servicio, sincronizacion, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
+    app = construirApi({ servicio, sincronizacion, adjuntos, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
     await app.listen({ port: config.puerto, host: "0.0.0.0" });
 
     const direccion = app.server.address();

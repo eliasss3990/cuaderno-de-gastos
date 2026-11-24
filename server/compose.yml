@@ -17,12 +17,14 @@ services:
     environment:
       PORT: "8094"
       DATA_DIR: /data
+      ADJUNTOS_DIR: /adjuntos
       LOG_LEVEL: info
       APP_MIN_VERSION: ${APP_MIN_VERSION:?falta APP_MIN_VERSION en el .env}
       PEPPER_FILE: /run/secrets/pepper
     secrets: [pepper]
     volumes:
       - /srv/cuaderno/data:/data
+      - /srv/cuaderno/adjuntos:/adjuntos
     networks: [proxy]
     logging: { driver: json-file, options: { max-size: 5m, max-file: "3" } }
 secrets:
