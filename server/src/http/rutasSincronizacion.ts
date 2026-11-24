@@ -3,6 +3,10 @@
 
 import type { FastifyInstance } from "fastify";
 import type { ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
+import type { CanalEnVivo } from "../dominio/operaciones/canalEnVivo.js";
+import type { Metricas } from "../observabilidad/metricas.js";
+import { ErrorHttp } from "./errores.js";
+import { EscritorSse } from "./escritorSse.js";
 import { MAX_OPERACIONES_POR_LOTE } from "../dominio/operaciones/recepcion.js";
 import { MAX_OPERACIONES_POR_PAGINA, type ServicioDeSincronizacion } from "../dominio/operaciones/sincronizacion.js";
 import { delViaje, exigirDispositivo } from "./autenticacion.js";
@@ -28,7 +32,19 @@ function delCable(op: unknown): unknown {
   return { opId: o.op_id, tipo: o.type, entidadTipo: o.entity_type, entidadId: o.entity_id, hlc: o.hlc, payload: o.payload };
 }
 
-export function rutasDeSincronizacion(app: FastifyInstance, identidad: ServicioDeIdentidad, sincronizacion: ServicioDeSincronizacion, ahora: () => number): void {
+/** Cada cuánto se escribe un comentario para que ni nginx ni Cloudflare corten una conexión sin novedades. */
+export const LATIDO_MS = 20_000;
+export interface DependenciasDeRutas {
+  readonly identidad: ServicioDeIdentidad;
+  readonly sincronizacion: ServicioDeSincronizacion;
+  readonly canal: CanalEnVivo;
+  readonly metricas: Metricas;
+  readonly ahora: () => number;
+  readonly latidoMs?: number;
+}
+
+export function rutasDeSincronizacion(app: FastifyInstance, dep: DependenciasDeRutas): void {
+  const { identidad, sincronizacion, canal, metricas, ahora } = dep;
   const auth = exigirDispositivo(identidad);
 
   app.post<{ Params: { trip: string }; Body: { ops: unknown[] } }>(
@@ -62,5 +78,49 @@ export function rutasDeSincronizacion(app: FastifyInstance, identidad: ServicioD
   app.get<{ Params: { trip: string } }>("/v1/trips/:trip/head", { onRequest: auth }, (request) => {
     const actor = delViaje(request.params.trip, request.dispositivo);
     return { head_seq: sincronizacion.cabeza(actor), ahora: ahora() };
+  });
+
+  // Canal en vivo (SSE) escrito a mano: la respuesta no termina, así que se toma el control del socket (`hijack`) y no pasa por
+  // `onResponse`; abrir y cerrar quedan en el registro y en las métricas de conexiones. Lo que puede fallar (el lugar, la cabeza)
+  // se resuelve ANTES del hijack para que un error salga como 500 normal. Todo es síncrono: entre leer la cabeza y suscribir no
+  // se puede intercalar una subida, así que no se pierde ni se adelanta ningún aviso.
+  app.get<{ Params: { trip: string } }>("/v1/trips/:trip/events", { onRequest: auth }, (request, reply) => {
+    // si el cliente se fue mientras se autenticaba, su `close` ya pasó: no se suscribe a un socket muerto
+    if (request.raw.destroyed) return;
+    const actor = delViaje(request.params.trip, request.dispositivo);
+    if (!canal.hayLugar(actor.tripId, actor.deviceId)) throw new ErrorHttp(503, "canal_lleno", "no hay lugar para otra conexión en vivo");
+    const cabeza = sincronizacion.cabeza(actor);
+    void reply.hijack();
+    const raw = reply.raw;
+    const escritor = new EscritorSse(raw);
+    const latido = setInterval(() => escritor.latido(), dep.latidoMs ?? LATIDO_MS);
+    latido.unref();
+    const abierto = ahora();
+    let baja = (): void => {};
+    let terminado = false;
+    const limpiar = (): void => {
+      if (terminado) return;
+      terminado = true;
+      escritor.marcarCerrado();
+      clearInterval(latido);
+      baja();
+      metricas.fijar("sse_conexiones", canal.conexiones());
+      request.registro.info("canal_cerrado", { ms: Math.round(ahora() - abierto) });
+    };
+    raw.on("close", limpiar);
+    raw.on("error", () => raw.destroy());
+    raw.on("drain", () => escritor.vaciada());
+    try {
+      raw.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store, no-transform", "x-accel-buffering": "no", connection: "keep-alive" });
+      baja = canal.suscribir(actor.tripId, actor.deviceId, { novedades: (c) => escritor.novedades(c), cerrar: () => escritor.cerrar() });
+      metricas.fijar("sse_conexiones", canal.conexiones());
+      metricas.contar("sse_aperturas");
+      request.registro.info("canal_abierto");
+      escritor.abrir(cabeza);
+    } catch (e) {
+      // ya no hay respuesta HTTP posible: se registra y se corta el socket (el `close` hace la limpieza)
+      request.registro.error("canal_fallo", { err: e });
+      raw.destroy();
+    }
   });
 }

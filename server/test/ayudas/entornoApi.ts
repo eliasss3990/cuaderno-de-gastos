@@ -6,6 +6,7 @@ import { construirApi } from "../../src/api.js";
 import type { Aleatorio } from "../../src/dominio/identidad/credenciales.js";
 import type { ServicioDeIdentidad } from "../../src/dominio/identidad/servicioIdentidad.js";
 import { AlmacenSqlite } from "../../src/almacen/operaciones/almacenSqlite.js";
+import { CanalEnMemoria } from "../../src/dominio/operaciones/canalEnVivo.js";
 import { ServicioDeSincronizacion } from "../../src/dominio/operaciones/sincronizacion.js";
 import { MetricasEnMemoria } from "../../src/observabilidad/metricas.js";
 import { RegistroDeMemoria } from "./registroDeMemoria.js";
@@ -38,15 +39,16 @@ export interface Alta {
 }
 
 /** La API armada sobre una base en memoria, con registro y métricas para inspeccionar. Las métricas son estrictas: una etiqueta inválida salta. */
-export function entornoApi(opciones: { versionMinima?: string; servicio?: ServicioDeIdentidad; reloj?: () => number } = {}) {
+export function entornoApi(opciones: { canal?: CanalEnMemoria; latidoMs?: number; versionMinima?: string; servicio?: ServicioDeIdentidad; reloj?: () => number } = {}) {
   const db = abrirBase(":memory:");
   const identidad = new IdentidadSqlite(db);
   const reloj = { ahora: AHORA };
   const servicio = opciones.servicio ?? servicioDeIdentidadSobre(db, { ahora: () => reloj.ahora, pepper: PEPPER, aleatorio: azarDeterminista() });
-  const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => reloj.ahora });
+  const canal = opciones.canal ?? new CanalEnMemoria();
+  const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => reloj.ahora, canal });
   const registro = new RegistroDeMemoria();
   const metricas = new MetricasEnMemoria();
-  const app: FastifyInstance = construirApi({ servicio, sincronizacion, ahora: () => reloj.ahora, registro, metricas, ...(opciones.versionMinima === undefined ? {} : { versionMinima: opciones.versionMinima }), ...(opciones.reloj === undefined ? {} : { reloj: opciones.reloj }) });
+  const app: FastifyInstance = construirApi({ servicio, sincronizacion, canal, ...(opciones.latidoMs === undefined ? {} : { latidoMs: opciones.latidoMs }), ahora: () => reloj.ahora, registro, metricas, ...(opciones.versionMinima === undefined ? {} : { versionMinima: opciones.versionMinima }), ...(opciones.reloj === undefined ? {} : { reloj: opciones.reloj }) });
   const con = (token: string, extra: Record<string, string> = {}) => ({ authorization: `Bearer ${token}`, ...extra });
 
   async function crearViaje(cuerpo: object = VIAJE): Promise<Alta> {
@@ -71,5 +73,5 @@ export function entornoApi(opciones: { versionMinima?: string; servicio?: Servic
   const contador = (nombre: string, etiquetas: Record<string, string>) =>
     metricas.resumen().contadores.find((s) => s.nombre === nombre && JSON.stringify(s.etiquetas) === JSON.stringify(etiquetas))?.valor;
 
-  return { app, db, identidad, reloj, servicio, sincronizacion, registro, metricas, con, crearViaje, invitar, unirse, sumar, contador };
+  return { app, db, identidad, reloj, servicio, sincronizacion, canal, registro, metricas, con, crearViaje, invitar, unirse, sumar, contador };
 }
