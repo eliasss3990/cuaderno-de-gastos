@@ -3,14 +3,16 @@ import { AHORA, entornoApi, type Alta } from "../ayudas/entornoApi.js";
 import { jpeg, pdf, png, sha256, webp, type Mime } from "../ayudas/adjuntos.js";
 import { MAX_BYTES_IMAGEN } from "../../src/dominio/operaciones/validacion.js";
 import { coincideEtag } from "../../src/http/rutasAdjuntos.js";
+import { LimiteDeSubidas } from "../../src/http/limiteDeSubidas.js";
+import { connect } from "node:net";
 
 const GASTO = "018f3a6e-2000-7000-8000-000000000001";
 let contador = 0;
 const marca = (a: Alta): string => { contador += 1; return `${(AHORA - 9000 + contador).toString(16).padStart(13, "0")}-${contador.toString(16).padStart(4, "0")}-${a.device_id}`; };
 const uuid = (n: number): string => `aaaaaaaa-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
-async function entorno() {
-  const e = entornoApi();
+async function entorno(opciones: Parameters<typeof entornoApi>[0] = {}) {
+  const e = entornoApi(opciones);
   const a = await e.crearViaje();
   const op = (a_: Alta, tipo: string, entidadTipo: string, entidadId: string, payload: object, n: number) => ({ op_id: `018f3a6e-9000-7000-8000-${String(n).padStart(12, "0")}`, type: tipo, entity_type: entidadTipo, entity_id: entidadId, hlc: marca(a_), payload });
   const subirOps = async (a_: Alta, ops: object[]) => {
@@ -365,6 +367,122 @@ describe("purgar un gasto y barrer", () => {
     expect((await e.archivos.bytesDelViaje(a.trip_id))).toBe(400 + 60 + 300);
     expect((await bajar(idA)).statusCode).toBe(200);
     expect((await bajar(idB)).statusCode).toBe(200);
+  });
+});
+
+describe("límite de subidas simultáneas", () => {
+  const libre = () => new AbortController().signal;
+  const hasta = async (condicion: () => boolean, ms = 2000) => {
+    for (let i = 0; i < ms / 20 && !condicion(); i++) await new Promise((ok) => setTimeout(ok, 20));
+    return condicion();
+  };
+
+  it("con el lugar ocupado y sin cola es 503 servidor_ocupado con Retry-After, no guarda nada, y al liberarse sube", async () => {
+    const limite = new LimiteDeSubidas(1, 0);
+    const { e, registrar, subir } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg();
+    const id = await registrar(b, "image/jpeg");
+    const liberar = await limite.pedir(1000, libre());
+    const r = await subir(id, b);
+    expect([r.statusCode, codigo(r), r.headers["retry-after"]]).toEqual([503, "servidor_ocupado", "10"]);
+    expect(e.archivos.guardadosEnTotal).toBe(0);
+    expect(e.contador("adjuntos_sin_lugar", {})).toBe(1);
+    expect(e.registro.entradas.some((x) => x.evento === "subida_sin_lugar" && x.nivel === "warn")).toBe(true);
+    liberar();
+    expect((await subir(id, b)).statusCode).toBe(204);
+  });
+
+  it("una subida que espera en la cola sigue cuando se libera el lugar", async () => {
+    const limite = new LimiteDeSubidas(1, 1);
+    const { registrar, subir } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg();
+    const id = await registrar(b, "image/jpeg");
+    const liberar = await limite.pedir(1000, libre());
+    const pendiente = subir(id, b);
+    expect(await hasta(() => limite.enEspera === 1)).toBe(true);
+    liberar();
+    expect((await pendiente).statusCode).toBe(204);
+  });
+
+  it("el lugar se libera después de cada respuesta, también de las que fallan (409, 415, 422, 413)", async () => {
+    const limite = new LimiteDeSubidas(1, 0);
+    const { registrar, subir } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg(200);
+    const id = await registrar(b, "image/jpeg");
+    const otro = Buffer.from(b);
+    otro[100] = 1;
+    const estados: number[] = [];
+    for (const [destino, cuerpo] of [[uuid(990), b], [id, Buffer.from("GIF89a" + "x".repeat(100))], [id, otro], [id, Buffer.alloc(11 * 1024 * 1024, 1)], [id, b], [id, b]] as const) {
+      estados.push((await subir(destino, cuerpo)).statusCode);
+    }
+    expect(estados).toEqual([409, 415, 422, 413, 204, 204]);
+    expect(await hasta(() => limite.ocupados === 0)).toBe(true);
+  });
+
+  it("sin token es 401 aunque esté lleno (la autenticación va antes) y no entra en la cola", async () => {
+    const limite = new LimiteDeSubidas(1, 3);
+    const { e, a, registrar } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg();
+    const id = await registrar(b, "image/jpeg");
+    await limite.pedir(1000, libre());
+    const r = await e.app.inject({ method: "PUT", url: `/v1/trips/${a.trip_id}/attachments/${id}`, headers: { "content-type": "application/octet-stream" }, payload: b });
+    expect(r.statusCode).toBe(401);
+    expect(limite.enEspera).toBe(0);
+  });
+
+  it("un pedido abortado no deja ningún lugar ocupado", async () => {
+    const limite = new LimiteDeSubidas(1, 0);
+    const { e, a, registrar } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg();
+    const id = await registrar(b, "image/jpeg");
+    await e.app
+      .inject({ method: "PUT", url: `/v1/trips/${a.trip_id}/attachments/${id}`, headers: { ...e.con(a.token), "content-type": "application/octet-stream" }, payload: b, signal: AbortSignal.abort() })
+      .catch(() => undefined);
+    await new Promise((ok) => setTimeout(ok, 50));
+    expect([limite.ocupados, limite.enEspera]).toEqual([0, 0]);
+    expect(e.archivos.guardadosEnTotal).toBe(0);
+  });
+
+  it("bajar un archivo no pasa por el límite", async () => {
+    const limite = new LimiteDeSubidas(1, 0);
+    const { registrar, subir, bajar } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg();
+    const id = await registrar(b, "image/jpeg");
+    expect((await subir(id, b)).statusCode).toBe(204);
+    await limite.pedir(1000, libre());
+    expect((await bajar(id)).statusCode).toBe(200);
+  });
+
+  it("un cliente que corta la conexión a mitad de la subida, o mientras espera su turno, devuelve su lugar", async () => {
+    const limite = new LimiteDeSubidas(1, 1);
+    const { e, a, registrar } = await entorno({ limiteDeSubidas: limite });
+    const b = jpeg(2000);
+    const id = await registrar(b, "image/jpeg");
+    await e.app.listen({ port: 0, host: "127.0.0.1" });
+    const puerto = (e.app.server.address() as { port: number }).port;
+    const empezar = () => {
+      const socket = connect(puerto, "127.0.0.1");
+      socket.on("error", () => undefined);
+      socket.write(`PUT /v1/trips/${a.trip_id}/attachments/${id} HTTP/1.1\r\nHost: x\r\nAuthorization: Bearer ${a.token}\r\nContent-Type: application/octet-stream\r\nContent-Length: ${b.length}\r\n\r\n`);
+      socket.write(b.subarray(0, 100)); // manda una parte y se queda colgado
+      return socket;
+    };
+    try {
+      const primero = empezar();
+      expect(await hasta(() => limite.ocupados === 1)).toBe(true);
+      const segundo = empezar();
+      expect(await hasta(() => limite.enEspera === 1)).toBe(true);
+      segundo.destroy();
+      expect(await hasta(() => limite.enEspera === 0)).toBe(true);
+      expect(limite.ocupados).toBe(1);
+      // irse mientras espera no es "sin lugar": no cuenta en la métrica ni deja aviso
+      expect(e.contador("adjuntos_sin_lugar", {})).toBeUndefined();
+      expect(e.registro.entradas.some((x) => x.evento === "subida_sin_lugar")).toBe(false);
+      primero.destroy();
+      expect(await hasta(() => limite.ocupados === 0)).toBe(true);
+    } finally {
+      await e.app.close();
+    }
   });
 });
 
