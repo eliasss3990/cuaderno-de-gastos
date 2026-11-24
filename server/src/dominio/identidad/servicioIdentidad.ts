@@ -309,6 +309,23 @@ export class ServicioDeIdentidad {
     this.dep.identidad.revocar(objetivo.deviceId, this.dep.ahora());
   }
 
+  /**
+   * La lista de dispositivos del viaje (también los revocados, del más antiguo al más nuevo) con lo que cada uno informó en su
+   * último pedido, más la cabeza del viaje y la hora del servidor: con eso la app calcula "al día" y "hace X". Quien pregunta
+   * ya está autenticado (un revocado no llega acá). Nunca incluye las huellas de los tokens.
+   */
+  familia(actor: Dispositivo): {
+    readonly dispositivos: readonly Dispositivo[];
+    readonly cabeza: number;
+    readonly ahora: number;
+  } {
+    return {
+      dispositivos: this.dep.identidad.dispositivosDelViaje(actor.tripId),
+      cabeza: this.dep.almacenDe(actor.tripId).seqMaximo(),
+      ahora: this.dep.ahora(),
+    };
+  }
+
   /** Mantenimiento periódico: borra los intentos de unirse que ya salieron de la ventana. Devuelve cuántos. */
   mantenimiento(): number {
     return this.dep.identidad.limpiarIntentos(this.dep.ahora() - VENTANA_DE_INTENTOS_MS);
