@@ -100,6 +100,23 @@ export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdent
     },
   );
 
+  app.get<{ Params: { trip: string } }>("/v1/trips/:trip/familia", { onRequest: exigirDispositivo(servicio) }, (request) => {
+    const f = servicio.familia(delViaje(request.params.trip, request.dispositivo));
+    return {
+      dispositivos: f.dispositivos.map((d) => ({
+        device_id: d.deviceId,
+        member_id: d.memberId,
+        nombre: d.nombre,
+        ultimo_visto_en: d.ultimoVistoEn,
+        ultimo_seq_visto: d.ultimoSeqVisto,
+        pendientes: d.pendientes,
+        revocado_en: d.revocadoEn,
+      })),
+      head_seq: f.cabeza,
+      ahora: f.ahora,
+    };
+  });
+
   app.post<{ Params: { trip: string; device: string } }>(
     "/v1/trips/:trip/devices/:device/revoke",
     { onRequest: exigirDispositivo(servicio) },
