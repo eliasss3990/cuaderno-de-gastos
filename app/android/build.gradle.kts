@@ -49,6 +49,11 @@ android {
     }
 
     buildTypes {
+        // la de desarrollo convive con la publicada en el mismo celular (otro id, otros datos)
+        debug {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug"
+        }
         release {
             isMinifyEnabled = false
             if (hasReleaseSigning) {
