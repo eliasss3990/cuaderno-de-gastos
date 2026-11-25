@@ -1,5 +1,6 @@
 package com.eliasgonzalez.cuadernodegastos.red
 
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.FinDelCanal
 import com.sun.net.httpserver.HttpServer
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -117,6 +118,29 @@ class CanalEnVivoTest {
         for (x in listOf("data: a", "data:b", "", ": latido", "", "event: novedades", "data: {}", "", "data: sin tipo", "")) l.linea(x)
         // el tipo es de cada evento: el que viene sin `event` no hereda el anterior
         assertEquals(listOf("message" to "a\nb", "novedades" to "{}", "message" to "sin tipo"), eventos)
+    }
+
+    @Test
+    fun enHiloAvisaYCancelarLaDetiene() {
+        val seguir = CountDownLatch(1)
+        guion = { o ->
+            escribir(o, "event: novedades\ndata: {\"head_seq\":4}\n\n")
+            seguir.await(5, TimeUnit.SECONDS)
+        }
+        val vista = CountDownLatch(1)
+        val fin = java.util.concurrent.ArrayBlockingQueue<FinDelCanal>(1)
+        val abierta = CanalEnHilo { canal() }.abrir({ if (it == 4L) vista.countDown() }, { fin.add(it) })
+        assertTrue(vista.await(3, TimeUnit.SECONDS))
+        abierta.cancelar()
+        assertEquals(FinDelCanal.DETENIDO, fin.poll(3, TimeUnit.SECONDS))
+        seguir.countDown()
+    }
+
+    @Test
+    fun enHiloUnaFallaInesperadaTerminaComoNoDisponible() {
+        val fin = java.util.concurrent.ArrayBlockingQueue<FinDelCanal>(1)
+        CanalEnHilo { CanalEnVivo("http://127.0.0.1:${http.address.port}", viaje, { error("sin token") }, "1.0.0") }.abrir({ }, { fin.add(it) })
+        assertEquals(FinDelCanal.NO_DISPONIBLE, fin.poll(3, TimeUnit.SECONDS))
     }
 
     @Test

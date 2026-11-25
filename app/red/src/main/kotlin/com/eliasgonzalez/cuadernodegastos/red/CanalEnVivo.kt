@@ -4,6 +4,9 @@
 // instancia sirve para una sola escucha: un `detener` que llega antes o durante la conexión no se pierde.
 package com.eliasgonzalez.cuadernodegastos.red
 
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Canal
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Cancelable
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.FinDelCanal
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -13,24 +16,6 @@ import java.io.IOException
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URI
-
-/** Cómo terminó una escucha. */
-enum class FinDelCanal {
-    /** El servidor cerró o se cortó la conexión: reconectar con espera. */
-    CORTADO,
-
-    /** 401: el dispositivo fue revocado. */
-    REVOCADO,
-
-    /** 426: hay que actualizar la app. */
-    APP_DESACTUALIZADA,
-
-    /** 503 (canal lleno) u otro error: reconectar más tarde o caer a la consulta periódica. */
-    NO_DISPONIBLE,
-
-    /** Quien escuchaba pidió cortar. */
-    DETENIDO,
-}
 
 /** Lee un flujo SSE línea por línea y junta cada evento (tipo y datos). */
 class LectorSse(private val alEvento: (tipo: String, datos: String) -> Unit) {
@@ -133,5 +118,22 @@ class CanalEnVivo(
     fun detener() {
         detenido = true
         conexion?.disconnect()
+    }
+}
+
+/** El canal para el coordinador: cada apertura es una escucha nueva en su propio hilo; cancelar la detiene. */
+class CanalEnHilo(private val crear: () -> CanalEnVivo) : Canal {
+    override fun abrir(alNovedad: (cabeza: Long) -> Unit, alTerminar: (FinDelCanal) -> Unit): Cancelable {
+        val c = crear()
+        Thread({
+            // una falla inesperada (la dirección, el token, el aviso) no mata la app ni deja al coordinador esperando
+            val fin = try {
+                c.escuchar(alNovedad)
+            } catch (_: Exception) {
+                FinDelCanal.NO_DISPONIBLE
+            }
+            alTerminar(fin)
+        }, "canal-en-vivo").apply { isDaemon = true }.start()
+        return Cancelable { c.detener() }
     }
 }
