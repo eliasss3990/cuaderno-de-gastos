@@ -1,5 +1,6 @@
 // Carga en un viaje `ejemplo-` las operaciones de un archivo (el viaje de ejemplo): el servidor pone el id, la marca con
-// su reloj y como autor el primer dispositivo activo. Formato: {"ops": [{"type", "entity_type", "entity_id", "payload"}]}.
+// su reloj y como autor el primer dispositivo activo. Formato: {"ops": [{"type", "entity_type", "entity_id", "payload"}]};
+// `$viaje` como entity_id es el id del viaje, y lo demás que traiga cada operación (como `integrante`) se ignora.
 // Las marcas son de ahora: si el viaje ya terminó por fechas, todo cae en el cierre. Las fechas pasadas van al final del
 // archivo (un trip.update), y el viaje se crea sin fecha de fin.
 
@@ -16,6 +17,9 @@ import { nombreDelViaje } from "./borrarViaje.js";
 
 /** Tope de operaciones por archivo (un viaje de ejemplo tiene cientos, no decenas de miles). */
 export const MAX_OPERACIONES_DEL_EJEMPLO = 5000;
+
+/** En el archivo, el id del viaje (que no se conoce hasta crearlo). */
+export const ID_DEL_VIAJE = "$viaje";
 
 interface OpDelArchivo {
   readonly type: unknown;
@@ -64,7 +68,7 @@ export function cargarEjemplo(db: Database, tripId: string, archivo: string, aho
         opId: uuidV7(ms),
         tipo: o.type as string,
         entidadTipo: o.entity_type as string,
-        entidadId: o.entity_id as string,
+        entidadId: (o.entity_id === ID_DEL_VIAJE ? tripId : o.entity_id) as string,
         hlc: formatearHlc({ ms, contador: i, dispositivo: autor.device_id }),
         payload: o.payload as Campos,
         schemaVersion: VERSION_DE_FORMATO,

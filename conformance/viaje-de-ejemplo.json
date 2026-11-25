@@ -1,0 +1,742 @@
+{
+ "version": 1,
+ "descripcion": "Viaje de ejemplo: las operaciones que reproducen las pantallas de referencia al dia 4 (jueves 18 de febrero de 2027). `viaje` es el alta del viaje (el servidor ya la tiene al crear un viaje de ejemplo); `ops` va en el formato de cargar-ejemplo del servidor, mas `integrante` (quien la registra: el servidor carga todo con su primer dispositivo). `$viaje` es el id del viaje. `esperado` son los totales que muestran esas pantallas.",
+ "viaje": {
+  "nombre": "Brasil 2027 🌴",
+  "zona_horaria": "America/Asuncion",
+  "monedas": [
+   {
+    "codigo": "PYG",
+    "decimales": 0,
+    "simbolo": "₲"
+   },
+   {
+    "codigo": "BRL",
+    "decimales": 2,
+    "simbolo": "R$"
+   }
+  ]
+ },
+ "hoy": "2027-02-18",
+ "integrantes": {
+  "papa": {
+   "member_id": "018f3a6e-0b00-7000-8000-000000000001",
+   "apodo": "Papá",
+   "emoji": "🦁",
+   "color": "#FFE2B8"
+  },
+  "mama": {
+   "member_id": "018f3a6e-0b00-7000-8000-000000000002",
+   "apodo": "Mamá",
+   "emoji": "🦊",
+   "color": "#FFD6CC"
+  },
+  "nico": {
+   "member_id": "018f3a6e-0b00-7000-8000-000000000003",
+   "apodo": "Nico",
+   "emoji": "🐢",
+   "color": "#D6EFD6"
+  },
+  "lu": {
+   "member_id": "018f3a6e-0b00-7000-8000-000000000004",
+   "apodo": "Lu",
+   "emoji": "🦜",
+   "color": "#D6E6FA"
+  }
+ },
+ "ops": [
+  {
+   "integrante": "papa",
+   "type": "currency.enable",
+   "entity_type": "trip_currency",
+   "entity_id": "PYG",
+   "payload": {
+    "habilitada": 1,
+    "decimales": 0,
+    "simbolo": "₲"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "currency.enable",
+   "entity_type": "trip_currency",
+   "entity_id": "BRL",
+   "payload": {
+    "habilitada": 1,
+    "decimales": 2,
+    "simbolo": "R$"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "member.join",
+   "entity_type": "member",
+   "entity_id": "018f3a6e-0b00-7000-8000-000000000002",
+   "payload": {
+    "apodo": "Mamá",
+    "color": "#FFD6CC",
+    "emoji": "🦊",
+    "es_organizador": 0
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "member.join",
+   "entity_type": "member",
+   "entity_id": "018f3a6e-0b00-7000-8000-000000000003",
+   "payload": {
+    "apodo": "Nico",
+    "color": "#D6EFD6",
+    "emoji": "🐢",
+    "es_organizador": 0
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "member.join",
+   "entity_type": "member",
+   "entity_id": "018f3a6e-0b00-7000-8000-000000000004",
+   "payload": {
+    "apodo": "Lu",
+    "color": "#D6E6FA",
+    "emoji": "🦜",
+    "es_organizador": 0
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "category.create",
+   "entity_type": "category",
+   "entity_id": "018f3a6e-0c00-7000-8000-000000000001",
+   "payload": {
+    "nombre": "Comida",
+    "color": "#FDE3D3",
+    "emoji": "🍽️"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "category.create",
+   "entity_type": "category",
+   "entity_id": "018f3a6e-0c00-7000-8000-000000000002",
+   "payload": {
+    "nombre": "Nafta",
+    "color": "#E1EAF5",
+    "emoji": "⛽"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "category.create",
+   "entity_type": "category",
+   "entity_id": "018f3a6e-0c00-7000-8000-000000000003",
+   "payload": {
+    "nombre": "Peajes",
+    "color": "#E8E4F3",
+    "emoji": "🛣️"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "category.create",
+   "entity_type": "category",
+   "entity_id": "018f3a6e-0c00-7000-8000-000000000004",
+   "payload": {
+    "nombre": "Súper",
+    "color": "#E3F1E4",
+    "emoji": "🛒"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "category.create",
+   "entity_type": "category",
+   "entity_id": "018f3a6e-0c00-7000-8000-000000000005",
+   "payload": {
+    "nombre": "Entradas",
+    "color": "#FFF0D2",
+    "emoji": "🎟️"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "category.create",
+   "entity_type": "category",
+   "entity_id": "018f3a6e-0c00-7000-8000-000000000006",
+   "payload": {
+    "nombre": "Compras",
+    "color": "#F8E1EC",
+    "emoji": "🛍️"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "currency.update",
+   "entity_type": "trip_currency",
+   "entity_id": "PYG",
+   "payload": {
+    "tope_minor": 10000000,
+    "efectivo_inicial_minor": 1500000
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "currency.update",
+   "entity_type": "trip_currency",
+   "entity_id": "BRL",
+   "payload": {
+    "tope_minor": 560000,
+    "efectivo_inicial_minor": 40000
+   }
+  },
+  {
+   "integrante": "mama",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000001",
+   "payload": {
+    "monto_minor": 80000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000004",
+    "cuando_ocurrio": 1801775700000,
+    "dia_imputado": "2027-02-04",
+    "concepto": "Compras de comida para el viaje",
+    "lugar": "Super Ñandú",
+    "metodo_pago": "DEBITO"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000002",
+   "payload": {
+    "monto_minor": 100000,
+    "moneda": "PYG",
+    "categoria_id": "otro",
+    "cuando_ocurrio": 1801920600000,
+    "dia_imputado": "2027-02-06",
+    "concepto": "Alineación y balanceo",
+    "lugar": "Taller Ruiz",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "mama",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000003",
+   "payload": {
+    "monto_minor": 20250,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "cuando_ocurrio": 1802736600000,
+    "dia_imputado": "2027-02-15",
+    "concepto": "Cena",
+    "lugar": "Restaurante Do Porto",
+    "metodo_pago": "CREDITO"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000004",
+   "payload": {
+    "monto_minor": 750,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000003",
+    "cuando_ocurrio": 1802702400000,
+    "dia_imputado": "2027-02-15",
+    "concepto": "Peaje",
+    "lugar": "Ruta BR-277",
+    "metodo_pago": "PIX"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000005",
+   "payload": {
+    "monto_minor": 250000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000002",
+    "cuando_ocurrio": 1802691000000,
+    "dia_imputado": "2027-02-15",
+    "concepto": "Nafta",
+    "lugar": "Petrobras Ciudad del Este",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "nico",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000006",
+   "payload": {
+    "monto_minor": 7000,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000006",
+    "cuando_ocurrio": 1802809200000,
+    "dia_imputado": "2027-02-16",
+    "concepto": "Compras",
+    "lugar": "Shopping Catuaí",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "lu",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000007",
+   "payload": {
+    "monto_minor": 1860,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000003",
+    "cuando_ocurrio": 1802782200000,
+    "dia_imputado": "2027-02-16",
+    "concepto": "Peajes",
+    "lugar": "Ruta BR-469",
+    "metodo_pago": "PIX"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000008",
+   "payload": {
+    "monto_minor": 250000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000002",
+    "cuando_ocurrio": 1802776200000,
+    "dia_imputado": "2027-02-16",
+    "concepto": "Nafta",
+    "lugar": "Petrobras Foz",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "mama",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000009",
+   "payload": {
+    "monto_minor": 280000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "cuando_ocurrio": 1802793600000,
+    "dia_imputado": "2027-02-16",
+    "concepto": "Almuerzo",
+    "lugar": "Rafain Churrascaria",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "mama",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000010",
+   "payload": {
+    "monto_minor": 9500,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000005",
+    "cuando_ocurrio": 1802869320000,
+    "dia_imputado": "2027-02-17",
+    "concepto": "Cataratas · entradas",
+    "lugar": "Parque Nacional Iguazú",
+    "metodo_pago": "PIX"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000011",
+   "payload": {
+    "monto_minor": 310000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "cuando_ocurrio": 1802907000000,
+    "dia_imputado": "2027-02-17",
+    "concepto": "Cena",
+    "lugar": "Parrilla Paraguaya",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "lu",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000012",
+   "payload": {
+    "monto_minor": 235000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000004",
+    "cuando_ocurrio": 1802948700000,
+    "dia_imputado": "2027-02-18",
+    "concepto": "Supermercado",
+    "lugar": "Super Ñandú",
+    "metodo_pago": "DEBITO"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000013",
+   "payload": {
+    "monto_minor": 15000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "cuando_ocurrio": 1802953200000,
+    "dia_imputado": "2027-02-18",
+    "concepto": "Café",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "mama",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000014",
+   "payload": {
+    "monto_minor": 1290,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000003",
+    "cuando_ocurrio": 1802963400000,
+    "dia_imputado": "2027-02-18",
+    "concepto": "Peaje",
+    "lugar": "Ruta BR-277",
+    "metodo_pago": "PIX"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000015",
+   "payload": {
+    "monto_minor": 13750,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "cuando_ocurrio": 1802969280000,
+    "dia_imputado": "2027-02-18",
+    "concepto": "Almuerzo en familia",
+    "lugar": "Restaurante Do Porto",
+    "metodo_pago": "CREDITO",
+    "alias_tarjeta": "Visa de Papá"
+   }
+  },
+  {
+   "integrante": "lu",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000016",
+   "payload": {
+    "monto_minor": 85000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000006",
+    "cuando_ocurrio": 1802800800000,
+    "dia_imputado": "2027-02-16",
+    "concepto": "Remera",
+    "lugar": "Feria Ciudad del Este",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "mama",
+   "type": "expense.delete",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000016",
+   "payload": {
+    "eliminado": 1
+   }
+  },
+  {
+   "integrante": "nico",
+   "type": "expense.create",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000017",
+   "payload": {
+    "monto_minor": 800,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "cuando_ocurrio": 1802890800000,
+    "dia_imputado": "2027-02-17",
+    "concepto": "Helado",
+    "metodo_pago": "EFECTIVO"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "expense.delete",
+   "entity_type": "expense",
+   "entity_id": "018f3a6e-0e00-7000-8000-000000000017",
+   "payload": {
+    "eliminado": 1
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "fixed.create",
+   "entity_type": "fixed_cost",
+   "entity_id": "018f3a6e-0f00-7000-8000-000000000001",
+   "payload": {
+    "nombre": "Hotel Cataratas",
+    "moneda": "BRL",
+    "monto_unitario_minor": 28000,
+    "cantidad": 10,
+    "unidad": "noches",
+    "metodo_pago": "CREDITO",
+    "alias_tarjeta": "Visa de Papá",
+    "lugar": "Foz do Iguaçu"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "fixed.update",
+   "entity_type": "fixed_cost",
+   "entity_id": "018f3a6e-0f00-7000-8000-000000000001",
+   "payload": {
+    "pagado_en": 1799622000000
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "fixed.create",
+   "entity_type": "fixed_cost",
+   "entity_id": "018f3a6e-0f00-7000-8000-000000000002",
+   "payload": {
+    "nombre": "Alquiler de auto",
+    "moneda": "PYG",
+    "monto_unitario_minor": 240000,
+    "cantidad": 14,
+    "unidad": "días",
+    "lugar": "Asunción"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "fixed.create",
+   "entity_type": "fixed_cost",
+   "entity_id": "018f3a6e-0f00-7000-8000-000000000003",
+   "payload": {
+    "nombre": "Seguro de viaje",
+    "moneda": "PYG",
+    "monto_unitario_minor": 600000,
+    "cantidad": 4,
+    "unidad": "personas",
+    "metodo_pago": "TRANSFERENCIA",
+    "lugar": "Asunción"
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "fixed.update",
+   "entity_type": "fixed_cost",
+   "entity_id": "018f3a6e-0f00-7000-8000-000000000003",
+   "payload": {
+    "pagado_en": 1799676000000
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "cashmove.create",
+   "entity_type": "cash_movement",
+   "entity_id": "018f3a6e-0a00-7000-8000-000000000001",
+   "payload": {
+    "tipo": "CAMBIO",
+    "cuando": 1802693400000,
+    "moneda_sale": "PYG",
+    "monto_sale_minor": 322000,
+    "moneda_entra": "BRL",
+    "monto_entra_minor": 23000
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "cashmove.create",
+   "entity_type": "cash_movement",
+   "entity_id": "018f3a6e-0a00-7000-8000-000000000002",
+   "payload": {
+    "tipo": "AJUSTE",
+    "cuando": 1802908800000,
+    "moneda_ajuste": "PYG",
+    "saldo_ajuste_minor": 1215000
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "shortcut.create",
+   "entity_type": "shortcut",
+   "entity_id": "018f3a6e-0d00-7000-8000-000000000001",
+   "payload": {
+    "nombre": "Peaje",
+    "monto_minor": 1290,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000003",
+    "metodo_pago": "PIX",
+    "orden": 0
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "shortcut.create",
+   "entity_type": "shortcut",
+   "entity_id": "018f3a6e-0d00-7000-8000-000000000002",
+   "payload": {
+    "nombre": "Café",
+    "monto_minor": 15000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000001",
+    "metodo_pago": "EFECTIVO",
+    "orden": 1
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "shortcut.create",
+   "entity_type": "shortcut",
+   "entity_id": "018f3a6e-0d00-7000-8000-000000000003",
+   "payload": {
+    "nombre": "Nafta",
+    "monto_minor": 250000,
+    "moneda": "PYG",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000002",
+    "metodo_pago": "EFECTIVO",
+    "orden": 2
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "shortcut.create",
+   "entity_type": "shortcut",
+   "entity_id": "018f3a6e-0d00-7000-8000-000000000004",
+   "payload": {
+    "nombre": "Agua",
+    "monto_minor": 600,
+    "moneda": "BRL",
+    "categoria_id": "018f3a6e-0c00-7000-8000-000000000004",
+    "metodo_pago": "EFECTIVO",
+    "orden": 3
+   }
+  },
+  {
+   "integrante": "papa",
+   "type": "trip.update",
+   "entity_type": "trip",
+   "entity_id": "$viaje",
+   "payload": {
+    "zona_horaria": "America/Asuncion",
+    "fecha_inicio": "2027-02-15",
+    "fecha_fin": "2027-02-28",
+    "objetivos": "Conocer las Cataratas, dos días de compras, no pasarnos del tope."
+   }
+  }
+ ],
+ "esperado": {
+  "dia_a_dia": {
+   "PYG": 1340000,
+   "BRL": 54400
+  },
+  "preparacion": {
+   "PYG": 180000,
+   "BRL": 0
+  },
+  "fijos": {
+   "PYG": 5760000,
+   "BRL": 280000
+  },
+  "fijos_pagados": {
+   "PYG": 2400000,
+   "BRL": 280000
+  },
+  "uso_del_tope": {
+   "PYG": 7280000,
+   "BRL": 334400
+  },
+  "por_dia": {
+   "2027-02-15": {
+    "PYG": 250000,
+    "BRL": 21000
+   },
+   "2027-02-16": {
+    "PYG": 530000,
+    "BRL": 8860
+   },
+   "2027-02-17": {
+    "PYG": 310000,
+    "BRL": 9500
+   },
+   "2027-02-18": {
+    "PYG": 250000,
+    "BRL": 15040
+   }
+  },
+  "por_categoria_brl": {
+   "Comida": 34000,
+   "Entradas": 9500,
+   "Peajes": 3900,
+   "Compras": 7000
+  },
+  "por_integrante_brl": {
+   "papa": 14500,
+   "mama": 31040,
+   "nico": 7000,
+   "lu": 1860
+  },
+  "por_pago": {
+   "EFECTIVO": {
+    "PYG": 1105000,
+    "BRL": 7000
+   },
+   "CREDITO": {
+    "PYG": 0,
+    "BRL": 34000
+   },
+   "DEBITO": {
+    "PYG": 235000,
+    "BRL": 0
+   },
+   "PIX": {
+    "PYG": 0,
+    "BRL": 13400
+   }
+  },
+  "efectivo": {
+   "PYG": 1200000,
+   "BRL": 56000
+  },
+  "gastos_por_categoria": {
+   "Comida": 5,
+   "Nafta": 2,
+   "Peajes": 3,
+   "Súper": 2,
+   "Entradas": 1,
+   "Compras": 1,
+   "Otro": 1
+  },
+  "lugares": {
+   "Restaurante Do Porto": {
+    "visitas": 2,
+    "BRL": 34000
+   },
+   "Super Ñandú": {
+    "visitas": 2,
+    "PYG": 315000
+   },
+   "Parrilla Paraguaya": {
+    "visitas": 1,
+    "PYG": 310000
+   },
+   "Parque Nacional Iguazú": {
+    "visitas": 1,
+    "BRL": 9500
+   }
+  },
+  "papelera": 2,
+  "atajos": 4
+ }
+}

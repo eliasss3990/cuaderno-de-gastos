@@ -118,6 +118,18 @@ describe("cargarEjemplo", () => {
     expect(verificarBase(e.db)).toEqual([]);
   });
 
+  it("carga entero el viaje de ejemplo de conformance/ (con $viaje como id del viaje) y queda verificable", () => {
+    const e = entorno();
+    const v = e.servicio.crearViaje(DATOS);
+    e.reloj.ahora += 1000;
+    const ruta = new URL("../../../conformance/viaje-de-ejemplo.json", import.meta.url).pathname;
+    const r = cargarEjemplo(e.db, v.tripId, ruta, () => e.reloj.ahora);
+    expect(r.rechazadas).toBe(0);
+    const fechas = e.db.prepare("SELECT campo, valor FROM entity_field WHERE trip_id = ? AND tipo = 'trip' AND id = ? AND campo LIKE 'fecha_%' ORDER BY campo").all(v.tripId, v.tripId);
+    expect(fechas).toEqual([{ campo: "fecha_fin", valor: '"2027-02-28"' }, { campo: "fecha_inicio", valor: '"2027-02-15"' }]);
+    expect(verificarBase(e.db)).toEqual([]);
+  });
+
   it("con el reloj sin avanzar, las marcas van después de las del organizador (no chocan)", () => {
     const e = entorno();
     const v = e.servicio.crearViaje(DATOS);
