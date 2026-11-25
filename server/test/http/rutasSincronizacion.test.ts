@@ -216,6 +216,21 @@ describe("GET /v1/trips/:trip/changes y /head", () => {
     expect(ops.find((o) => o.op_id === categoria(a, 2).op_id)).toMatchObject({ payload: { nombre: "Cat 2" }, redacted: false });
   });
 
+  it("cada op baja con su padre_id, también redactada: el celular sabe de qué gasto era un adjunto", async () => {
+    const { a, subir, bajar } = await conViaje();
+    const gasto = "018f3a6e-2000-7000-8000-000000000001";
+    const adjunto = "018f3a6e-aaaa-7000-8000-000000000001";
+    const r = await subir([
+      { op_id: "018f3a6e-9000-7000-8000-000000000001", type: "expense.create", entity_type: "expense", entity_id: gasto, hlc: marca(a, 1), payload: { monto_minor: 5, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: 1, dia_imputado: "2027-02-18" }, schema_version: 1 },
+      { op_id: "018f3a6e-9000-7000-8000-000000000002", type: "attachment.add", entity_type: "attachment", entity_id: adjunto, hlc: marca(a, 2), payload: { owner_tipo: "EXPENSE", owner_id: gasto, mime: "image/png", bytes: 5, sha256: "ab".repeat(32), tiene_miniatura: 0 }, schema_version: 1 },
+      { op_id: "018f3a6e-9000-7000-8000-000000000003", type: "expense.purge", entity_type: "expense", entity_id: gasto, hlc: marca(a, 3), payload: {}, schema_version: 1 },
+    ]);
+    expect(r.json<{ resultados: { estado: string }[] }>().resultados.map((x) => x.estado)).toEqual(["accepted", "accepted", "accepted"]);
+    const ops = (await bajar()).json<{ ops: { op_id: string; padre_id: string | null; redacted: boolean }[] }>().ops;
+    expect(ops.find((o) => o.op_id.endsWith("02"))).toMatchObject({ padre_id: gasto, redacted: true });
+    expect(ops.find((o) => o.op_id.endsWith("01"))).toMatchObject({ padre_id: null, redacted: true });
+  });
+
   it("los parámetros mal formados son 400 y un viaje ajeno es 404", async () => {
     const { e, bajar } = await conViaje();
     for (const q of ["?after=-1", "?after=abc", "?limit=1.5", "?after=1&x=2", "?after=1234567890123456"]) expect((await bajar(q)).statusCode, q).toBe(400);
