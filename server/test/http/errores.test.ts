@@ -194,19 +194,26 @@ describe("el resto de los errores", () => {
     expect(entrada?.campos.req_id).toMatch(/^[0-9a-f]{8}$/);
   });
 
-  it("un JSON mal formado, un cuerpo vacío, un tipo de contenido que no se admite y un cuerpo enorme son 400 formato_invalido", async () => {
+  it("un JSON mal formado o un cuerpo vacío son 400 formato_invalido; otro tipo de contenido es 415 y un cuerpo enorme 413", async () => {
     const { app } = entornoApi();
     const j = { "content-type": "application/json" };
     const casos: [string, { payload?: string; headers?: Record<string, string> }][] = [
       ["JSON mal formado", { payload: "{no es json", headers: j }],
       ["cuerpo vacío", { payload: "", headers: j }],
-      ["tipo no admitido", { payload: "<a/>", headers: { "content-type": "application/xml" } }],
+      // text/plain lo lee Fastify como texto: el esquema lo rechaza
       ["texto plano", { payload: "hola", headers: { "content-type": "text/plain" } }],
-      ["cuerpo de más de 16 KB", { payload: JSON.stringify({ ...VIAJE, nombre: "x".repeat(17 * 1024) }), headers: j }],
     ];
     for (const [nombre, req] of casos) {
       const r = await app.inject({ method: "POST", url: "/v1/trips", ...req });
       expect([nombre, r.statusCode, cuerpoDe(r).error.codigo]).toEqual([nombre, 400, "formato_invalido"]);
+    }
+    const otros: [string, { payload: string; headers: Record<string, string> }, number, string][] = [
+      ["tipo no admitido", { payload: "<a/>", headers: { "content-type": "application/xml" } }, 415, "tipo_de_contenido_no_admitido"],
+      ["cuerpo de más de 16 KB", { payload: JSON.stringify({ ...VIAJE, nombre: "x".repeat(17 * 1024) }), headers: j }, 413, "cuerpo_demasiado_grande"],
+    ];
+    for (const [nombre, req, estado, codigo] of otros) {
+      const r = await app.inject({ method: "POST", url: "/v1/trips", ...req });
+      expect([nombre, r.statusCode, cuerpoDe(r).error.codigo]).toEqual([nombre, estado, codigo]);
     }
   });
 
@@ -232,10 +239,10 @@ describe("el resto de los errores", () => {
     const { app } = entornoApi();
     const mensaje = async (payload: string, tipo = "application/json") => cuerpoDe(await app.inject({ method: "POST", url: "/v1/trips", payload, headers: { "content-type": tipo } })).error.mensaje;
     expect(await mensaje("{roto")).toBe("el pedido no es válido");
-    expect(await mensaje("<a/>", "application/xml")).toBe("el pedido no es válido");
+    expect(await mensaje("<a/>", "application/xml")).toBe("el cuerpo debe ser JSON");
     const con = (kb: number) => JSON.stringify({ ...VIAJE, nombre: "x".repeat(kb * 1024) });
     expect(await mensaje(con(12))).not.toBe("el pedido no es válido"); // entra en el límite: lo juzga el servicio
-    expect(await mensaje(con(20))).toBe("el pedido no es válido"); // lo corta el límite
+    expect(await mensaje(con(20))).toBe("el pedido es demasiado grande"); // lo corta el límite
   });
 
   it("cada exigencia del esquema la dice el esquema (no solo el servicio): campos obligatorios, enteros y campos de más", async () => {

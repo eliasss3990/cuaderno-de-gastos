@@ -11,8 +11,8 @@ import { MAX_OPERACIONES_POR_LOTE } from "../dominio/operaciones/recepcion.js";
 import { MAX_OPERACIONES_POR_PAGINA, type ServicioDeSincronizacion } from "../dominio/operaciones/sincronizacion.js";
 import { delViaje, exigirDispositivo } from "./autenticacion.js";
 
-/** Una operación entera puede pesar unos KB (el payload de un gasto): el tope de 100 por lote cabe holgado en 512 KB. */
-export const LIMITE_DEL_LOTE_BYTES = 512 * 1024;
+/** Tope del cuerpo de un lote: 100 operaciones de las más grandes (unos 9 KB) pesan unos 900 KB; 2 MB deja margen. */
+export const LIMITE_DEL_LOTE_BYTES = 2 * 1024 * 1024;
 
 const SUBIR = {
   type: "object",
