@@ -20,6 +20,9 @@ enum class Falla {
 
     /** 426: la app es demasiado vieja para el servidor. */
     APP_DESACTUALIZADA,
+
+    /** 400, 403, 404, 415…: el servidor no acepta el pedido y reintentar no lo arregla; se avisa y se espera otro ciclo. */
+    PEDIDO_RECHAZADO,
 }
 
 sealed interface RespuestaDeSubida {
@@ -54,6 +57,9 @@ sealed interface FinDelCiclo {
     data object Revocado : FinDelCiclo
 
     data object AppDesactualizada : FinDelCiclo
+
+    /** El servidor rechazó el pedido entero (no una operación): se muestra como error y no se reintenta solo. */
+    data object Error : FinDelCiclo
 }
 
 /** Espera creciente con aleatoriedad, de 1 s hasta 15 min. */
@@ -107,6 +113,7 @@ class Ciclo(
             FinDelCiclo.Revocado
         }
         Falla.APP_DESACTUALIZADA -> FinDelCiclo.AppDesactualizada
+        Falla.PEDIDO_RECHAZADO -> FinDelCiclo.Error
         else -> {
             fallosSeguidos++
             FinDelCiclo.Reintentar((reintentarEnMs ?: Espera.tras(fallosSeguidos, azar)).coerceAtLeast(0))

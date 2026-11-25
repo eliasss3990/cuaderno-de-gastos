@@ -150,7 +150,7 @@ jobs:
       - name: Pruebas unitarias
         if: github.base_ref == 'next'
         working-directory: app
-        run: ./gradlew :dominio:test :datos:test testDebugUnitTest --console=plain
+        run: ./gradlew :dominio:test :datos:test :red:test testDebugUnitTest --console=plain
       - name: Compilar APK debug
         if: github.base_ref == 'next'
         working-directory: app
@@ -163,6 +163,7 @@ jobs:
             app/android/build/reports/tests/testDebugUnitTest
             app/dominio/build/reports/tests/test
             app/datos/build/reports/tests/test
+            app/red/build/reports/tests/test
           retention-days: 14
 
   # Simulador corto de sincronización: todavía no existe, este job reserva su lugar. Se activa con

@@ -24,3 +24,6 @@ include(":dominio")
 
 // base local sobre SQLite (sin Android), probada en la JVM contra una SQLite real
 include(":datos")
+
+// cliente HTTP del servidor (sin Android), probado en la JVM
+include(":red")
