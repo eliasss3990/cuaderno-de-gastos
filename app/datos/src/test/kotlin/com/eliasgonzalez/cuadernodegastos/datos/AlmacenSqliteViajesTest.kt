@@ -54,6 +54,8 @@ class AlmacenSqliteViajesTest {
             dos.redactarPorPadre("e1")
             dos.redactarPorEntidad("attachment", "a1")
             dos.terminar("attachment", "a1")
+            dos.borrarOp("o2") // o2 es de v1: no se toca
+            assertTrue(uno.opConocida("o2"))
             assertTrue(uno.entidadExiste("attachment", "a1"))
             assertEquals("e1", uno.padreRegistrado("attachment", "a1"))
             assertTrue(uno.instantanea().toString().contains("\"redactada\":false"))

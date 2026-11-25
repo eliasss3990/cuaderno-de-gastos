@@ -2,13 +2,17 @@
 // otro almacén (por ejemplo la base del celular). `instantanea` da una vista ordenada para comparar.
 package com.eliasgonzalez.cuadernodegastos.dominio.operaciones
 
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Cola
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoOp
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.OpEnCola
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.ViajeLocal
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-class AlmacenMemoria : Almacen {
+class AlmacenMemoria : Cola {
     private class Entidad(val tipo: String, val id: String, val campos: MutableMap<String, JsonElement> = HashMap(), val relojes: MutableMap<String, String> = HashMap())
 
     private data class Clave(val tipo: String, val id: String) : Comparable<Clave> {
@@ -18,6 +22,10 @@ class AlmacenMemoria : Almacen {
     private val entidades = HashMap<Clave, Entidad>()
     private val lapidas = HashSet<Clave>()
     private val ops = LinkedHashMap<String, OpLeida>()
+
+    /** Estado de cada operación frente al servidor (lo de la cola); las que guarda el motor nacen confirmadas. */
+    private val cola = HashMap<String, OpEnCola>()
+    private var viaje: ViajeLocal? = null
     private val marcas = HashSet<String>()
     private var seq = 0L
 
@@ -95,8 +103,82 @@ class AlmacenMemoria : Almacen {
 
     private fun redactar(coincide: (OpGuardada) -> Boolean) {
         val cambiadas = ops.filterValues { coincide(it.op) }
-        for ((k, o) in cambiadas) ops[k] = o.copy(op = o.op.copy(payload = null, redactada = true))
-        deshacer { ops.putAll(cambiadas) }
+        val colaAntes = cambiadas.keys.associateWith { cola.getValue(it) }
+        for ((k, o) in cambiadas) {
+            val redactada = o.op.copy(payload = null, redactada = true)
+            ops[k] = o.copy(op = redactada)
+            cola[k] = cola.getValue(k).copy(op = redactada)
+        }
+        deshacer {
+            ops.putAll(cambiadas)
+            cola.putAll(colaAntes)
+        }
+    }
+
+    // ---- cola -------------------------------------------------------------------------------------
+
+    private fun cambiarEnCola(opId: String, cambio: (OpEnCola) -> OpEnCola) {
+        val antes = checkNotNull(cola[opId]) { "la operación $opId no está guardada" }
+        cola[opId] = cambio(antes)
+        deshacer { cola[opId] = antes }
+    }
+
+    override fun fijarEstado(opId: String, estado: EstadoOp, serverSeq: Long?, razon: String?, dependeDe: String?) {
+        if (serverSeq != null) check(cola.values.none { it.serverSeq == serverSeq && it.op.opId != opId }) { "la secuencia $serverSeq ya la tiene otra operación" }
+        cambiarEnCola(opId) { it.copy(estado = estado, serverSeq = serverSeq, razon = razon, dependeDe = dependeDe) }
+    }
+
+    override fun borrarEntidad(tipo: String, id: String) {
+        val k = Clave(tipo, id)
+        val antes = entidades.remove(k) ?: return
+        deshacer { entidades[k] = antes }
+    }
+
+    override fun buscarEnCola(opId: String): OpEnCola? = cola[opId]
+
+    override fun enEstado(estado: EstadoOp, limite: Int): List<OpEnCola> =
+        cola.values.filter { it.estado == estado }.sortedBy { it.orden }.take(limite)
+
+    override fun opsDeEntidad(tipo: String, id: String): List<OpEnCola> =
+        cola.values.filter { it.op.entidadTipo == tipo && it.op.entidadId == id }.sortedBy { it.orden }
+
+    override fun cambiarMarca(opId: String, hlc: String) {
+        val o = checkNotNull(ops[opId]) { "la operación $opId no está guardada" }
+        if (o.op.hlc == hlc) return
+        check(hlc !in marcas) { "la marca $hlc ya la usa otra operación" }
+        val nueva = o.op.copy(hlc = hlc)
+        ops[opId] = o.copy(op = nueva)
+        marcas.remove(o.op.hlc)
+        marcas.add(hlc)
+        deshacer {
+            ops[opId] = o
+            marcas.remove(hlc)
+            marcas.add(o.op.hlc)
+        }
+        cambiarEnCola(opId) { it.copy(op = nueva) }
+    }
+
+    override fun anotarIntento(opId: String, proximoIntentoEn: Long?) =
+        cambiarEnCola(opId) { it.copy(intentos = it.intentos + 1, proximoIntentoEn = proximoIntentoEn) }
+
+    override fun borrarOp(opId: String) {
+        cola[opId]?.let { check(it.estado == EstadoOp.PENDIENTE || it.estado == EstadoOp.CUARENTENA) { "solo se descarta una op que el servidor no tiene" } }
+        val o = ops.remove(opId) ?: return
+        val c = cola.remove(opId)
+        marcas.remove(o.op.hlc)
+        deshacer {
+            ops[opId] = o
+            if (c != null) cola[opId] = c
+            marcas.add(o.op.hlc)
+        }
+    }
+
+    override fun viajeLocal(): ViajeLocal? = viaje
+
+    override fun guardarViajeLocal(v: ViajeLocal) {
+        val antes = viaje
+        viaje = v
+        deshacer { viaje = antes }
     }
 
     override fun redactarPorEntidad(tipo: String, id: String) = redactar { it.entidadTipo == tipo && it.entidadId == id }
@@ -113,9 +195,11 @@ class AlmacenMemoria : Almacen {
         val numero = seq
         ops[op.opId] = OpLeida(op, numero)
         marcas.add(op.hlc)
+        cola[op.opId] = OpEnCola(op, EstadoOp.CONFIRMADA, numero)
         deshacer {
             ops.remove(op.opId)
             marcas.remove(op.hlc)
+            cola.remove(op.opId)
             seq = numero - 1
         }
         return numero

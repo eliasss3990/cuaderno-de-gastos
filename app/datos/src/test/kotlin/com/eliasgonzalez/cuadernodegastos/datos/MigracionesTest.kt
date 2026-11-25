@@ -23,6 +23,22 @@ class MigracionesTest {
     }
 
     @Test
+    fun unaBaseConDatosDeLaVersion1PasaALa2SinPerderNadaYConLaColaEnSusValoresIniciales() {
+        BaseJdbc().use { b ->
+            // solo la migración 1, a mano, y una operación guardada con ella
+            b.transaccion {
+                Migraciones.TODAS[0].forEach { b.ejecutar(it) }
+                b.ejecutar("PRAGMA user_version = 1")
+            }
+            b.ejecutar("INSERT INTO op (trip_id, op_id, seq, entity_type, entity_id, type, hlc, payload, schema_version) VALUES ('v','o1',1,'expense','e1','expense.update','h1','{}',1)")
+            assertEquals(Migraciones.VERSION, Migraciones.aplicar(b))
+            val o = AlmacenSqlite(b, "v").buscarEnCola("o1")!!
+            assertEquals(listOf("CONFIRMADA", null, 0, null), listOf(o.estado.name, o.serverSeq, o.intentos, o.dependeDe))
+            assertEquals(null, AlmacenSqlite(b, "v").viajeLocal())
+        }
+    }
+
+    @Test
     fun unaBaseConUnEsquemaMasNuevoSeRechazaSinTocarla() {
         BaseJdbc().use { b ->
             b.ejecutar("PRAGMA user_version = ${Migraciones.VERSION + 1}")
@@ -58,6 +74,13 @@ class MigracionesTest {
             assertThrows(Exception::class.java) { b.ejecutar("INSERT INTO trip_closed_interval (trip_id, desde_ms, causa) VALUES ('v', 5, 'MANUAL')") }
             assertThrows(Exception::class.java) { b.ejecutar("INSERT INTO trip_closed_interval (trip_id, desde_ms, hasta_ms, causa) VALUES ('w', 5, 5, 'FECHAS')") }
             assertThrows(Exception::class.java) { b.ejecutar("INSERT INTO trip_closed_interval (trip_id, desde_ms, causa) VALUES ('w', 5, 'OTRA')") }
+            // la cola: estado conocido, secuencia del servidor única por viaje, intentos no negativos
+            assertThrows(Exception::class.java) { b.ejecutar("UPDATE op SET estado = 'OTRO' WHERE op_id = 'o1'") }
+            b.ejecutar("UPDATE op SET server_seq = 4 WHERE op_id = 'o1'")
+            b.ejecutar("INSERT INTO op (trip_id, op_id, seq, entity_type, entity_id, type, hlc, payload, schema_version) VALUES ('v','o3',3,'e','i','t','h3','{}',1)")
+            assertThrows(Exception::class.java) { b.ejecutar("UPDATE op SET server_seq = 4 WHERE op_id = 'o3'") }
+            assertThrows(Exception::class.java) { b.ejecutar("UPDATE op SET intentos = -1 WHERE op_id = 'o3'") }
+            assertThrows(Exception::class.java) { b.ejecutar("UPDATE op SET server_seq = 0 WHERE op_id = 'o3'") }
         }
     }
 
