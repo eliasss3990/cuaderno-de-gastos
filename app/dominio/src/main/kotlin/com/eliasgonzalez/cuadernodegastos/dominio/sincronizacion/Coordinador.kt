@@ -62,6 +62,12 @@ sealed interface EstadoDeSincronizacion {
     data object AppDesactualizada : EstadoDeSincronizacion
 }
 
+/** Los tiempos del coordinador; la app de desarrollo los acorta para probar sin esperar. */
+data class TiemposDelCoordinador(
+    val cierreEnSegundoPlanoMs: Long = 30_000L,
+    val consultaDeRespaldoMs: Long = 60_000L,
+)
+
 class Coordinador(
     private val ciclo: () -> FinDelCiclo,
     private val canal: Canal,
@@ -70,11 +76,9 @@ class Coordinador(
     private val ultimoSeq: () -> Long,
     private val alCambiarEstado: (EstadoDeSincronizacion) -> Unit,
     private val azar: Random = Random.Default,
+    private val tiempos: TiemposDelCoordinador = TiemposDelCoordinador(),
 ) {
     companion object {
-        const val CIERRE_EN_SEGUNDO_PLANO_MS = 30_000L
-        const val CONSULTA_DE_RESPALDO_MS = 60_000L
-
         /** Cortes seguidos del canal antes de sumar la consulta de respaldo. */
         const val CORTES_ANTES_DE_CONSULTAR = 3
     }
@@ -111,7 +115,7 @@ class Coordinador(
         enPantalla = false
         if (cierre != null) return
         // volver a primer plano lo cancela
-        cierre = planificador.despues(CIERRE_EN_SEGUNDO_PLANO_MS) {
+        cierre = planificador.despues(tiempos.cierreEnSegundoPlanoMs) {
             cierre = null
             cerrarCanal()
         }
@@ -206,7 +210,7 @@ class Coordinador(
     /** Sin canal que funcione, un ciclo cada minuto hasta que el canal vuelva o se cierre. */
     private fun consultar() {
         if (consulta != null) return
-        consulta = planificador.despues(CONSULTA_DE_RESPALDO_MS) {
+        consulta = planificador.despues(tiempos.consultaDeRespaldoMs) {
             consulta = null
             pedirCiclo()
             consultar()

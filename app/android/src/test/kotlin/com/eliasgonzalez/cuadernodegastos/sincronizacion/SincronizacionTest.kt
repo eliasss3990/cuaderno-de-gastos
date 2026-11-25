@@ -5,9 +5,13 @@ import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import com.eliasgonzalez.cuadernodegastos.base.BaseAndroid
 import com.eliasgonzalez.cuadernodegastos.datos.Migraciones
+import com.eliasgonzalez.cuadernodegastos.datos.AlmacenSqlite
 import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Operacion
+import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Resultado
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoDeSincronizacion
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.FinDelCiclo
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Sincronizador
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.TiemposDelCoordinador
 import com.eliasgonzalez.cuadernodegastos.red.Credenciales
 import com.eliasgonzalez.cuadernodegastos.sesion.Cifrador
 import com.eliasgonzalez.cuadernodegastos.sesion.Tokens
@@ -43,10 +47,18 @@ class SincronizacionTest {
     private val viaje = "018f3a6e-1000-7000-8000-000000000001"
     private val dispositivo = "018f3a6e-0000-7000-8000-00000000000a"
     private val pedidos = LinkedBlockingQueue<String>()
+
+    @Volatile
+    private var canalLleno = false
     private val http = HttpServer.create(InetSocketAddress("127.0.0.1", 0), 0).apply {
         createContext("/v1/trips/$viaje/") { x ->
             pedidos += x.requestMethod + " " + x.requestURI.path.substringAfterLast('/') + " " + x.requestHeaders.getFirst("Authorization")
             val cuerpo = when {
+                x.requestURI.path.endsWith("/events") && canalLleno -> {
+                    x.sendResponseHeaders(503, -1)
+                    x.close()
+                    return@createContext
+                }
                 x.requestURI.path.endsWith("/events") -> {
                     x.responseHeaders.add("Content-Type", "text/event-stream")
                     x.sendResponseHeaders(200, 0)
@@ -124,6 +136,67 @@ class SincronizacionTest {
     }
 
     @Test
+    fun registrarGuardaLaOperacionYLaSubeSinEsperar() {
+        vinculado()
+        val r = s.registrar(viaje) { sinc ->
+            Operacion("018f3a6e-9000-7000-8000-000000000002", "trip.create", "trip", viaje, sinc.nuevaMarca(), Json.parseToJsonElement("""{"nombre":"V","zona_horaria":"America/Asuncion","monedas":[{"codigo":"PYG","decimales":0,"simbolo":"₲"}]}""").jsonObject, 1)
+        }
+        assertTrue("$r", r is Resultado.Aceptada)
+        assertEquals("POST ops Bearer tok", esperarPedido { it.startsWith("POST") })
+        // y queda confirmada (el servidor de prueba la acepta)
+        val hasta = System.currentTimeMillis() + 5_000
+        while ("confirmada=1" !in s.resumen(viaje) && System.currentTimeMillis() < hasta) Thread.sleep(50)
+        assertTrue(s.resumen(viaje), "pendiente=0 enviando=0 confirmada=1" in s.resumen(viaje))
+    }
+
+    @Test
+    fun losTiemposDelCoordinadorSonLosQueSeLePasan() {
+        // con el canal lleno, la consulta de respaldo corre cada 300 ms (no cada minuto)
+        canalLleno = true
+        val corto = Sincronizacion(base, Tokens(prefs, SinCifrar()), "http://127.0.0.1:${http.address.port}", "1.0.0", tiempos = TiemposDelCoordinador(30_000, 300))
+        try {
+            corto.vincular(Credenciales(viaje, dispositivo, "m", "tok"))
+            corto.alPrimerPlano()
+            // a 300 ms entre consultas, 3 ciclos llegan mucho antes de los 10 s (con el minuto real, no)
+            var ciclos = 0
+            val hasta = System.currentTimeMillis() + 10_000
+            while (ciclos < 3 && System.currentTimeMillis() < hasta) {
+                if (pedidos.poll(100, TimeUnit.MILLISECONDS)?.startsWith("GET changes") == true) ciclos++
+            }
+            assertTrue("ciclos: $ciclos", ciclos >= 3)
+        } finally {
+            corto.close()
+        }
+    }
+
+    @Test
+    fun registrarSinTokenFallaYNoGuardaNada() {
+        vinculado()
+        prefs.edit().clear().commit()
+        assertThrows(IllegalStateException::class.java) {
+            s.registrar(viaje) { error("no debía armar la operación") }
+        }
+        assertTrue(s.resumen(viaje), "pendiente=0" in s.resumen(viaje))
+    }
+
+    @Test
+    fun lasCredencialesSonLasGuardadasYSinTokenNoHay() {
+        assertEquals(null, s.credenciales(viaje))
+        vinculado()
+        assertEquals(Credenciales(viaje, dispositivo, "m", "tok"), s.credenciales(viaje))
+        prefs.edit().clear().commit()
+        assertEquals(null, s.credenciales(viaje))
+    }
+
+    @Test
+    fun elResumenNoMuestraElToken() {
+        vinculado()
+        val r = s.resumen(viaje)
+        assertTrue(r, r.startsWith("viaje=$viaje seq=0 revocado=false gastos=0 pendiente=0"))
+        assertTrue("tok" !in r.substringAfter("seq="))
+    }
+
+    @Test
     fun unaFallaDeLaBaseEnLaTareaPeriodicaTerminaEnErrorSinLanzar() {
         vinculado()
         romperLaCola = true
@@ -149,10 +222,10 @@ class SincronizacionTest {
         var e = estados.poll(5, TimeUnit.SECONDS)
         while (e != viaje to EstadoDeSincronizacion.AlDia) e = estados.poll(5, TimeUnit.SECONDS) ?: error("no quedó al día")
         // una operación nueva: se registra y se avisa
-        val almacen = com.eliasgonzalez.cuadernodegastos.datos.AlmacenSqlite(base, viaje)
-        val sinc = com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Sincronizador(almacen) { System.currentTimeMillis() }
+        val almacen = AlmacenSqlite(base, viaje)
+        val sinc = Sincronizador(almacen) { System.currentTimeMillis() }
         val r = sinc.registrar(Operacion("018f3a6e-9000-7000-8000-000000000001", "trip.create", "trip", viaje, sinc.nuevaMarca(), Json.parseToJsonElement("""{"nombre":"V","zona_horaria":"America/Asuncion","monedas":[{"codigo":"PYG","decimales":0,"simbolo":"₲"}]}""").jsonObject, 1))
-        assertTrue("aceptada al registrar: $r", r is com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Resultado.Aceptada)
+        assertTrue("aceptada al registrar: $r", r is Resultado.Aceptada)
         s.alCambioLocal(viaje)
         assertEquals("POST ops Bearer tok", esperarPedido { it.startsWith("POST") })
     }

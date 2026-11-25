@@ -53,8 +53,13 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // tiempos cortos para probar a mano sin esperar
+            buildConfigField("long", "CIERRE_EN_SEGUNDO_PLANO_MS", "5000L")
+            buildConfigField("long", "CONSULTA_DE_RESPALDO_MS", "10000L")
         }
         release {
+            buildConfigField("long", "CIERRE_EN_SEGUNDO_PLANO_MS", "30000L")
+            buildConfigField("long", "CONSULTA_DE_RESPALDO_MS", "60000L")
             isMinifyEnabled = false
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")

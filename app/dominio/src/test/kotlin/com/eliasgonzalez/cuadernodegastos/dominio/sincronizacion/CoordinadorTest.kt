@@ -253,6 +253,27 @@ class CoordinadorTest {
     }
 
     @Test
+    fun losTiemposSePuedenAcortar() {
+        var n = 0
+        val corto = Coordinador({ n++; FinDelCiclo.AlDia }, canal, plan, { 0 }, { }, tiempos = TiemposDelCoordinador(cierreEnSegundoPlanoMs = 2_000, consultaDeRespaldoMs = 3_000))
+        corto.alPrimerPlano()
+        plan.avanzar(0)
+        // la consulta de respaldo cada 3 s
+        canal.abierta!!.alTerminar(FinDelCanal.NO_DISPONIBLE)
+        plan.avanzar(2_999)
+        assertEquals(1, n)
+        plan.avanzar(1)
+        assertEquals(2, n)
+        // el cierre a los 2 s de pasar a segundo plano (el canal se reabrió tras la espera)
+        val abierta = canal.abierta!!
+        corto.alSegundoPlano()
+        plan.avanzar(1_999)
+        assertFalse(abierta.cancelada)
+        plan.avanzar(1)
+        assertTrue(abierta.cancelada)
+    }
+
+    @Test
     fun cortadoEnSegundoPlanoNoReconecta() {
         enPantalla()
         c.alSegundoPlano()
