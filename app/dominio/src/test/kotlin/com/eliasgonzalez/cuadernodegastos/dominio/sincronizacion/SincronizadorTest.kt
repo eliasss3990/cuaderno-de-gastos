@@ -381,6 +381,23 @@ class SincronizadorTest {
     }
 
     @Test
+    fun unaEdicionPropiaPendienteDeUnGastoQueOtroPurgoSubeEnteraYSeRedactaAlConfirmarse() {
+        val (c, s) = celular()
+        val a = alta(s)
+        s.registrar(a)
+        s.respuestaDelLote(listOf(RespuestaDeOp(a.opId, true, ++seq, a.hlc, null)), hora)
+        val e = edicion(s, """{"concepto":"x"}""")
+        s.registrar(e)
+        s.aplicarBajada(listOf(delServidor("expense.purge", "expense", gasto, null, marca(t0 + 1, otro))), hora)
+        // la propia sin confirmar conserva sus datos para poder subirla; la confirmada sí se redactó
+        assertEquals(json("""{"concepto":"x"}"""), s.armarLote().single().payload)
+        assertNull(c.buscarEnCola(a.opId)!!.op.payload)
+        // el servidor la acepta redactada (el gasto ya estaba purgado): el celular la redacta al confirmarla
+        s.respuestaDelLote(listOf(RespuestaDeOp(e.opId, true, ++seq, e.hlc, null)), hora)
+        assertNull(c.buscarEnCola(e.opId)!!.op.payload)
+    }
+
+    @Test
     fun laBajadaAplicaAjenasYRedactadasSinRechazarYConfirmaLasPropias() {
         val (c, s) = celular()
         val a = alta(s)
