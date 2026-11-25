@@ -20,3 +20,8 @@ dependencies {
     api(project(":dominio"))
     testImplementation("junit:junit:4.13.2")
 }
+
+// la prueba contra el servidor real corre solo si se le pasa su dirección: -PservidorDePrueba=http://…
+tasks.test {
+    systemProperty("servidor.de.prueba", (findProperty("servidorDePrueba") ?: "").toString())
+}
