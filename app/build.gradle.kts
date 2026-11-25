@@ -1,6 +1,7 @@
 plugins {
     id("com.android.application") version "9.5.1"
     id("org.jetbrains.kotlin.plugin.compose") version "2.4.21"
+    id("org.jetbrains.kotlin.jvm") version "2.4.21" apply false
 }
 
 // Firma de release leída de variables de entorno (las pone el CI desde los
@@ -67,6 +68,7 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.11.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
+    implementation(project(":dominio"))
 
     testImplementation("junit:junit:4.13.2")
 }

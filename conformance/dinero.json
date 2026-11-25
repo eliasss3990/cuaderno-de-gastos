@@ -127,6 +127,18 @@
       "esperado": "KD 0,005"
     }
   ],
+  "formatearNumero": [
+    {"minor": 0, "decimales": 0, "esperado": "0"},
+    {"minor": -1, "decimales": 0, "esperado": "-1"},
+    {"minor": -1500, "decimales": 0, "esperado": "-1.500"},
+    {"minor": 123456, "decimales": 2, "esperado": "1.234,56"},
+    {"minor": -123456, "decimales": 2, "esperado": "-1.234,56"},
+    {"minor": -5, "decimales": 2, "esperado": "-0,05"},
+    {"minor": 5, "decimales": 3, "esperado": "0,005"},
+    {"minor": -9007199254740991, "decimales": 0, "esperado": "-9.007.199.254.740.991"},
+    {"minor": 9007199254740991, "decimales": 4, "esperado": "900.719.925.474,0991"},
+    {"minor": -1000000, "decimales": 3, "esperado": "-1.000,000"}
+  ],
   "parsear": [
     {
       "moneda": "PYG",
