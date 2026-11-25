@@ -83,13 +83,15 @@ const fecha: Regla = (v) => {
   if (m === null) return "debe ser una fecha AAAA-MM-DD";
   const [anio, mes, dia] = [Number(m[1]), Number(m[2]), Number(m[3])];
   const diasDelMes = DIAS_DEL_MES[mes - 1];
-  if (anio < 1 || diasDelMes === undefined) return "debe ser una fecha que exista";
+  // años acotados: Date.UTC toma 0–99 como 19xx y el año 10000 no se puede escribir
+  if (anio < 1900 || anio > 2999) return "debe ser una fecha entre 1900 y 2999";
+  if (diasDelMes === undefined) return "debe ser una fecha que exista";
   const bisiesto = (anio % 4 === 0 && anio % 100 !== 0) || anio % 400 === 0;
   const ultimo = diasDelMes + (mes === 2 && bisiesto ? 1 : 0);
   return dia >= 1 && dia <= ultimo ? null : "debe ser una fecha que exista";
 };
 
-/** Forma canónica `Continente/Ciudad` (sensible a mayúsculas): rechaza `UTC`, `EST`, desfases como `+01:00` y minúsculas. */
+/** Forma `Continente/Ciudad`: rechaza `UTC`, `EST` y desfases como `+01:00`. Intl no distingue mayúsculas en el resto. */
 const FORMA_DE_ZONA = /^[A-Z][A-Za-z_]*(?:\/[A-Za-z0-9_+-]+)+$/;
 
 const zonaHoraria: Regla = (v) => {
