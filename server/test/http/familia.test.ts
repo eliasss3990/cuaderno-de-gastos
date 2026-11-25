@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { AHORA, entornoApi, type Alta } from "../ayudas/entornoApi.js";
+import { AHORA, entornoApi, NUEVO, type Alta } from "../ayudas/entornoApi.js";
 
 interface Fila { device_id: string; member_id: string; nombre: string; ultimo_visto_en: number | null; ultimo_seq_visto: number; pendientes: number; revocado_en: number | null }
 interface Familia { dispositivos: Fila[]; head_seq: number; ahora: number }
@@ -24,6 +24,21 @@ describe("GET /v1/trips/:trip/familia", () => {
     expect(f.dispositivos[0]).toMatchObject({ member_id: a.member_id, nombre: "Poco X7", revocado_en: null });
     expect(f.dispositivos[1]).toMatchObject({ member_id: b.member_id, nombre: "Celular de Ana", revocado_en: null });
     expect(Object.keys(f).sort()).toEqual(["ahora", "dispositivos", "head_seq"]);
+  });
+
+  it("muestra todos los activos y solo los 10 revocados más recientes (la lista no crece para siempre)", async () => {
+    const { e, a, pedir } = await entorno();
+    const revocados: string[] = [];
+    for (let i = 0; i < 12; i++) {
+      e.reloj.ahora = AHORA + 1000 * (i + 1);
+      const b = await e.sumar(a, { ...NUEVO, apodo: `R${i}` });
+      e.servicio.revocarComoAdministrador(b.device_id);
+      revocados.push(b.device_id);
+    }
+    e.reloj.ahora = AHORA + 20_000;
+    const activo = await e.sumar(a, { ...NUEVO, apodo: "Activa" });
+    const ids = (await pedir(a.token)).json<Familia>().dispositivos.map((d) => d.device_id);
+    expect(ids).toEqual([a.device_id, ...revocados.slice(2), activo.device_id]); // del más antiguo al más nuevo, sin los 2 primeros revocados
   });
 
   it("trae la cabeza del viaje y la hora del servidor", async () => {

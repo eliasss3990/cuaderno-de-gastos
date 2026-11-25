@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LATIDO_MS } from "../../src/http/rutasSincronizacion.js";
 import { CanalEnMemoria } from "../../src/dominio/operaciones/canalEnVivo.js";
-import { AHORA, entornoApi, type Alta } from "../ayudas/entornoApi.js";
+import { AHORA, entornoApi, NUEVO, type Alta } from "../ayudas/entornoApi.js";
 
 const marca = (a: Alta, n: number): string => `${(AHORA - 5000 + n).toString(16).padStart(13, "0")}-${n.toString(16).padStart(4, "0")}-${a.device_id}`;
 const categoria = (a: Alta, n: number) => ({
@@ -105,6 +105,48 @@ describe("GET /v1/trips/:trip/events", () => {
     await e.sumar(a);
     const cabeza = (await e.app.inject({ method: "GET", url: `/v1/trips/${a.trip_id}/head`, headers: e.con(a.token) })).json<{ head_seq: number }>().head_seq;
     await c.hasta(`id: ${cabeza}\n`);
+    await e.app.close();
+  });
+
+  it("un viaje nunca tiene más de 4 conexiones: una por dispositivo activo y reconectar reemplaza", async () => {
+    const { e, base, a } = await servidor();
+    const altas = [a, await e.sumar(a), await e.sumar(a, { ...NUEVO, apodo: "Ana2" }), await e.sumar(a, { ...NUEVO, apodo: "Ana3" })];
+    const conexiones = [];
+    for (const alta of altas) {
+      for (let vez = 0; vez < 2; vez++) {
+        const c = await conectar(base, a.trip_id, alta.token);
+        await c.hasta("head_seq");
+        conexiones.push(c);
+      }
+    }
+    expect(e.canal.conexiones()).toBe(4);
+    const { cuerpo } = await e.invitar(a.token, a.trip_id);
+    expect((await e.unirse(cuerpo.codigo, { ...NUEVO, apodo: "Quinto" })).statusCode).toBe(409); // viaje_completo
+    for (const c of conexiones) c.cerrar();
+    await e.app.close();
+  });
+
+  it("un dispositivo revocado por otro camino (la administración, en otro proceso) pierde el canal en el siguiente latido", async () => {
+    const { e, base, a } = await servidor({ latidoMs: 50 });
+    const b = await e.sumar(a);
+    const ca = await conectar(base, a.trip_id, a.token);
+    const cb = await conectar(base, a.trip_id, b.token);
+    await ca.hasta("head_seq");
+    await cb.hasta("head_seq");
+    // como lo hace la administración: marca la revocación en la base sin pasar por el canal
+    e.identidad.revocar(b.device_id, AHORA);
+    expect(await cb.alFinal(2000)).toBe(true);
+    expect(e.canal.conexiones()).toBe(1);
+    // el que sigue activo conserva el canal y sus latidos
+    expect(await ca.escuchar(200)).toContain(":");
+    expect(e.canal.conexiones()).toBe(1);
+    // con el lugar libre entra un integrante nuevo: nunca más de 4
+    const c = await e.sumar(a, { ...NUEVO, apodo: "Nueva" });
+    const cc = await conectar(base, a.trip_id, c.token);
+    await cc.hasta("head_seq");
+    expect(e.canal.conexiones()).toBe(2);
+    ca.cerrar();
+    cc.cerrar();
     await e.app.close();
   });
 
