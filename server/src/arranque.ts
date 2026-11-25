@@ -1,6 +1,6 @@
 // El arranque del servidor: arma la base, el pepper, el registro, las métricas, el servicio de identidad y la API, y sabe detenerlos en orden.
 
-import { accessSync, constants, readFileSync, statSync } from "node:fs";
+import { accessSync, constants, statSync } from "node:fs";
 import { join } from "node:path";
 import type { FastifyInstance } from "fastify";
 import type { Database } from "better-sqlite3";
@@ -10,7 +10,7 @@ import { servicioDeIdentidadSobre } from "./almacen/identidad/servicioSqlite.js"
 import { construirApi } from "./api.js";
 import { ServicioDeAdjuntos } from "./dominio/adjuntos/servicioAdjuntos.js";
 import { ErrorDeConfiguracion, type Configuracion } from "./configuracion.js";
-import { leerPepper } from "./dominio/identidad/credenciales.js";
+import { leerElPepper, NOMBRE_DE_LA_BASE } from "./archivosDelServidor.js";
 import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.js";
 import { AlmacenSqlite } from "./almacen/operaciones/almacenSqlite.js";
 import { CanalEnMemoria } from "./dominio/operaciones/canalEnVivo.js";
@@ -22,7 +22,7 @@ import type { Registro } from "./observabilidad/registro.js";
 import { crearRegistroPino, type OpcionesDelRegistro } from "./observabilidad/registroPino.js";
 import { comprobarElPepper } from "./almacen/base/pepper.js";
 
-export const NOMBRE_DE_LA_BASE = "cuaderno.db";
+export { NOMBRE_DE_LA_BASE } from "./archivosDelServidor.js";
 export const CADA_DIEZ_MINUTOS_MS = 10 * 60 * 1000;
 export const CADA_HORA_MS = 60 * 60 * 1000;
 /** Docker manda SIGKILL a los 10 s: pasado este plazo se cortan las conexiones que sigan abiertas para poder cerrar la base. */
@@ -167,20 +167,6 @@ export function iniciarMedicionDeAlmacenamiento(opciones: {
     { cadaMs: CADA_DIEZ_MINUTOS_MS, ...opciones.periodo },
   );
   return { detener, enAlerta: () => alerta, medirAhora };
-}
-
-function leerElPepper(archivo: string): Uint8Array {
-  let contenido: string;
-  try {
-    contenido = readFileSync(archivo, "utf8");
-  } catch (e) {
-    throw new ErrorDeConfiguracion(`no se puede leer el archivo del pepper (${archivo}): ${(e as NodeJS.ErrnoException).code ?? "error"}`);
-  }
-  try {
-    return leerPepper(contenido);
-  } catch (e) {
-    throw new ErrorDeConfiguracion(`el archivo del pepper no sirve (${archivo}): ${(e as Error).message}`);
-  }
 }
 
 function comprobarLaCarpeta(dir: string, nombre: string): void {

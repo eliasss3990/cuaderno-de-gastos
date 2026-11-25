@@ -13,7 +13,8 @@ export function dentroDeUnCierre(intervalos: readonly IntervaloCierre[], ms: num
   return intervalos.some((i) => ms >= i.desdeMs && (i.hastaMs === null || ms < i.hastaMs));
 }
 
-function planDelViaje(almacen: LecturaDelViaje, id: string): PlanDelViaje | null {
+/** El plan del viaje tal como está en el almacén; null si el viaje no existe. */
+export function planDelViaje(almacen: LecturaDelViaje, id: string): PlanDelViaje | null {
   const zona = almacen.leerCampo("trip", id, "zona_horaria");
   if (typeof zona !== "string") return null;
   const texto = (campo: string): string | null => {

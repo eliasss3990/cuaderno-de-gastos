@@ -10,6 +10,13 @@ export type ComprobacionDelPepper =
   | { readonly estado: "distinto" }
   | { readonly estado: "reemplazado"; readonly invitacionesBorradas: number; readonly intentosBorrados: number };
 
+/** Compara sin escribir nada: para quien no debe registrar ni reemplazar la huella (la administración). */
+export function pepperDeLaBase(db: Database, pepper: Uint8Array): "coincide" | "distinto" | "sin_huella" {
+  const fila = db.prepare("SELECT valor FROM servidor_parametro WHERE clave = ?").get(CLAVE) as { valor: string } | undefined;
+  if (fila === undefined) return "sin_huella";
+  return fila.valor === huellaDeVerificacionDelPepper(pepper) ? "coincide" : "distinto";
+}
+
 /**
  * Compara el pepper con la huella guardada. Sin huella, la registra; si no coincide, devuelve `distinto` salvo que se acepte
  * el nuevo: entonces borra las invitaciones sin usar y los intentos de unirse (sus huellas ya no sirven) y guarda la nueva.

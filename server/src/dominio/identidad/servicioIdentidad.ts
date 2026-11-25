@@ -331,6 +331,19 @@ export class ServicioDeIdentidad {
   }
 
   /**
+   * Revoca un dispositivo por su id, sin pasar por el organizador (lo hace quien administra el servidor). Devuelve cómo
+   * quedó y si ya estaba revocado; uno que no existe da `no_existe`.
+   */
+  revocarComoAdministrador(deviceId: unknown): { readonly dispositivo: Dispositivo; readonly yaEstaba: boolean } {
+    const antes = typeof deviceId === "string" && deviceId !== "" ? this.dep.identidad.dispositivo(deviceId) : null;
+    if (antes === null) throw new ErrorDeServicio("no_existe", "el dispositivo no existe");
+    const revoco = this.dep.identidad.revocar(antes.deviceId, this.dep.ahora());
+    const despues = this.dep.identidad.dispositivo(antes.deviceId);
+    if (despues === null) throw new Error("el dispositivo revocado desapareció");
+    return { dispositivo: despues, yaEstaba: !revoco };
+  }
+
+  /**
    * La lista de dispositivos del viaje (también los revocados, del más antiguo al más nuevo) con lo que cada uno informó en su
    * último pedido, más la cabeza del viaje y la hora del servidor: con eso la app calcula "al día" y "hace X". Quien pregunta
    * ya está autenticado (un revocado no llega acá). Nunca incluye las huellas de los tokens.
