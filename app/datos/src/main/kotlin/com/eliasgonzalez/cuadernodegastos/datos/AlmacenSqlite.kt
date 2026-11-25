@@ -145,9 +145,16 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Col
     override fun opsDeEntidad(tipo: String, id: String): List<OpEnCola> =
         base.consultar("SELECT $COLUMNAS_COLA FROM op WHERE trip_id = ? AND entity_type = ? AND entity_id = ? ORDER BY seq", tripId, tipo, id).map { opEnCola(it) }
 
+    override fun opsConPadre(padreId: String): List<OpEnCola> =
+        base.consultar("SELECT $COLUMNAS_COLA FROM op WHERE trip_id = ? AND padre_id = ? ORDER BY seq", tripId, padreId).map { opEnCola(it) }
+
     override fun cambiarMarca(opId: String, hlc: String) {
         existeOp(opId)
         base.ejecutar("UPDATE op SET hlc = ? WHERE trip_id = ? AND op_id = ?", hlc, tripId, opId)
+    }
+
+    override fun quitarLapida(tipo: String, id: String) {
+        base.ejecutar("DELETE FROM entity_tombstone WHERE trip_id = ? AND tipo = ? AND id = ?", tripId, tipo, id)
     }
 
     override fun borrarEntidad(tipo: String, id: String) {

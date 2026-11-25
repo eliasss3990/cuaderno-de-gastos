@@ -12,7 +12,7 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
-class AlmacenMemoria : Cola {
+class AlmacenMemoria : Cola, AlmacenDelServidor {
     private class Entidad(val tipo: String, val id: String, val campos: MutableMap<String, JsonElement> = HashMap(), val relojes: MutableMap<String, String> = HashMap())
 
     private data class Clave(val tipo: String, val id: String) : Comparable<Clave> {
@@ -115,6 +115,10 @@ class AlmacenMemoria : Cola {
         }
     }
 
+    override fun buscarOp(opId: String): Pair<Long, String>? = ops[opId]?.let { it.seq to it.op.hlc }
+
+    override fun ultimaMarcaDe(dispositivo: String): String? = marcas.filter { it.length > 19 && it.substring(19) == dispositivo }.maxOrNull()
+
     // ---- cola -------------------------------------------------------------------------------------
 
     private fun cambiarEnCola(opId: String, cambio: (OpEnCola) -> OpEnCola) {
@@ -126,6 +130,11 @@ class AlmacenMemoria : Cola {
     override fun fijarEstado(opId: String, estado: EstadoOp, serverSeq: Long?, razon: String?, dependeDe: String?) {
         if (serverSeq != null) check(cola.values.none { it.serverSeq == serverSeq && it.op.opId != opId }) { "la secuencia $serverSeq ya la tiene otra operación" }
         cambiarEnCola(opId) { it.copy(estado = estado, serverSeq = serverSeq, razon = razon, dependeDe = dependeDe) }
+    }
+
+    override fun quitarLapida(tipo: String, id: String) {
+        val k = Clave(tipo, id)
+        if (lapidas.remove(k)) deshacer { lapidas.add(k) }
     }
 
     override fun borrarEntidad(tipo: String, id: String) {
@@ -141,6 +150,8 @@ class AlmacenMemoria : Cola {
 
     override fun opsDeEntidad(tipo: String, id: String): List<OpEnCola> =
         cola.values.filter { it.op.entidadTipo == tipo && it.op.entidadId == id }.sortedBy { it.orden }
+
+    override fun opsConPadre(padreId: String): List<OpEnCola> = cola.values.filter { it.op.padreId == padreId }.sortedBy { it.orden }
 
     override fun cambiarMarca(opId: String, hlc: String) {
         val o = checkNotNull(ops[opId]) { "la operación $opId no está guardada" }
@@ -229,6 +240,9 @@ class AlmacenMemoria : Cola {
         intervalos = antes.dropLast(1) + ultimo.copy(hastaMs = hastaMs)
         deshacer { intervalos = antes }
     }
+
+    /** Las operaciones guardadas después de esa secuencia, en orden, hasta `limite` (la bajada del servidor de prueba). */
+    fun opsDesde(despuesDe: Long, limite: Int): List<OpLeida> = ops.values.filter { it.seq > despuesDe }.sortedBy { it.seq }.take(limite)
 
     /** Números de secuencia de las operaciones guardadas, ordenados (para comprobar que no hay huecos). */
     fun secuencias(): List<Long> = ops.values.map { it.seq }.sorted()

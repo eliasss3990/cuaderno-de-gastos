@@ -72,6 +72,11 @@ abstract class ContratoCola {
         c.fijarEstado("o3", EstadoOp.PENDIENTE)
         assertEquals(listOf("o1" to EstadoOp.CONFIRMADA, "o3" to EstadoOp.PENDIENTE), c.opsDeEntidad("expense", "e1").map { it.op.opId to it.estado })
         assertEquals(emptyList<String>(), c.opsDeEntidad("expense", "e9").map { it.op.opId })
+        c.guardarOp(op(5, "a1", tipo = "attachment").copy(padreId = "e1"))
+        c.guardarOp(op(6, "a2", tipo = "attachment").copy(padreId = "e2"))
+        c.guardarOp(op(7, "a3", tipo = "attachment").copy(padreId = "e1"))
+        assertEquals(listOf("o5", "o7"), c.opsConPadre("e1").map { it.op.opId })
+        assertEquals(emptyList<String>(), c.opsConPadre("e9").map { it.op.opId })
     }
 
     @Test
@@ -147,6 +152,18 @@ abstract class ContratoCola {
         c.crearEntidad("expense", "e1") // se puede volver a crear y nace vacía
         assertNull(c.leerCampo("expense", "e1", "nota"))
         c.borrarEntidad("expense", "e9") // borrar lo que no existe no falla
+        // quitar una lápida, también dentro de una transacción que se deshace
+        c.terminar("expense", "e1")
+        falla {
+            c.transaccion {
+                c.quitarLapida("expense", "e1")
+                error("falla")
+            }
+        }
+        assertTrue(c.entidadTerminada("expense", "e1"))
+        c.quitarLapida("expense", "e1")
+        assertFalse(c.entidadTerminada("expense", "e1"))
+        c.quitarLapida("expense", "e9")
     }
 
     @Test
