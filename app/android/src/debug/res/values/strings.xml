@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- la de desarrollo se distingue de la publicada en el celular -->
+<resources>
+    <string name="app_name">Cuaderno (dev)</string>
+</resources>
