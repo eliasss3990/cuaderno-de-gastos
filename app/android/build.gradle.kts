@@ -28,10 +28,13 @@ android {
         versionCode = 2
         versionName = "0.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // el servidor del viaje; se puede cambiar al compilar con -PservidorDeLaApp=https://…
+        buildConfigField("String", "SERVIDOR", "\"${findProperty("servidorDeLaApp") ?: "https://cuaderno.eliasg.uk"}\"")
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     signingConfigs {
@@ -80,13 +83,18 @@ dependencies {
     implementation(platform("androidx.compose:compose-bom:2026.11.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
+    // la sincronización periódica con la app cerrada y saber si la app está en pantalla
+    implementation("androidx.work:work-runtime:2.12.0")
+    implementation("androidx.lifecycle:lifecycle-process:2.11.1")
     implementation(project(":dominio"))
     implementation(project(":datos"))
+    implementation(project(":red"))
 
     testImplementation("junit:junit:4.13.2")
     // el SQLite de Android en la JVM: el adaptador de la base corre el mismo contrato que memoria y sqlite-jdbc
     testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.test:core:1.7.0")
+    testImplementation("androidx.work:work-testing:2.12.0")
     // pruebas en el celular (lo que la JVM no tiene, como el Keystore): ./gradlew connectedDebugAndroidTest
     androidTestImplementation("androidx.test:runner:1.7.0")
     androidTestImplementation("androidx.test.ext:junit:1.3.0")

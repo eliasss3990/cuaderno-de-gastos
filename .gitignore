@@ -9,3 +9,6 @@ local.properties
 .env
 *.log
 .idea/
+
+# sesiones del compilador de Kotlin
+.kotlin/
