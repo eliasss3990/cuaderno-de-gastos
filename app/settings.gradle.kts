@@ -16,6 +16,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "cuaderno-de-gastos"
 
+// la app Android
+include(":android")
+
 // dominio en Kotlin puro (sin Android), probado en la JVM
 include(":dominio")
 
