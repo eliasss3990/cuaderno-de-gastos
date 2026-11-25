@@ -278,6 +278,9 @@ class SincronizadorTest {
         // el alta del gasto había llegado: vuelve por la bajada; la categoría sigue rechazada, así que la edición no sale
         s.aplicarBajada(listOf(OpDelServidor(a.opId, a.tipo, a.entidadTipo, a.entidadId, a.hlc, a.payload, 1, ++seq)), hora)
         assertEquals(EstadoOp.CUARENTENA, c.buscarEnCola(e.opId)!!.estado)
+        // cuando también aparece la categoría, recién ahí la edición vuelve a la cola
+        s.aplicarBajada(listOf(OpDelServidor(altaCat.opId, altaCat.tipo, altaCat.entidadTipo, altaCat.entidadId, altaCat.hlc, altaCat.payload, 1, ++seq)), hora)
+        assertEquals(EstadoOp.PENDIENTE, c.buscarEnCola(e.opId)!!.estado)
     }
 
     @Test
