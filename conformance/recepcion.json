@@ -1,0 +1,688 @@
+{
+ "version": 1,
+ "descripcion": "Recepcion de lotes de operaciones de un dispositivo. `ahora` es la hora del servidor al recibir cada lote; los resultados van alineados con `ops` del lote. Las marcas corregidas se calcularon a mano: la hora del servidor, o la mayor marca ya guardada del dispositivo con el contador +1 si es posterior.",
+ "escenarios": [
+  {
+   "nombre": "una marca de mas de 5 minutos en el futuro se corrige con la hora del servidor y nunca repite ni retrocede",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f97fe80-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f998520-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "concepto": "a"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f9677e0-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nota": "b"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f9677e1-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "lugar": "c"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e3ce-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "metodo_pago": "EFECTIVO"
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 2,
+       "hlc": "001a38f91e400-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 3,
+       "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 4,
+       "hlc": "001a38f9677e0-0003-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 5,
+       "hlc": "001a38f9677e0-0004-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 6,
+       "hlc": "001a38f91e3ce-0009-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nombre": "un duplicado devuelve la secuencia y la marca final guardada, tambien la corregida",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f97fe80-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0,
+      1,
+      1
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 2,
+       "hlc": "001a38f91e400-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "duplicate",
+       "seq": 2,
+       "hlc": "001a38f91e400-0000-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    },
+    {
+     "ahora": 1802000000010,
+     "ops": [
+      0,
+      1
+     ],
+     "resultados": [
+      {
+       "estado": "duplicate",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "duplicate",
+       "seq": 2,
+       "hlc": "001a38f91e400-0000-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nombre": "la marca debe ser del dispositivo que envia el lote",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e20c-0001-018f3a6e-0000-7000-8000-00000000000b",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e270-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0,
+      1,
+      2
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "rejected",
+       "razon": "formato",
+       "hlc": "001a38f91e20c-0001-018f3a6e-0000-7000-8000-00000000000b"
+      },
+      {
+       "estado": "accepted",
+       "seq": 2,
+       "hlc": "001a38f91e270-0002-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nombre": "un rechazo no frena a las demas y los dependientes fallan solos; lo rechazado no se guarda y se puede reenviar",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e07c-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "EUR",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e0e0-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "concepto": "x"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e144-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "currency.enable",
+     "entidadTipo": "trip_currency",
+     "entidadId": "EUR",
+     "hlc": "001a38f91e1a8-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "habilitada": 1,
+      "decimales": 2,
+      "simbolo": "€"
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "rejected",
+       "razon": "moneda_no_habilitada",
+       "hlc": "001a38f91e07c-0001-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "rejected",
+       "razon": "entidad_inexistente",
+       "hlc": "001a38f91e0e0-0002-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 2,
+       "hlc": "001a38f91e144-0003-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    },
+    {
+     "ahora": 1802000000010,
+     "ops": [
+      4,
+      1,
+      2
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 3,
+       "hlc": "001a38f91e1a8-0004-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 4,
+       "hlc": "001a38f91e07c-0001-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 5,
+       "hlc": "001a38f91e0e0-0002-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nombre": "una marca del futuro no escapa del cierre: se juzga por la hora corregida",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e20c-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f9b0bc0-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0,
+      1,
+      2
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 2,
+       "hlc": "001a38f91e20c-0001-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "rejected",
+       "razon": "viaje_cerrado",
+       "hlc": "001a38f9b0bc0-0002-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nombre": "lo que no es una operacion se rechaza por formato y el resto del lote sigue",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "nombre": "un dispositivo no puede repetir ni recibir como duplicado el op_id de una operacion guardada por otro",
+   "dispositivo": "018f3a6e-0000-7000-8000-00000000000a",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e07c-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e0e0-0002-018f3a6e-0000-7000-8000-00000000000b",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a38f91e144-0003-018f3a6e-0000-7000-8000-00000000000b",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "lotes": [
+    {
+     "ahora": 1802000000000,
+     "ops": [
+      0,
+      1
+     ],
+     "resultados": [
+      {
+       "estado": "accepted",
+       "seq": 1,
+       "hlc": "001a38f91e018-0000-018f3a6e-0000-7000-8000-00000000000a"
+      },
+      {
+       "estado": "accepted",
+       "seq": 2,
+       "hlc": "001a38f91e07c-0001-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    },
+    {
+     "ahora": 1802000000010,
+     "dispositivo": "018f3a6e-0000-7000-8000-00000000000b",
+     "ops": [
+      2,
+      3,
+      2
+     ],
+     "resultados": [
+      {
+       "estado": "rejected",
+       "razon": "formato",
+       "hlc": "001a38f91e0e0-0002-018f3a6e-0000-7000-8000-00000000000b"
+      },
+      {
+       "estado": "accepted",
+       "seq": 3,
+       "hlc": "001a38f91e144-0003-018f3a6e-0000-7000-8000-00000000000b"
+      },
+      {
+       "estado": "rejected",
+       "razon": "formato",
+       "hlc": "001a38f91e0e0-0002-018f3a6e-0000-7000-8000-00000000000b"
+      }
+     ]
+    },
+    {
+     "ahora": 1802000000020,
+     "ops": [
+      1
+     ],
+     "resultados": [
+      {
+       "estado": "duplicate",
+       "seq": 2,
+       "hlc": "001a38f91e07c-0001-018f3a6e-0000-7000-8000-00000000000a"
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

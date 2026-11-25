@@ -48,6 +48,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       app: ${{ steps.diff.outputs.app }}
+      codigo_app: ${{ steps.diff.outputs.codigo_app }}
       server: ${{ steps.diff.outputs.server }}
       conformance: ${{ steps.diff.outputs.conformance }}
     steps:
@@ -63,12 +64,15 @@ jobs:
           has() { echo "$files" | grep -qE "$1" && echo true || echo false; }
           {
             echo "app=$(has '^(app/|\.github/workflows/ci-app\.yml)')"
+            # solo el código de la app exige subir su versión (un cambio de este flujo corre las pruebas, nada más)
+            echo "codigo_app=$(has '^app/')"
             echo "server=$(has '^server/')"
             echo "conformance=$(has '^conformance/')"
           } >> "$GITHUB_OUTPUT"
           echo "$files"
 
-  # A main el bump de versión de la app es obligatorio cuando cambia app/** o conformance/**.
+  # A main el bump de versión de la app es obligatorio cuando cambia app/** (los vectores de conformance/ corren las
+  # pruebas de la app pero no la publican: no exigen subir la versión).
   version-bump:
     name: Versión de la app
     if: github.base_ref == 'main'
@@ -81,12 +85,12 @@ jobs:
           fetch-depth: 0
       - name: Verificar versionCode y versionName
         env:
-          APP: ${{ needs.changes.outputs.app }}
+          APP: ${{ needs.changes.outputs.codigo_app }}
           CONF: ${{ needs.changes.outputs.conformance }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "$APP" != "true" ] && [ "$CONF" != "true" ]; then
-            echo "No cambia app/ ni conformance/: no se exige subir la versión."
+          if [ "$APP" != "true" ]; then
+            echo "No cambia app/: no se exige subir la versión (conformance/ cambió: $CONF; no publica la app)."
             exit 0
           fi
           get() { grep -oP "$1 = \"?\K[^\"\n]+" "$2" | head -1; }
@@ -154,16 +158,16 @@ jobs:
           path: app/build/reports/tests/testDebugUnitTest
           retention-days: 14
 
-  # Simulador corto de sincronización: se agrega en H1 (plan 07 §4). Se activa con
+  # Simulador corto de sincronización: todavía no existe, este job reserva su lugar. Se activa con
   # cambios en app/, server/ o conformance/ porque usa el servidor real.
   sim-e2e:
-    name: Simulador corto (pendiente H1)
+    name: Simulador corto (aún no disponible)
     if: github.base_ref == 'next' && (needs.changes.outputs.app == 'true' || needs.changes.outputs.server == 'true' || needs.changes.outputs.conformance == 'true')
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - run: echo "El simulador de sincronización llega en H1 (plan/07 §4). Este job reserva su lugar en el CI."
+      - run: echo "El simulador de sincronización todavía no existe. Este job reserva su lugar en el CI."
 
   app-ok:
     name: App OK

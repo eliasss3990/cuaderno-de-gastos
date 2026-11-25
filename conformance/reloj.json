@@ -1,0 +1,1392 @@
+{
+  "version": 1,
+  "descripcion": "Reloj hibrido: marca de tiempo logica que ordena ediciones aunque los relojes no coincidan. Comparar el texto es comparar el reloj.",
+  "maxMs": 4503599627370495,
+  "maxContador": 65535,
+  "toleranciaFuturoMs": 300000,
+  "formatear": [
+    {
+      "ms": 0,
+      "contador": 0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "esperado": "0000000000000-0000-018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "ms": 1,
+      "contador": 1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "esperado": "0000000000001-0001-018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "ms": 1700000000000,
+      "contador": 0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "esperado": "0018bcfe56800-0000-018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "ms": 1700000000000,
+      "contador": 255,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperado": "0018bcfe56800-00ff-018f3a6e-0000-7000-8000-000000000002"
+    },
+    {
+      "ms": 1700000000000,
+      "contador": 65535,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperado": "0018bcfe56800-ffff-018f3a6e-0000-7000-8000-000000000002"
+    },
+    {
+      "ms": 1798761600000,
+      "contador": 3,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "esperado": "001a2ce8bd400-0003-018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "ms": 4503599627370495,
+      "contador": 65535,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperado": "fffffffffffff-ffff-018f3a6e-0000-7000-8000-000000000002"
+    }
+  ],
+  "parsear": [
+    {
+      "texto": "0000000000000-0000-018f3a6e-0000-7000-8000-000000000001",
+      "esperado": {
+        "ms": 0,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "texto": "0018bcfe56800-00ff-018f3a6e-0000-7000-8000-000000000002",
+      "esperado": {
+        "ms": 1700000000000,
+        "contador": 255,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000002"
+      }
+    },
+    {
+      "texto": "fffffffffffff-ffff-018f3a6e-0000-7000-8000-000000000001",
+      "esperado": {
+        "ms": 4503599627370495,
+        "contador": 65535,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "texto": "",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018F3A6E-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018f3a6e-0000-7000-8000-000000000001x",
+      "error": "formato"
+    },
+    {
+      "texto": " 0000000000001-0001-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018f3a6e-0000-7000-8000-000000000001\n",
+      "error": "formato"
+    },
+    {
+      "texto": "000000000001-0001-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "00000000000001-0001-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-001-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-00001-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018f3a6e-0000-7000-8000-00000000000",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018f3a6e-0000-7000-8000-0000000000010",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018f3a6e000070008000000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-018F3A6E-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-0189f3a6e-000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "00000000000010001018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001-0001-g18f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "00000000000-1-0001-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0000000000001_0001_018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0018BCFE56800-abcd-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0018bcfe56800-ABCD-018f3a6e-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0018bcfe56800-abcd-018F3A6E-0000-7000-8000-000000000001",
+      "error": "formato"
+    },
+    {
+      "texto": "0018bcfe56800-abcd-018f3a6e-0000-7000-8000-00000000000G",
+      "error": "formato"
+    },
+    {
+      "texto": "0018bcfe56800-abcd-018f3a6e-0000-7000-8000-000000000001",
+      "esperado": {
+        "ms": 1700000000000,
+        "contador": 43981,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    }
+  ],
+  "comparar": [
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 2,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 2,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": 1
+    },
+    {
+      "a": {
+        "ms": 5,
+        "contador": 1,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 5,
+        "contador": 2,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 5,
+        "contador": 2,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 5,
+        "contador": 1,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": 1
+    },
+    {
+      "a": {
+        "ms": 5,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 5,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000002"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 5,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000002"
+      },
+      "b": {
+        "ms": 5,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": 1
+    },
+    {
+      "a": {
+        "ms": 5,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 5,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": 0
+    },
+    {
+      "a": {
+        "ms": 255,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 256,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 4095,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 4096,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 1700000000000,
+        "contador": 65535,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1700000000001,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 1700000000000,
+        "contador": 10,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1700000000000,
+        "contador": 255,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "esperado": -1
+    },
+    {
+      "a": {
+        "ms": 0,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 4503599627370495,
+        "contador": 65535,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000002"
+      },
+      "esperado": -1
+    }
+  ],
+  "siguiente": [
+    {
+      "nombre": "primera marca usa la hora del reloj",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "inicio": null,
+      "pasos": [
+        {
+          "ahora": 1000,
+          "esperado": {
+            "ms": 1000,
+            "contador": 0
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "mismo milisegundo sube el contador",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "inicio": null,
+      "pasos": [
+        {
+          "ahora": 1000,
+          "esperado": {
+            "ms": 1000,
+            "contador": 0
+          }
+        },
+        {
+          "ahora": 1000,
+          "esperado": {
+            "ms": 1000,
+            "contador": 1
+          }
+        },
+        {
+          "ahora": 1000,
+          "esperado": {
+            "ms": 1000,
+            "contador": 2
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "el reloj avanza y el contador vuelve a cero",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "inicio": null,
+      "pasos": [
+        {
+          "ahora": 1000,
+          "esperado": {
+            "ms": 1000,
+            "contador": 0
+          }
+        },
+        {
+          "ahora": 1000,
+          "esperado": {
+            "ms": 1000,
+            "contador": 1
+          }
+        },
+        {
+          "ahora": 1001,
+          "esperado": {
+            "ms": 1001,
+            "contador": 0
+          }
+        },
+        {
+          "ahora": 5000,
+          "esperado": {
+            "ms": 5000,
+            "contador": 0
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "el reloj retrocede y la marca no retrocede",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "inicio": null,
+      "pasos": [
+        {
+          "ahora": 5000,
+          "esperado": {
+            "ms": 5000,
+            "contador": 0
+          }
+        },
+        {
+          "ahora": 4000,
+          "esperado": {
+            "ms": 5000,
+            "contador": 1
+          }
+        },
+        {
+          "ahora": 4999,
+          "esperado": {
+            "ms": 5000,
+            "contador": 2
+          }
+        },
+        {
+          "ahora": 5001,
+          "esperado": {
+            "ms": 5001,
+            "contador": 0
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "desborde del contador avanza un milisegundo",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "inicio": {
+        "ms": 7000,
+        "contador": 65534
+      },
+      "pasos": [
+        {
+          "ahora": 7000,
+          "esperado": {
+            "ms": 7000,
+            "contador": 65535
+          }
+        },
+        {
+          "ahora": 7000,
+          "esperado": {
+            "ms": 7001,
+            "contador": 0
+          }
+        },
+        {
+          "ahora": 7000,
+          "esperado": {
+            "ms": 7001,
+            "contador": 1
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "desborde con el reloj ya adelante no se repite",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "inicio": {
+        "ms": 7000,
+        "contador": 65535
+      },
+      "pasos": [
+        {
+          "ahora": 6000,
+          "esperado": {
+            "ms": 7001,
+            "contador": 0
+          }
+        },
+        {
+          "ahora": 8000,
+          "esperado": {
+            "ms": 8000,
+            "contador": 0
+          }
+        }
+      ]
+    },
+    {
+      "nombre": "parte de una marca ya adelantada",
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "inicio": {
+        "ms": 9000,
+        "contador": 3
+      },
+      "pasos": [
+        {
+          "ahora": 2000,
+          "esperado": {
+            "ms": 9000,
+            "contador": 4
+          }
+        },
+        {
+          "ahora": 9000,
+          "esperado": {
+            "ms": 9000,
+            "contador": 5
+          }
+        },
+        {
+          "ahora": 9001,
+          "esperado": {
+            "ms": 9001,
+            "contador": 0
+          }
+        }
+      ]
+    }
+  ],
+  "siguienteError": [
+    {
+      "inicio": {
+        "ms": 4503599627370495,
+        "contador": 65535
+      },
+      "ahora": 1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": -1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": 4503599627370496,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": 1.5,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": "no-es-uuid"
+    },
+    {
+      "inicio": {
+        "ms": 1,
+        "contador": 70000
+      },
+      "ahora": 100,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": {
+        "ms": -1,
+        "contador": 0
+      },
+      "ahora": 100,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": {
+        "ms": 1.5,
+        "contador": 0
+      },
+      "ahora": 100,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001x"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001\n"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": "x018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001zzz"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": " 018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": 1,
+      "dispositivo": "018f3a6e0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": null,
+      "ahora": -0.0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "inicio": {
+        "ms": -0.0,
+        "contador": 0
+      },
+      "ahora": 1,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    }
+  ],
+  "corregirFuturo": [
+    {
+      "hlc": {
+        "ms": 1000000,
+        "contador": 7,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "esperado": {
+        "ms": 1000000,
+        "contador": 7,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": false
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1300000,
+        "contador": 7,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "esperado": {
+        "ms": 1300000,
+        "contador": 7,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": false
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1300001,
+        "contador": 7,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "esperado": {
+        "ms": 1000000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 5000000,
+        "contador": 9,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "esperado": {
+        "ms": 1000000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 900000,
+        "contador": 2,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "esperado": {
+        "ms": 900000,
+        "contador": 2,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": false
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 0,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "esperado": {
+        "ms": 0,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": false
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 300000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 0,
+      "esperado": {
+        "ms": 300000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": false
+      },
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 300001,
+        "contador": 4,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 0,
+      "esperado": {
+        "ms": 0,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      },
+      "ultimoDelDispositivo": null
+    }
+  ],
+  "aprenderDesfase": [
+    {
+      "servidor": 1700000005000,
+      "local": 1700000000000,
+      "desfase": 5000
+    },
+    {
+      "servidor": 1700000000000,
+      "local": 1700000005000,
+      "desfase": -5000
+    },
+    {
+      "servidor": 10,
+      "local": 10,
+      "desfase": 0
+    }
+  ],
+  "ahoraCorregido": [
+    {
+      "local": 1700000000000,
+      "desfase": 5000,
+      "esperado": 1700000005000
+    },
+    {
+      "local": 1700000000000,
+      "desfase": -5000,
+      "esperado": 1699999995000
+    },
+    {
+      "local": 100,
+      "desfase": -500,
+      "esperado": 0
+    },
+    {
+      "local": 4503599627370495,
+      "desfase": 10,
+      "esperado": 4503599627370495
+    },
+    {
+      "local": 0,
+      "desfase": 0,
+      "esperado": 0
+    }
+  ],
+  "observar": [
+    {
+      "ultimo": null,
+      "remota": {
+        "ms": 10000,
+        "contador": 0
+      },
+      "ahora": 5000,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperadoObservado": {
+        "ms": 10000,
+        "contador": 0
+      },
+      "esperadoSiguiente": {
+        "ms": 10000,
+        "contador": 1
+      }
+    },
+    {
+      "ultimo": {
+        "ms": 20000,
+        "contador": 3
+      },
+      "remota": {
+        "ms": 10000,
+        "contador": 9
+      },
+      "ahora": 5000,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperadoObservado": {
+        "ms": 20000,
+        "contador": 3
+      },
+      "esperadoSiguiente": {
+        "ms": 20000,
+        "contador": 4
+      }
+    },
+    {
+      "ultimo": {
+        "ms": 10000,
+        "contador": 3
+      },
+      "remota": {
+        "ms": 10000,
+        "contador": 9
+      },
+      "ahora": 5000,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperadoObservado": {
+        "ms": 10000,
+        "contador": 9
+      },
+      "esperadoSiguiente": {
+        "ms": 10000,
+        "contador": 10
+      }
+    },
+    {
+      "ultimo": {
+        "ms": 10000,
+        "contador": 9
+      },
+      "remota": {
+        "ms": 10000,
+        "contador": 3
+      },
+      "ahora": 5000,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperadoObservado": {
+        "ms": 10000,
+        "contador": 9
+      },
+      "esperadoSiguiente": {
+        "ms": 10000,
+        "contador": 10
+      }
+    },
+    {
+      "ultimo": {
+        "ms": 10000,
+        "contador": 5
+      },
+      "remota": {
+        "ms": 10000,
+        "contador": 5
+      },
+      "ahora": 5000,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperadoObservado": {
+        "ms": 10000,
+        "contador": 5
+      },
+      "esperadoSiguiente": {
+        "ms": 10000,
+        "contador": 6
+      }
+    },
+    {
+      "ultimo": {
+        "ms": 10000,
+        "contador": 0
+      },
+      "remota": {
+        "ms": 30000,
+        "contador": 2
+      },
+      "ahora": 99999,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+      "esperadoObservado": {
+        "ms": 30000,
+        "contador": 2
+      },
+      "esperadoSiguiente": {
+        "ms": 99999,
+        "contador": 0
+      }
+    },
+    {
+      "ultimo": null,
+      "remota": {
+        "ms": 7000,
+        "contador": 65535
+      },
+      "ahora": 1000,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000002",
+      "esperadoObservado": {
+        "ms": 7000,
+        "contador": 65535
+      },
+      "esperadoSiguiente": {
+        "ms": 7001,
+        "contador": 0
+      }
+    }
+  ],
+  "observarError": [
+    {
+      "ultimo": null,
+      "remota": {
+        "ms": -1,
+        "contador": 0
+      }
+    },
+    {
+      "ultimo": null,
+      "remota": {
+        "ms": 0,
+        "contador": 65536
+      }
+    },
+    {
+      "ultimo": null,
+      "remota": {
+        "ms": 1.5,
+        "contador": 0
+      }
+    },
+    {
+      "ultimo": {
+        "ms": 0,
+        "contador": 70000
+      },
+      "remota": {
+        "ms": 1,
+        "contador": 1
+      }
+    },
+    {
+      "ultimo": {
+        "ms": -5,
+        "contador": 0
+      },
+      "remota": {
+        "ms": 1,
+        "contador": 1
+      }
+    },
+    {
+      "ultimo": null,
+      "remota": {
+        "ms": -0.0,
+        "contador": 0
+      }
+    }
+  ],
+  "corregirFuturoMonotono": [
+    {
+      "hlc": {
+        "ms": 1600000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "ultimoDelDispositivo": {
+        "ms": 1000000,
+        "contador": 4
+      },
+      "esperado": {
+        "ms": 1000000,
+        "contador": 5,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      }
+    },
+    {
+      "hlc": {
+        "ms": 1600000,
+        "contador": 1,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "ultimoDelDispositivo": {
+        "ms": 1000000,
+        "contador": 5
+      },
+      "esperado": {
+        "ms": 1000000,
+        "contador": 6,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      }
+    },
+    {
+      "hlc": {
+        "ms": 1600000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "ultimoDelDispositivo": {
+        "ms": 1240000,
+        "contador": 2
+      },
+      "esperado": {
+        "ms": 1240000,
+        "contador": 3,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      }
+    },
+    {
+      "hlc": {
+        "ms": 1600000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "ultimoDelDispositivo": {
+        "ms": 999500,
+        "contador": 9
+      },
+      "esperado": {
+        "ms": 1000000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      }
+    },
+    {
+      "hlc": {
+        "ms": 1600000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "ultimoDelDispositivo": {
+        "ms": 1000000,
+        "contador": 65535
+      },
+      "esperado": {
+        "ms": 1000001,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      }
+    },
+    {
+      "hlc": {
+        "ms": 601000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000,
+      "ultimoDelDispositivo": {
+        "ms": 7201000,
+        "contador": 5
+      },
+      "esperado": {
+        "ms": 7201000,
+        "contador": 6,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001",
+        "corregida": true
+      }
+    }
+  ],
+  "corregirFuturoError": [
+    {
+      "hlc": {
+        "ms": -1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1,
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": -1,
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 4503599627370496,
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "Z"
+      },
+      "ahoraServidor": 1,
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1,
+        "contador": 70000,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1,
+      "ultimoDelDispositivo": null
+    },
+    {
+      "hlc": {
+        "ms": 1600000,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000000,
+      "ultimoDelDispositivo": {
+        "ms": 1,
+        "contador": 70000
+      }
+    },
+    {
+      "hlc": {
+        "ms": 5,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000,
+      "ultimoDelDispositivo": {
+        "ms": -5,
+        "contador": 99999
+      }
+    },
+    {
+      "hlc": {
+        "ms": 5,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000,
+      "ultimoDelDispositivo": {
+        "ms": 1,
+        "contador": 70000
+      }
+    },
+    {
+      "hlc": {
+        "ms": 5,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000,
+      "ultimoDelDispositivo": {
+        "ms": -5,
+        "contador": 0
+      }
+    },
+    {
+      "hlc": {
+        "ms": 5,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "ahoraServidor": 1000,
+      "ultimoDelDispositivo": {
+        "ms": 4503599627370496,
+        "contador": 0
+      }
+    }
+  ],
+  "aprenderDesfaseError": [
+    {
+      "servidor": -1,
+      "local": 0
+    },
+    {
+      "servidor": 0,
+      "local": 1.5
+    },
+    {
+      "servidor": 4503599627370496,
+      "local": 0
+    },
+    {
+      "servidor": 0,
+      "local": -3
+    }
+  ],
+  "ahoraCorregidoError": [
+    {
+      "local": -1,
+      "desfase": 0
+    },
+    {
+      "local": 0,
+      "desfase": 1.5
+    },
+    {
+      "local": 4503599627370496,
+      "desfase": 0
+    },
+    {
+      "local": 0,
+      "desfase": 1e+300
+    }
+  ],
+  "compararError": [
+    {
+      "a": {
+        "ms": -1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 65536,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "Z"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 4503599627370496,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001x"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001\n"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "x018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001zzz"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": " 018f3a6e-0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    },
+    {
+      "a": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e0000-7000-8000-000000000001"
+      },
+      "b": {
+        "ms": 1,
+        "contador": 0,
+        "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+      }
+    }
+  ],
+  "formatearError": [
+    {
+      "ms": 1,
+      "contador": 0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001x"
+    },
+    {
+      "ms": 1,
+      "contador": 0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001\n"
+    },
+    {
+      "ms": 1,
+      "contador": 0,
+      "dispositivo": "x018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "ms": 1,
+      "contador": 0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001zzz"
+    },
+    {
+      "ms": 1,
+      "contador": 0,
+      "dispositivo": " 018f3a6e-0000-7000-8000-000000000001"
+    },
+    {
+      "ms": 1,
+      "contador": 0,
+      "dispositivo": "018f3a6e0000-7000-8000-000000000001"
+    },
+    {
+      "ms": -0.0,
+      "contador": 0,
+      "dispositivo": "018f3a6e-0000-7000-8000-000000000001"
+    }
+  ]
+}

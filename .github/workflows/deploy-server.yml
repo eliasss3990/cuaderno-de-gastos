@@ -58,12 +58,43 @@ jobs:
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: docker build -t "cuaderno-server:$VERSION" server
+      - name: Respaldo previo de la base
+        id: respaldo
+        run: |
+          # justo antes de levantar la versión nueva (después del build: lo que se escriba mientras tanto no se pierde en una
+          # reversa); la reversa vuelve a esta copia porque una imagen anterior no abre una base que la nueva ya migró
+          estado=$(docker inspect -f '{{.State.Status}}' cuaderno-server 2>/dev/null || echo ausente)
+          if [ "$estado" != running ]; then
+            echo "::warning::el servicio no está corriendo ($estado): despliegue sin respaldo previo; si la versión nueva migra y falla, la anterior no podrá abrir la base. Si no es el primer despliegue, conviene cancelar y revisar el servicio"
+          elif ayuda=$(docker exec cuaderno-server node dist/admin.js ayuda 2>/dev/null) && grep -q '^  backup ' <<< "$ayuda"; then
+            salida=$(docker exec cuaderno-server node dist/admin.js backup --motivo predeploy)
+            echo "$salida"
+            archivo=$(printf '%s\n' "$salida" | sed -n 's#^respaldo: /backups/##p')
+            [ -n "$archivo" ] || { echo "::error::el respaldo previo no informó su archivo"; exit 1; }
+            echo "archivo=$archivo" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::la versión que corre no tiene respaldos (admin.js backup): despliegue sin respaldo previo"
+          fi
       - name: Levantar el servicio
+        id: levantar
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: |
+          # las carpetas de datos y de adjuntos las tiene que poder escribir el usuario del contenedor: si no existen, Docker las
+          # crearía como root y el servidor no arrancaría
+          mkdir -m 700 -p "$COMPOSE_DIR/data" "$COMPOSE_DIR/adjuntos" "$COMPOSE_DIR/backups/base" "$COMPOSE_DIR/backups/adjuntos"
           cp server/compose.yml "$COMPOSE_DIR/compose.yml"
+          # el respaldo diario: el script y su línea en el cron del usuario del runner (sin duplicarla en cada despliegue)
+          install -m 755 server/scripts/respaldo-diario.sh "$COMPOSE_DIR/respaldo-diario.sh"
+          if command -v crontab >/dev/null; then
+            linea="0 3 * * * $COMPOSE_DIR/respaldo-diario.sh >> $COMPOSE_DIR/backups/respaldo.log 2>&1"
+            { crontab -l 2>/dev/null | grep -vF "$COMPOSE_DIR/respaldo-diario.sh" || true; echo "$linea"; } | crontab -
+          else
+            echo "::warning::no hay crontab en el VPS: el respaldo diario no quedó programado"
+          fi
           cd "$COMPOSE_DIR"
+          # desde acá la versión nueva pudo tocar la base: recién ahora una falla necesita reversa
+          echo "desplegado=1" >> "$GITHUB_OUTPUT"
           VERSION="$VERSION" docker compose --env-file .env up -d
       - name: Esperar a que esté healthy
         run: |
@@ -74,13 +105,32 @@ jobs:
             sleep 4
           done
           exit 1
+      - name: Prueba de humo
+        run: docker exec cuaderno-server node dist/admin.js humo
       - name: Reversa si algo falló
-        if: failure() && steps.prev.outputs.version != ''
+        # si falló antes de levantar la versión nueva (build, respaldo), la vieja sigue corriendo intacta: no hay nada que revertir
+        if: (failure() || cancelled()) && steps.prev.outputs.version != '' && steps.levantar.outputs.desplegado == '1'
         env:
           PREV: ${{ steps.prev.outputs.version }}
+          RESPALDO: ${{ steps.respaldo.outputs.archivo }}
         run: |
           cd "$COMPOSE_DIR"
           echo "Reversa a cuaderno-server:$PREV"
+          VERSION="$PREV" docker compose --env-file .env stop cuaderno-server || true
+          if [ -n "$RESPALDO" ]; then
+            # restaurar no puede ver desde su contenedor si el servicio sigue vivo: se comprueba acá
+            if [ "$(docker inspect -f '{{.State.Running}}' cuaderno-server 2>/dev/null || echo false)" = true ]; then
+              echo "::error::el servicio no se detuvo: no se restaura con el servicio vivo. A mano: detenerlo y restaurar /backups/$RESPALDO"
+              exit 1
+            fi
+            # con el servicio detenido, la imagen anterior restaura la base de antes del despliegue; si no puede, el servicio
+            # queda detenido a propósito: la imagen anterior no debe arrancar sobre una base que la nueva ya migró
+            if ! VERSION="$PREV" docker compose --env-file .env run --rm --no-deps cuaderno-server node dist/admin.js restaurar --desde "/backups/$RESPALDO"; then
+              echo "::error::no se pudo restaurar /backups/$RESPALDO: el servicio quedó DETENIDO. A mano: cd $COMPOSE_DIR && VERSION=$PREV docker compose --env-file .env run --rm --no-deps cuaderno-server node dist/admin.js restaurar --desde /backups/$RESPALDO && VERSION=$PREV docker compose --env-file .env up -d"
+              exit 1
+            fi
+            echo "::warning::la base volvió a /backups/$RESPALDO: lo que se escribió después quedó en la copia prerestauracion más nueva de /backups (los celulares lo vuelven a subir solos)"
+          fi
           VERSION="$PREV" docker compose --env-file .env up -d
       - name: Conservar solo las últimas 3 imágenes
         if: success()

@@ -1,0 +1,1617 @@
+{
+ "version": 1,
+ "descripcion": "Cierre del viaje por intervalos. `ahoras` es la hora del servidor en cada paso; `intervalos` es lo que debe quedar guardado al final. CIERRE = 1803006000000 es el inicio del 2027-02-19 en America/Asuncion.",
+ "escenarios": [
+  {
+   "nombre": "cierre manual: se juzga por la hora de creacion, no por la de llegada; reabrir deja pasar lo nuevo",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e40a-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e496-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a38f91e432-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e4c8-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000004",
+     "hlc": "001a38f91e4fa-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    3
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001100,
+    1802000001100,
+    1802000001200,
+    1802000001300,
+    1802000001400
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": 1802000000200,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "trip.update se acepta siempre, tambien cerrado",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e496-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil 2027",
+      "objetivos": "playa"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e4a0-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": null,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "cierre por fechas: abre al terminar el dia de fin; reabrir cambiando la fecha lo cierra con la hora de ese cambio",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_fin": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a3cb883b76-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a3cb883b6c-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a3cb883b8a-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb884f08-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "fecha_fin": "2027-03-31"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000004",
+     "hlc": "001a3cb8852f0-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "ahoras": [
+    1802000001000,
+    1803005999995,
+    1803006060000,
+    1803006060000,
+    1803006070000,
+    1803006070000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado",
+    "accepted",
+    "accepted"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1803006000000,
+     "hastaMs": 1803006005000,
+     "causa": "FECHAS"
+    }
+   ]
+  },
+  {
+   "nombre": "el estado manual en curso gana a las fechas; al borrarlo vuelve a regir el cierre por fechas",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_fin": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb883798-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a3cb883b8a-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb883b94-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": null
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a3cb883b9e-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "ahoras": [
+    1802000001000,
+    1803005999500,
+    1803006060000,
+    1803006060000,
+    1803006060001
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1803006000020,
+     "hastaMs": null,
+     "causa": "FECHAS"
+    }
+   ]
+  },
+  {
+   "nombre": "una edicion vieja del estado manual que pierde por reloj no cambia nada",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e432-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e496-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001100,
+    1802000001100
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": null,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "cerrar y reabrir dos veces deja dos intervalos",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e4c8-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e52c-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e590-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": null
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e496-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e4fa-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a38f91e55e-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000009",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000004",
+     "hlc": "001a38f91e5c2-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado",
+    "accepted",
+    "rejected:viaje_cerrado",
+    "accepted"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": 1802000000200,
+     "causa": "MANUAL"
+    },
+    {
+     "desdeMs": 1802000000300,
+     "hastaMs": 1802000000400,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "lo ya terminado se acepta redactado aunque el viaje este cerrado",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e40a-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.purge",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e414-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {}
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e496-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "concepto": "x"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e4a0-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": null,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "sin viaje no hay cierre; cualquier operacion cierra el intervalo por fechas que faltaba abrir",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e40a-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0
+   ],
+   "ahoras": [
+    1802000000010
+   ],
+   "resultados": [
+    "rejected:moneda_no_habilitada"
+   ],
+   "intervalos": []
+  },
+  {
+   "nombre": "bordes del intervalo: el inicio esta cerrado y el fin esta abierto",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e463-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a38f91e464-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a38f91e4c7-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e4c8-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000007",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000004",
+     "hlc": "001a38f91e4c8-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000008",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000005",
+     "hlc": "001a38f91e4c9-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado",
+    "rejected:viaje_cerrado",
+    "accepted",
+    "accepted",
+    "accepted"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": 1802000000200,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "un cierre manual empieza con la hora de ese cambio aunque haya fecha de fin",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_fin": "2027-03-31"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a38f91e496-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": null,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "al borrar el estado manual el cierre por fechas empieza con la hora de ese cambio: lo creado mientras estuvo abierto a mano se acepta",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_fin": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb883798-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb884f08-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb885ea8-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": null
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a3cb8856d8-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000006",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a3cb88609c-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "ahoras": [
+    1802000001000,
+    1803005999500,
+    1803006006000,
+    1803006010000,
+    1803006010000,
+    1803006010000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1803005999000,
+     "hastaMs": 1803006005000,
+     "causa": "MANUAL"
+    },
+    {
+     "desdeMs": 1803006009000,
+     "hastaMs": null,
+     "causa": "FECHAS"
+    }
+   ]
+  },
+  {
+   "nombre": "reabrir con una marca anterior al inicio del cierre por fechas deja un intervalo de 1 ms",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_fin": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a3cb883b76-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a3cb88398c-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "fecha_fin": "2027-03-31"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a3cb883b82-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a3cb883b80-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   "ahoras": [
+    1802000001000,
+    1803006001000,
+    1803006002000,
+    1803006003000,
+    1803006003000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1803006000000,
+     "hastaMs": 1803006000001,
+     "causa": "FECHAS"
+    }
+   ]
+  },
+  {
+   "nombre": "reabrir con la misma milesima que el cierre manual deja un intervalo de 1 ms",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "EN_CURSO"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "accepted"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": 1802000000101,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "solo trip.update esta exento: un trip.create dentro de un cierre se rechaza",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e464-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "estado_manual": "CERRADO"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e4a0-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2
+   ],
+   "ahoras": [
+    1802000001000,
+    1802000001000,
+    1802000001000
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1802000000100,
+     "hastaMs": null,
+     "causa": "MANUAL"
+    }
+   ]
+  },
+  {
+   "nombre": "un viaje creado con la fecha de fin ya pasada queda cerrado desde la creacion",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_fin": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0
+   ],
+   "ahoras": [
+    1803006001000
+   ],
+   "resultados": [
+    "accepted"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1803006000000,
+     "hastaMs": null,
+     "causa": "FECHAS"
+    }
+   ]
+  },
+  {
+   "nombre": "si el reloj del servidor retrocede un cierre por fechas ya abierto no se cierra ni se fragmenta",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000001",
+     "hlc": "001a38f91e400-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "fecha_fin": "2027-02-18",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ]
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000001",
+     "hlc": "001a3cb883b8a-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000002",
+     "hlc": "001a3cb883b94-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9000-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000003",
+     "hlc": "001a3cb883b9e-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 100,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1802000000000,
+      "dia_imputado": "2027-02-18"
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3
+   ],
+   "ahoras": [
+    1802000001000,
+    1803006001000,
+    1803005995000,
+    1803006002000
+   ],
+   "resultados": [
+    "accepted",
+    "rejected:viaje_cerrado",
+    "rejected:viaje_cerrado",
+    "rejected:viaje_cerrado"
+   ],
+   "intervalos": [
+    {
+     "desdeMs": 1803006000000,
+     "hastaMs": null,
+     "causa": "FECHAS"
+    }
+   ]
+  }
+ ]
+}
