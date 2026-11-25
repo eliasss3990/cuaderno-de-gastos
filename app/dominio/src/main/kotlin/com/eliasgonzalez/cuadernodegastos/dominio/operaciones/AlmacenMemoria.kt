@@ -121,6 +121,31 @@ class AlmacenMemoria : Almacen {
         return numero
     }
 
+    override fun idDelViaje(): String? = entidades.values.firstOrNull { it.tipo == "trip" }?.id
+
+    override fun contarEntidades(tipo: String): Int = entidades.values.count { it.tipo == tipo }
+
+    private var intervalos: List<IntervaloCierre> = emptyList()
+
+    override fun intervalosDeCierre(): List<IntervaloCierre> = intervalos
+
+    override fun abrirIntervalo(desdeMs: Long, causa: IntervaloCierre.Causa) {
+        val ultimo = intervalos.lastOrNull()
+        check(ultimo == null || (ultimo.hastaMs != null && desdeMs >= ultimo.hastaMs)) { "el intervalo se superpone con el anterior" }
+        val antes = intervalos
+        intervalos = antes + IntervaloCierre(desdeMs, null, causa)
+        deshacer { intervalos = antes }
+    }
+
+    override fun cerrarIntervalo(hastaMs: Long) {
+        val ultimo = intervalos.lastOrNull()
+        check(ultimo != null && ultimo.hastaMs == null) { "no hay un intervalo abierto" }
+        check(hastaMs > ultimo.desdeMs) { "el fin debe ser posterior al inicio" }
+        val antes = intervalos
+        intervalos = antes.dropLast(1) + ultimo.copy(hastaMs = hastaMs)
+        deshacer { intervalos = antes }
+    }
+
     /** Números de secuencia de las operaciones guardadas, ordenados (para comprobar que no hay huecos). */
     fun secuencias(): List<Long> = ops.values.map { it.seq }.sorted()
 

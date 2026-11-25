@@ -84,6 +84,21 @@ interface Almacen {
 
     /** Guarda la operación y devuelve su número de secuencia (1, 2, 3… sin huecos). */
     fun guardarOp(op: OpGuardada): Long
+
+    /** Id del viaje, o null si todavía no se creó. */
+    fun idDelViaje(): String?
+
+    /** Cuántas entidades de ese tipo existen (las terminadas ya no están). */
+    fun contarEntidades(tipo: String): Int
+
+    /** Períodos en que el viaje estuvo cerrado, por inicio ascendente; a lo sumo el último está abierto. */
+    fun intervalosDeCierre(): List<IntervaloCierre>
+
+    /** Abre un intervalo de cierre; debe empezar después de que termine el anterior y no puede haber otro abierto. */
+    fun abrirIntervalo(desdeMs: Long, causa: IntervaloCierre.Causa)
+
+    /** Cierra el intervalo abierto; `hastaMs` debe ser mayor que su inicio. */
+    fun cerrarIntervalo(hastaMs: Long)
 }
 
 private enum class Clase { CREAR, EDITAR, TERMINAL, MONEDA }
