@@ -166,6 +166,10 @@ class Sincronizador(private val cola: Cola, private val horaDelCelular: () -> Lo
             recalcularEntidad(o.op.entidadTipo, o.op.entidadId)
         }
         cola.fijarEstado(opId, EstadoOp.CONFIRMADA, serverSeq = serverSeq)
+        // si mientras viajaba otro terminó la entidad (o el dueño del adjunto), el servidor la guardó redactada: acá también
+        val dueno = o.op.padreId
+        if (cola.entidadTerminada(o.op.entidadTipo, o.op.entidadId)) cola.redactarPorEntidad(o.op.entidadTipo, o.op.entidadId)
+        if (dueno != null && (cola.entidadTerminada("expense", dueno) || cola.entidadTerminada("fixed_cost", dueno))) cola.redactarPorPadre(dueno)
         if (o.op.hlc != hlcFinal) recalcularUltimaMarca(hlcFinal)
         // estaba en cuarentena y resulta que el servidor la tenía: sus dependientes vuelven a la cola, salvo las que
         // también dependen de otra que sigue rechazada (saldrían solas y volverían a fallar)

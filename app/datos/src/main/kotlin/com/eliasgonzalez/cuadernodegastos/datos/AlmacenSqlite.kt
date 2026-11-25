@@ -64,11 +64,12 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Col
     }
 
     override fun redactarPorEntidad(tipo: String, id: String) {
-        base.ejecutar("UPDATE op SET payload = NULL, redactada = 1 WHERE trip_id = ? AND entity_type = ? AND entity_id = ?", tripId, tipo, id)
+        // una propia sin confirmar no se redacta: el servidor todavía no la tiene y tiene que llegarle entera
+        base.ejecutar("UPDATE op SET payload = NULL, redactada = 1 WHERE trip_id = ? AND entity_type = ? AND entity_id = ? AND estado = 'CONFIRMADA'", tripId, tipo, id)
     }
 
     override fun redactarPorPadre(padreId: String) {
-        base.ejecutar("UPDATE op SET payload = NULL, redactada = 1 WHERE trip_id = ? AND padre_id = ?", tripId, padreId)
+        base.ejecutar("UPDATE op SET payload = NULL, redactada = 1 WHERE trip_id = ? AND padre_id = ? AND estado = 'CONFIRMADA'", tripId, padreId)
     }
 
     override fun padreRegistrado(tipo: String, id: String): String? =

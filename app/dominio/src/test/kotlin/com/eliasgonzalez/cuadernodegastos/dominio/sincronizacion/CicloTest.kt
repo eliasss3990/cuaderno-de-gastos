@@ -172,6 +172,18 @@ class CicloTest {
     }
 
     @Test
+    fun unPedidoRechazadoAvisaYNoPierdeElLote() {
+        val (servidor, c, par) = armar()
+        val (s, ciclo) = par
+        ciclo.correr()
+        gastos(s, 2)
+        servidor.fallasDeSubida += RespuestaDeSubida.Error(Falla.PEDIDO_RECHAZADO)
+        assertEquals(FinDelCiclo.Error, ciclo.correr())
+        assertEquals(2, c.enEstado(EstadoOp.PENDIENTE).size)
+        assertEquals(FinDelCiclo.AlDia, ciclo.correr()) // el próximo ciclo lo vuelve a intentar
+    }
+
+    @Test
     fun appDesactualizadaEnLaBajada() {
         val (servidor, _, par) = armar()
         servidor.fallasDeBajada += RespuestaDeBajada.Error(Falla.APP_DESACTUALIZADA)

@@ -113,6 +113,21 @@ abstract class ContratoCola {
     }
 
     @Test
+    fun unaPropiaSinConfirmarNoSeRedacta() {
+        val c = crear()
+        c.guardarOp(op(1))
+        c.guardarOp(op(2))
+        c.guardarOp(op(3, "a1", tipo = "attachment").copy(padreId = "e1"))
+        c.fijarEstado("o2", EstadoOp.PENDIENTE)
+        c.fijarEstado("o3", EstadoOp.CUARENTENA)
+        c.redactarPorEntidad("expense", "e1")
+        c.redactarPorPadre("e1")
+        assertNull(c.buscarEnCola("o1")!!.op.payload)
+        assertEquals(JsonObject(mapOf("concepto" to JsonPrimitive("c2"))), c.buscarEnCola("o2")!!.op.payload)
+        assertEquals(JsonObject(mapOf("concepto" to JsonPrimitive("c3"))), c.buscarEnCola("o3")!!.op.payload)
+    }
+
+    @Test
     fun laRedaccionSeVeEnLaCola() {
         val c = crear()
         c.guardarOp(op(1))

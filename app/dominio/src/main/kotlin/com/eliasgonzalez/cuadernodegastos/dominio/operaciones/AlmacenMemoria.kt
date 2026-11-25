@@ -101,8 +101,9 @@ class AlmacenMemoria : Cola, AlmacenDelServidor {
         }
     }
 
+    // en el celular, una propia sin confirmar no se redacta: el servidor todavía no la tiene y tiene que llegarle entera
     private fun redactar(coincide: (OpGuardada) -> Boolean) {
-        val cambiadas = ops.filterValues { coincide(it.op) }
+        val cambiadas = ops.filterValues { coincide(it.op) && cola[it.op.opId]?.estado.let { e -> e == null || e == EstadoOp.CONFIRMADA } }
         val colaAntes = cambiadas.keys.associateWith { cola.getValue(it) }
         for ((k, o) in cambiadas) {
             val redactada = o.op.copy(payload = null, redactada = true)
