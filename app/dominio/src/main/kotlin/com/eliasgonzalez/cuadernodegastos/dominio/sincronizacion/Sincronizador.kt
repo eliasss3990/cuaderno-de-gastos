@@ -167,10 +167,15 @@ class Sincronizador(private val cola: Cola, private val horaDelCelular: () -> Lo
         }
         cola.fijarEstado(opId, EstadoOp.CONFIRMADA, serverSeq = serverSeq)
         if (o.op.hlc != hlcFinal) recalcularUltimaMarca(hlcFinal)
-        // estaba en cuarentena y resulta que el servidor la tenía: sus dependientes vuelven a la cola
+        // estaba en cuarentena y resulta que el servidor la tenía: sus dependientes vuelven a la cola, salvo las que
+        // también dependen de otra que sigue rechazada (saldrían solas y volverían a fallar)
         if (o.estado == EstadoOp.CUARENTENA) {
+            val otrasRaices = cola.enEstado(EstadoOp.CUARENTENA).filter { it.razon != DEPENDIENTE && it.op.opId != opId }
+            val trabadas = otrasRaices.flatMap { dependientes(it.op.opId) }.map { it.op.opId }.toSet()
             for (d in dependientes(opId)) {
-                if (d.estado == EstadoOp.CUARENTENA && d.razon == DEPENDIENTE) cola.fijarEstado(d.op.opId, EstadoOp.PENDIENTE, dependeDe = d.dependeDe)
+                if (d.estado == EstadoOp.CUARENTENA && d.razon == DEPENDIENTE && d.op.opId !in trabadas) {
+                    cola.fijarEstado(d.op.opId, EstadoOp.PENDIENTE, dependeDe = d.dependeDe)
+                }
             }
         }
     }

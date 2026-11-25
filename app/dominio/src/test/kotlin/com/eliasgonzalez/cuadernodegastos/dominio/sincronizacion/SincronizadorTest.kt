@@ -262,6 +262,40 @@ class SincronizadorTest {
     }
 
     @Test
+    fun alConfirmarUnaRaizNoSeLiberaUnaDependienteDeOtraRaizQueSigueRechazada() {
+        val (c, s) = celular()
+        val cat = "018f3a6e-7000-7000-8000-000000000001"
+        val altaCat = Operacion(opId(), "category.create", "category", cat, s.nuevaMarca(), json("""{"nombre":"C","color":"#E8E4F3","emoji":"x"}"""), 1)
+        s.registrar(altaCat)
+        val a = alta(s)
+        s.registrar(a)
+        // la edición usa la categoría nueva: depende de las dos altas
+        val e = edicion(s, """{"categoria_id":"$cat"}""")
+        s.registrar(e)
+        s.armarLote(2)
+        s.respuestaDelLote(listOf(RespuestaDeOp(altaCat.opId, false, null, altaCat.hlc, "formato"), RespuestaDeOp(a.opId, false, null, a.hlc, "formato")), hora)
+        assertEquals(EstadoOp.CUARENTENA, c.buscarEnCola(e.opId)!!.estado)
+        // el alta del gasto había llegado: vuelve por la bajada; la categoría sigue rechazada, así que la edición no sale
+        s.aplicarBajada(listOf(OpDelServidor(a.opId, a.tipo, a.entidadTipo, a.entidadId, a.hlc, a.payload, 1, ++seq)), hora)
+        assertEquals(EstadoOp.CUARENTENA, c.buscarEnCola(e.opId)!!.estado)
+    }
+
+    @Test
+    fun alConfirmarUnaRaizSeLiberaTodaLaCadena() {
+        val (c, s) = celular()
+        val a = alta(s)
+        s.registrar(a)
+        val e1 = edicion(s, """{"concepto":"x"}""")
+        s.registrar(e1)
+        val e2 = edicion(s, """{"nota":"y"}""")
+        s.registrar(e2)
+        s.armarLote(1)
+        s.respuestaDelLote(listOf(RespuestaDeOp(a.opId, false, null, a.hlc, "formato")), hora)
+        s.aplicarBajada(listOf(OpDelServidor(a.opId, a.tipo, a.entidadTipo, a.entidadId, a.hlc, a.payload, 1, ++seq)), hora)
+        assertEquals(listOf(e1.opId, e2.opId), c.enEstado(EstadoOp.PENDIENTE).map { it.op.opId })
+    }
+
+    @Test
     fun unaPendienteQueYaSalioNoSeDescartaPorquePudoHaberLlegado() {
         val (c, s) = celular()
         val a = alta(s)
