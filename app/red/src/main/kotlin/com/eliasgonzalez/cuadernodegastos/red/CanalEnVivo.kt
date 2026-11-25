@@ -99,8 +99,10 @@ class CanalEnVivo(
                 if (cabeza != null) alNovedad(cabeza)
             }
             BufferedReader(InputStreamReader(c.inputStream, Charsets.UTF_8)).use { r ->
+                // en Android, disconnect corta la lectura en curso; en la JVM de escritorio no, así que también se mira
+                // `detenido` en cada línea: corta a más tardar con el próximo latido
                 var l = r.readLine()
-                while (l != null) {
+                while (l != null && !detenido) {
                     lector.linea(l)
                     l = r.readLine()
                 }
