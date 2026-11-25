@@ -57,6 +57,11 @@ export class ServicioDeSincronizacion {
   }
 
   cabeza(actor: ActorDeSincronizacion): number {
-    return this.dep.almacenDe(actor.tripId).seqMaximo();
+    return this.cabezaDelViaje(actor.tripId);
+  }
+
+  /** La cabeza de un viaje sin un dispositivo de por medio (para avisos internos del servidor). */
+  cabezaDelViaje(tripId: string): number {
+    return this.dep.almacenDe(tripId).seqMaximo();
   }
 }

@@ -63,7 +63,7 @@ describe("arrancar", () => {
     await expect(fetch(`${url}/healthz`)).rejects.toThrow();
   });
 
-  it("al detenerlo cancela sus tres temporizadores (el resumen, el mantenimiento y el barrido de adjuntos) y cierra la base sin dejar archivos WAL", async () => {
+  it("al detenerlo cancela sus cuatro temporizadores (el resumen, el mantenimiento, el barrido de adjuntos y la medición del disco) y cierra la base sin dejar archivos WAL", async () => {
     const e = entorno();
     const espia = vi.spyOn(globalThis, "clearInterval");
     const espiaDelPlazo = vi.spyOn(globalThis, "clearTimeout");
@@ -74,7 +74,7 @@ describe("arrancar", () => {
       espia.mockClear();
       espiaDelPlazo.mockClear();
       await servidor.detener();
-      expect(espia).toHaveBeenCalledTimes(3);
+      expect(espia).toHaveBeenCalledTimes(4);
       expect(espiaDelPlazo).toHaveBeenCalled(); // y el temporizador del plazo de apagado
       expect(existsSync(join(e.datos, `${NOMBRE_DE_LA_BASE}-wal`))).toBe(false);
       expect(existsSync(join(e.datos, `${NOMBRE_DE_LA_BASE}-shm`))).toBe(false);
@@ -195,6 +195,43 @@ describe("arrancar", () => {
     for (const nombre of readdirSync(carpeta)) utimesSync(join(carpeta, nombre), hace, hace);
     for (let i = 0; i < 100 && readdirSync(carpeta).length > 1; i++) await new Promise((ok) => setTimeout(ok, 25));
     expect(readdirSync(carpeta)).toEqual([`${VIVO}.jpg`]);
+  });
+
+  it("mide el disco al arrancar: con poco espacio libre la salud responde alerta desde el principio", async () => {
+    const e = entorno();
+    const servidor = await arrancar(configuracion(e), { registro: new RegistroDeMemoria(), medirAlmacenamiento: async () => ({ baseBytes: 0, adjuntosBytes: 0, libreBytes: 1000 }) });
+    servidores.push(servidor);
+    const url = `http://127.0.0.1:${servidor.puerto}`;
+    let cuerpo: unknown;
+    for (let i = 0; i < 50; i++) {
+      cuerpo = await (await fetch(`${url}/healthz`)).json();
+      if ((cuerpo as { estado: string }).estado === "alerta") break;
+      await new Promise((ok) => setTimeout(ok, 20));
+    }
+    expect(cuerpo).toEqual({ estado: "alerta" });
+  });
+
+  it("el servidor real mide el disco al arrancar, quieto no vuelve a medir y después de una escritura sí", async () => {
+    const e = entorno();
+    let mediciones = 0;
+    const servidor = await arrancar(configuracion(e), {
+      registro: new RegistroDeMemoria(),
+      cadaMsDeLaMedicion: 25,
+      medirAlmacenamiento: async () => (mediciones++, { baseBytes: 0, adjuntosBytes: 0, libreBytes: 5 * 1024 * 1024 * 1024 }),
+    });
+    servidores.push(servidor);
+    const url = `http://127.0.0.1:${servidor.puerto}`;
+    const esperar = (ms: number) => new Promise((ok) => setTimeout(ok, ms));
+    for (let i = 0; i < 50 && mediciones === 0; i++) await esperar(20);
+    expect(mediciones).toBe(1);
+    await fetch(`${url}/healthz`); // una lectura no cuenta como cambio
+    await esperar(150);
+    expect(mediciones).toBe(1);
+    expect((await post(`${url}/v1/trips`, VIAJE)).status).toBe(201);
+    for (let i = 0; i < 50 && mediciones === 1; i++) await esperar(20);
+    expect(mediciones).toBe(2);
+    await esperar(150);
+    expect(mediciones).toBe(2);
   });
 
   it("los datos sobreviven a un reinicio: el token de antes sigue sirviendo", async () => {
@@ -320,7 +357,7 @@ describe("lo que impide arrancar sale con un mensaje claro y sin dejar nada abie
     let error: NodeJS.ErrnoException;
     try {
       error = (await falla(otro, { puerto: primero.servidor.puerto })) as NodeJS.ErrnoException;
-      expect(espia).toHaveBeenCalledTimes(3); // canceló los tres temporizadores que había creado
+      expect(espia).toHaveBeenCalledTimes(4); // canceló los cuatro temporizadores que había creado
     } finally {
       espia.mockRestore();
     }

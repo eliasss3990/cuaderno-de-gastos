@@ -15,7 +15,8 @@ import type { ServicioDeIdentidad } from "./dominio/identidad/servicioIdentidad.
 import { AlmacenSqlite } from "./almacen/operaciones/almacenSqlite.js";
 import { CanalEnMemoria } from "./dominio/operaciones/canalEnVivo.js";
 import { ServicioDeSincronizacion } from "./dominio/operaciones/sincronizacion.js";
-import { iniciarResumenPeriodico, MAX_SERIES, MetricasEnMemoria } from "./observabilidad/metricas.js";
+import { ALERTA_DE_DISCO_BYTES, medirAlmacenamiento, type MedicionDeAlmacenamiento } from "./observabilidad/almacenamiento.js";
+import { iniciarResumenPeriodico, MAX_SERIES, MetricasEnMemoria, type Metricas } from "./observabilidad/metricas.js";
 import { tareaPeriodica, type OpcionesPeriodicas } from "./observabilidad/periodico.js";
 import type { Registro } from "./observabilidad/registro.js";
 import { crearRegistroPino, type OpcionesDelRegistro } from "./observabilidad/registroPino.js";
@@ -113,6 +114,60 @@ export function iniciarBarridoDeAdjuntos(opciones: {
   };
 }
 
+/** Aunque no haya cambios, el disco se mide una vez por día: el espacio libre también lo consume el resto del VPS. */
+export const MEDICION_DIARIA_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Mide cuánto ocupa el servidor y cuánto disco queda: lo deja en las métricas y avisa en el registro cuando el disco entra o sale
+ * de la alerta. Cada 10 minutos mira si hubo cambios (`huboCambios`, que se consume al leerse) y solo entonces mide; sin cambios,
+ * mide una vez por día. `enAlerta` dice cómo quedó la última medición.
+ */
+export function iniciarMedicionDeAlmacenamiento(opciones: {
+  medir: () => Promise<MedicionDeAlmacenamiento>;
+  metricas: Metricas;
+  registro: Registro;
+  /** Si hubo escrituras desde la vez anterior; sin valor, se mide siempre. */
+  huboCambios?: () => boolean;
+  ahora?: () => number;
+  periodo?: Partial<OpcionesPeriodicas>;
+}): { detener: () => void; enAlerta: () => boolean; medirAhora: () => Promise<void> } {
+  const ahora = opciones.ahora ?? Date.now;
+  let alerta = false;
+  let enCurso: Promise<void> | null = null;
+  let ultimaMedicion = Number.NEGATIVE_INFINITY;
+  const medir = async (): Promise<void> => {
+    ultimaMedicion = ahora();
+    try {
+      const m = await opciones.medir();
+      opciones.metricas.fijar("base_bytes", m.baseBytes);
+      opciones.metricas.fijar("adjuntos_en_disco_bytes", m.adjuntosBytes);
+      opciones.metricas.fijar("disco_libre_bytes", m.libreBytes);
+      const ahoraEnAlerta = m.libreBytes < ALERTA_DE_DISCO_BYTES;
+      if (ahoraEnAlerta && !alerta) opciones.registro.warn("disco_casi_lleno", { libre_bytes: m.libreBytes });
+      if (!ahoraEnAlerta && alerta) opciones.registro.info("disco_recuperado", { libre_bytes: m.libreBytes });
+      alerta = ahoraEnAlerta;
+    } catch (err) {
+      opciones.registro.error("almacenamiento_medicion_fallo", { err });
+    }
+  };
+  const medirAhora = (): Promise<void> => {
+    enCurso ??= medir().finally(() => {
+      enCurso = null;
+    });
+    return enCurso;
+  };
+  const detener = tareaPeriodica(
+    () => {
+      // con una medición en vuelo no se consume la bandera: pudo leer los tamaños antes de esa escritura
+      if (enCurso !== null) return;
+      const hubo = opciones.huboCambios?.() ?? true;
+      if (hubo || ahora() - ultimaMedicion >= MEDICION_DIARIA_MS) void medirAhora();
+    },
+    { cadaMs: CADA_DIEZ_MINUTOS_MS, ...opciones.periodo },
+  );
+  return { detener, enAlerta: () => alerta, medirAhora };
+}
+
 function leerElPepper(archivo: string): Uint8Array {
   let contenido: string;
   try {
@@ -150,6 +205,10 @@ export async function arrancar(
     plazoDeApagadoMs?: number;
     /** Cada cuánto se barren los archivos de adjuntos que sobran; por defecto, cada hora. Lo usan las pruebas. */
     cadaMsDelBarrido?: number;
+    /** Reemplaza la medición del disco (las pruebas simulan poco espacio libre). */
+    medirAlmacenamiento?: () => Promise<MedicionDeAlmacenamiento>;
+    /** Cada cuánto se mira si hay que medir el disco; por defecto, cada 10 minutos. Lo usan las pruebas. */
+    cadaMsDeLaMedicion?: number;
   } = {},
 ): Promise<Servidor> {
   const registro = opciones.registro ?? crearRegistroPino({ nivel: config.nivelDeLog, ...(opciones.destino === undefined ? {} : { destino: opciones.destino }) });
@@ -179,7 +238,25 @@ export async function arrancar(
     const servicio = servicioDeIdentidadSobre(db, { ahora: () => Date.now(), pepper });
     const canal = new CanalEnMemoria();
     const sincronizacion = new ServicioDeSincronizacion({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), ahora: () => Date.now(), canal });
-    const adjuntos = new ServicioDeAdjuntos({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), archivos: new ArchivosEnDisco(config.dirAdjuntos) });
+    const archivosEnDisco = new ArchivosEnDisco(config.dirAdjuntos);
+    const adjuntos = new ServicioDeAdjuntos({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), archivos: archivosEnDisco });
+    // cualquier escritura que salió bien (operaciones, subidas, altas, invitaciones, revocaciones) puede cambiar lo que ocupa
+    let huboEscritura = false;
+    const almacenamiento = iniciarMedicionDeAlmacenamiento({
+      medir:
+        opciones.medirAlmacenamiento ??
+        (() => medirAlmacenamiento({ archivoBase: join(config.dirDatos, NOMBRE_DE_LA_BASE), dirDatos: config.dirDatos, dirAdjuntos: config.dirAdjuntos }, archivosEnDisco)),
+      metricas,
+      registro,
+      huboCambios: () => {
+        const hubo = huboEscritura;
+        huboEscritura = false;
+        return hubo;
+      },
+      ...(opciones.cadaMsDeLaMedicion === undefined ? {} : { periodo: { cadaMs: opciones.cadaMsDeLaMedicion } }),
+    });
+    temporizadores.push(almacenamiento.detener);
+    void almacenamiento.medirAhora();
     temporizadores.push(iniciarResumenPeriodico({ metricas, registro }), iniciarMantenimiento({ servicio, registro }));
     barridoDeAdjuntos = iniciarBarridoDeAdjuntos({
       servicio: adjuntos,
@@ -189,7 +266,7 @@ export async function arrancar(
         : { periodo: { cadaMs: opciones.cadaMsDelBarrido } }
       ),
     });
-    app = construirApi({ servicio, sincronizacion, adjuntos, canal, registro, metricas, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
+    app = construirApi({ servicio, sincronizacion, adjuntos, canal, registro, metricas, discoEnAlerta: almacenamiento.enAlerta, alEscribir: () => { huboEscritura = true; }, ...(config.versionMinima === undefined ? {} : { versionMinima: config.versionMinima }) });
     await app.listen({ port: config.puerto, host: "0.0.0.0" });
 
     const direccion = app.server.address();

@@ -42,7 +42,7 @@ export interface Alta {
 }
 
 /** La API armada sobre una base en memoria, con registro y métricas para inspeccionar. Las métricas son estrictas: una etiqueta inválida salta. */
-export function entornoApi(opciones: { canal?: CanalEnMemoria; limiteDeSubidas?: LimiteDeSubidas; latidoMs?: number; versionMinima?: string; servicio?: ServicioDeIdentidad; reloj?: () => number } = {}) {
+export function entornoApi(opciones: { canal?: CanalEnMemoria; limiteDeSubidas?: LimiteDeSubidas; discoEnAlerta?: () => boolean; alEscribir?: () => void; latidoMs?: number; versionMinima?: string; servicio?: ServicioDeIdentidad; reloj?: () => number } = {}) {
   const db = abrirBase(":memory:");
   const identidad = new IdentidadSqlite(db);
   const reloj = { ahora: AHORA };
@@ -53,7 +53,7 @@ export function entornoApi(opciones: { canal?: CanalEnMemoria; limiteDeSubidas?:
   const adjuntos = new ServicioDeAdjuntos({ almacenDe: (tripId) => new AlmacenSqlite(db, tripId), archivos });
   const registro = new RegistroDeMemoria();
   const metricas = new MetricasEnMemoria();
-  const app: FastifyInstance = construirApi({ servicio, sincronizacion, adjuntos, canal, ...(opciones.limiteDeSubidas === undefined ? {} : { limiteDeSubidas: opciones.limiteDeSubidas }), ...(opciones.latidoMs === undefined ? {} : { latidoMs: opciones.latidoMs }), ahora: () => reloj.ahora, registro, metricas, ...(opciones.versionMinima === undefined ? {} : { versionMinima: opciones.versionMinima }), ...(opciones.reloj === undefined ? {} : { reloj: opciones.reloj }) });
+  const app: FastifyInstance = construirApi({ servicio, sincronizacion, adjuntos, canal, ...(opciones.alEscribir === undefined ? {} : { alEscribir: opciones.alEscribir }), ...(opciones.discoEnAlerta === undefined ? {} : { discoEnAlerta: opciones.discoEnAlerta }), ...(opciones.limiteDeSubidas === undefined ? {} : { limiteDeSubidas: opciones.limiteDeSubidas }), ...(opciones.latidoMs === undefined ? {} : { latidoMs: opciones.latidoMs }), ahora: () => reloj.ahora, registro, metricas, ...(opciones.versionMinima === undefined ? {} : { versionMinima: opciones.versionMinima }), ...(opciones.reloj === undefined ? {} : { reloj: opciones.reloj }) });
   const con = (token: string, extra: Record<string, string> = {}) => ({ authorization: `Bearer ${token}`, ...extra });
 
   async function crearViaje(cuerpo: object = VIAJE): Promise<Alta> {
