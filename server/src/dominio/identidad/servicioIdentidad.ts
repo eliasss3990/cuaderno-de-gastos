@@ -80,6 +80,8 @@ export interface Alta {
   readonly deviceId: string;
   readonly memberId: string;
   readonly token: string;
+  /** Los dispositivos que esta alta revocó (al reemplazar a un integrante); vacío si no reemplazó a nadie. */
+  readonly revocados?: readonly string[];
 }
 
 /**
@@ -248,9 +250,13 @@ export class ServicioDeIdentidad {
         const integrante = invitacion.reemplazaMemberId ?? memberId;
         if (esReemplazo && !almacen.entidadExiste("member", integrante)) throw new Error(`la invitación ${invitacion.invitationId} reemplaza a un integrante que no existe en el viaje`);
 
+        const revocados: string[] = [];
         if (esReemplazo) {
           for (const d of this.dep.identidad.dispositivosDelViaje(tripId)) {
-            if (d.memberId === integrante && d.revocadoEn === null) this.dep.identidad.revocar(d.deviceId, ahora);
+            if (d.memberId === integrante && d.revocadoEn === null) {
+              this.dep.identidad.revocar(d.deviceId, ahora);
+              revocados.push(d.deviceId);
+            }
           }
         }
         try {
@@ -265,7 +271,7 @@ export class ServicioDeIdentidad {
         }
         if (!this.dep.identidad.marcarUsada(invitacion.invitationId, ahora, deviceId)) throw codigoInvalido();
         this.dep.identidad.registrarIntento(huellaDeLaRed, ahora, true);
-        return { tripId, deviceId, memberId: integrante, token };
+        return { tripId, deviceId, memberId: integrante, token, revocados };
       });
     } catch (e) {
       // la transacción ya se deshizo: el fallo se anota aparte para que cuente

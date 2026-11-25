@@ -32,6 +32,16 @@ describe("POST /v1/trips/:trip/ops", () => {
     expect(y).toMatchObject({ estado: "duplicate", server_seq: x?.server_seq });
   });
 
+  it("cuenta las operaciones por resultado: aceptadas, duplicadas y rechazadas con su razón", async () => {
+    const { e, a, subir } = await conViaje();
+    const op = categoria(a, 1);
+    await subir([op, categoria(a, 3), { ...categoria(a, 2), type: "no.existe" }]);
+    await subir([op]);
+    expect(e.contador("ops", { resultado: "aceptada" })).toBe(2);
+    expect(e.contador("ops", { resultado: "duplicada" })).toBe(1);
+    expect(e.contador("ops", { resultado: "rechazada", razon: "formato" })).toBe(1);
+  });
+
   it("una operación mala se rechaza con su razón sin frenar a las demás", async () => {
     const { a, subir } = await conViaje();
     const r = await subir([{ ...categoria(a, 1), type: "no.existe" }, categoria(a, 2), 7]);

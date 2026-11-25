@@ -24,6 +24,13 @@ export interface DependenciasApi {
   readonly adjuntos: ServicioDeAdjuntos;
   /** Cuántas subidas de archivos se atienden a la vez; por defecto, el de `LimiteDeSubidas`. */
   readonly limiteDeSubidas?: LimiteDeSubidas;
+  /** Si queda poco disco libre: la salud responde `alerta` (sigue siendo 200, para que Docker no reinicie el servicio). */
+  readonly discoEnAlerta?: () => boolean;
+  /**
+   * Se llama después de cada escritura que salió bien (todo lo que no es GET ni HEAD, con estado menor a 400). Puede avisar de más
+   * (un OPTIONS, un lote todo duplicado), nunca de menos: solo provoca una medición extra.
+   */
+  readonly alEscribir?: () => void;
   /** El mismo canal que usa `sincronizacion` para avisar; la API lo cierra al apagarse. */
   readonly canal: CanalEnVivo;
   /** Cada cuántos milisegundos se escribe un latido en el canal en vivo; por defecto 20 s. */
@@ -65,11 +72,15 @@ export function construirApi(dep: DependenciasApi): FastifyInstance {
     if (!reply.hasHeader("cache-control")) void reply.header("cache-control", "private, no-store");
     hecho(null, carga);
   });
+  app.addHook("onResponse", (request, reply, hecho) => {
+    if (request.method !== "GET" && request.method !== "HEAD" && reply.statusCode < 400) dep.alEscribir?.();
+    hecho();
+  });
   app.setErrorHandler(manejarError);
   app.setNotFoundHandler(manejarNoEncontrado);
 
-  app.get("/healthz", () => ({ estado: "ok" }));
-  rutasDeIdentidad(app, dep.servicio, dep.canal);
+  app.get("/healthz", () => ({ estado: dep.discoEnAlerta?.() === true ? "alerta" : "ok" }));
+  rutasDeIdentidad(app, dep.servicio, dep.canal, (tripId) => dep.canal.notificar(tripId, dep.sincronizacion.cabezaDelViaje(tripId)));
   rutasDeAdjuntos(app, {
     identidad: dep.servicio,
     adjuntos: dep.adjuntos,

@@ -53,6 +53,9 @@ export function rutasDeSincronizacion(app: FastifyInstance, dep: DependenciasDeR
     (request) => {
       const actor = delViaje(request.params.trip, request.dispositivo);
       const resultados = sincronizacion.subir(actor, request.body.ops.map(delCable));
+      for (const r of resultados) {
+        metricas.contar("ops", 1, r.estado === "rejected" ? { resultado: "rechazada", razon: r.razon ?? "desconocida" } : { resultado: r.estado === "accepted" ? "aceptada" : "duplicada" });
+      }
       return {
         resultados: resultados.map((r) => ({ op_id: r.opId, estado: r.estado, ...(r.seq === undefined ? {} : { server_seq: r.seq }), ...(r.razon === undefined ? {} : { razon: r.razon }), hlc: r.hlc })),
       };

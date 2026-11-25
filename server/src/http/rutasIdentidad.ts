@@ -59,7 +59,10 @@ interface CuerpoUnirse {
   emoji?: string;
 }
 
-export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdentidad, canal?: CanalEnVivo): void {
+/**
+ * `avisarNovedades` avisa por el canal en vivo que un viaje tiene operaciones nuevas (por ejemplo, el alta de un integrante).
+ */
+export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdentidad, canal?: CanalEnVivo, avisarNovedades?: (tripId: string) => void): void {
   app.post<{ Body: CuerpoCrearViaje }>("/v1/trips", { schema: { body: CREAR_VIAJE } }, (request, reply) => {
     const b = request.body;
     const alta = servicio.crearViaje({
@@ -86,6 +89,14 @@ export function rutasDeIdentidad(app: FastifyInstance, servicio: ServicioDeIdent
       ...(b.color === undefined ? {} : { color: b.color }),
       ...(b.emoji === undefined ? {} : { emoji: b.emoji }),
     });
+    // un dispositivo reemplazado deja de recibir avisos, y los demás se enteran del integrante nuevo sin esperar a su próxima consulta;
+    // es un aviso de mejor esfuerzo: el alta ya está confirmada y un fallo acá no puede convertirla en un error
+    try {
+      for (const revocado of alta.revocados ?? []) canal?.expulsar(alta.tripId, revocado);
+      avisarNovedades?.(alta.tripId);
+    } catch (err) {
+      request.registro.warn("aviso_de_alta_fallo", { err });
+    }
     return reply.status(201).send({ trip_id: alta.tripId, device_id: alta.deviceId, member_id: alta.memberId, token: alta.token });
   });
 

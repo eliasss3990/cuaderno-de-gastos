@@ -97,6 +97,45 @@ describe("GET /v1/trips/:trip/events", () => {
     await e.app.close();
   });
 
+  it("cuando se une un integrante nuevo, los conectados reciben el aviso con la nueva cabeza", async () => {
+    const { e, base, a } = await servidor();
+    const c = await conectar(base, a.trip_id, a.token);
+    await c.hasta("head_seq");
+    await e.sumar(a);
+    const cabeza = (await e.app.inject({ method: "GET", url: `/v1/trips/${a.trip_id}/head`, headers: e.con(a.token) })).json<{ head_seq: number }>().head_seq;
+    await c.hasta(`id: ${cabeza}\n`);
+    await e.app.close();
+  });
+
+  it("reemplazar a un integrante con una invitación cierra el canal del dispositivo reemplazado y no el de los demás", async () => {
+    const { e, base, a } = await servidor();
+    const b = await e.sumar(a);
+    const cb = await conectar(base, a.trip_id, b.token);
+    const ca = await conectar(base, a.trip_id, a.token);
+    await cb.hasta("head_seq");
+    await ca.hasta("head_seq");
+    const { cuerpo } = await e.invitar(a.token, a.trip_id, { reemplaza_member_id: b.member_id });
+    const r = await e.unirse(cuerpo.codigo, { nombre_dispositivo: "Celular nuevo de Ana", apodo: "Ana", color: "#FFE4E1", emoji: "👩" });
+    expect(r.statusCode).toBe(201);
+    expect(await cb.alFinal()).toBe(true);
+    expect(e.canal.conexiones()).toBe(1);
+    await e.app.close();
+  });
+
+  it("si el aviso al canal falla después del alta, el alta igual responde 201 y queda en el registro", async () => {
+    class CanalRoto extends CanalEnMemoria {
+      override notificar(): void {
+        throw new Error("el canal falló");
+      }
+    }
+    const { e, a } = await servidor({ canal: new CanalRoto() });
+    const { cuerpo } = await e.invitar(a.token, a.trip_id);
+    const r = await e.unirse(cuerpo.codigo);
+    expect(r.statusCode).toBe(201);
+    expect(e.registro.entradas.some((x) => x.evento === "aviso_de_alta_fallo" && x.nivel === "warn")).toBe(true);
+    await e.app.close();
+  });
+
   it("un lote sin operaciones aceptadas no avisa", async () => {
     const { e, base, a } = await servidor();
     const c = await conectar(base, a.trip_id, a.token);
