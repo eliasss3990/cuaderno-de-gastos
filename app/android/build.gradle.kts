@@ -77,6 +77,22 @@ android {
     sourceSets["androidTest"].kotlin.srcDirs("src/androidTest/kotlin")
 }
 
+// El Android que usa Robolectric en las pruebas lo baja Gradle (con reintentos y su caché) en vez de Robolectric durante
+// la prueba: una descarga cortada en medio de las pruebas rompía el CI. Robolectric corre sin red y lo toma de acá.
+val androidDeRobolectric: Configuration by configurations.creating
+dependencies {
+    androidDeRobolectric("org.robolectric:android-all-instrumented:14-robolectric-10818077-i7")
+}
+val copiarAndroidDeRobolectric by tasks.registering(Sync::class) {
+    from(androidDeRobolectric)
+    into(layout.buildDirectory.dir("robolectric-android"))
+}
+tasks.withType<Test>().configureEach {
+    dependsOn(copiarAndroidDeRobolectric)
+    systemProperty("robolectric.offline", "true")
+    systemProperty("robolectric.dependency.dir", layout.buildDirectory.dir("robolectric-android").get().asFile.absolutePath)
+}
+
 // el APK se sigue llamando cuaderno-de-gastos-*.apk, como antes de que la app pasara a su módulo
 base {
     archivesName.set("cuaderno-de-gastos")
