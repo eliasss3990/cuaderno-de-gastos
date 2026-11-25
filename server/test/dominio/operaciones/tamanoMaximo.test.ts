@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { Json, Operacion } from "../../../src/dominio/operaciones/operaciones.js";
 import { validarOperacion } from "../../../src/dominio/operaciones/validacion.js";
 import { MAX_OPERACIONES_POR_PAGINA } from "../../../src/dominio/operaciones/sincronizacion.js";
+import { MAX_OPERACIONES_POR_LOTE } from "../../../src/dominio/operaciones/recepcion.js";
 import { LIMITE_DEL_LOTE_BYTES } from "../../../src/http/rutasSincronizacion.js";
 
 const vectores = JSON.parse(readFileSync(new URL("../../../../conformance/validacion.json", import.meta.url), "utf8")) as { validas: { op: Operacion }[] };
@@ -43,11 +44,11 @@ describe("el tamaño de una operación está acotado por la validación", () => 
       mayor = Math.max(mayor, Buffer.byteLength(JSON.stringify(estirada), "utf8"));
     }
     expect(medidas).toBe(vectores.validas.length);
-    // medido: la mayor pesa unos 9 KB (un gasto fijo con todos sus textos al máximo en "€"); 100 por lote caben en el lote de
-    // 512 KB y una página de bajada de 200 queda en unos 1,8 MB
+    // medido: la mayor pesa unos 9 KB (un gasto fijo con todos sus textos al máximo en "€"); un lote de 100 de esas, con su
+    // sobre, entra en el límite del lote con margen, y una página de bajada de 200 queda en unos 1,8 MB
     expect(mayor).toBeGreaterThan(8_500);
     expect(mayor).toBeLessThan(16 * 1024);
     expect(mayor * MAX_OPERACIONES_POR_PAGINA).toBeLessThan(4 * 1024 * 1024);
-    expect(LIMITE_DEL_LOTE_BYTES).toBe(512 * 1024);
+    expect(mayor * MAX_OPERACIONES_POR_LOTE * 1.5).toBeLessThan(LIMITE_DEL_LOTE_BYTES);
   });
 });
