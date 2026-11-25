@@ -1,6 +1,7 @@
 // Dominio de la app en Kotlin puro (sin Android): dinero, reloj, reglas de las operaciones. Se prueba en la JVM contra los
 // mismos vectores de conformidad que el servidor (`../../conformance/`).
 plugins {
+    `java-library`
     id("org.jetbrains.kotlin.jvm")
 }
 
@@ -24,5 +25,6 @@ tasks.test {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
-    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
+    // las operaciones llevan su payload como JSON (JsonObject)
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 }
