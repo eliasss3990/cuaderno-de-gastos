@@ -2,6 +2,7 @@
 // mismos vectores de conformidad que el servidor (`../../conformance/`).
 plugins {
     `java-library`
+    `java-test-fixtures`
     id("org.jetbrains.kotlin.jvm")
 }
 
@@ -25,6 +26,8 @@ tasks.test {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
+    // el contrato del almacén lo corren también los almacenes de otros módulos (SQLite)
+    testFixturesImplementation("junit:junit:4.13.2")
     // las operaciones llevan su payload como JSON (JsonObject)
     api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0")
 }
