@@ -68,6 +68,11 @@ export function crearManejadorDeErrores(raiz: Registro) {
       ({ estado, codigo, mensaje } = { estado: 413, codigo: "adjunto_demasiado_grande", mensaje: "el archivo es demasiado grande" });
     } else if (fastify.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE" && request.routeOptions?.url?.includes("/attachments/")) {
       ({ estado, codigo, mensaje } = { estado: 415, codigo: "tipo_no_permitido", mensaje: "el tipo del archivo no está permitido" });
+    } else if (fastify.code === "FST_ERR_CTP_BODY_TOO_LARGE") {
+      // la app tiene que saber que debe partir el envío, no que está mal armado
+      ({ estado, codigo, mensaje } = { estado: 413, codigo: "cuerpo_demasiado_grande", mensaje: "el pedido es demasiado grande" });
+    } else if (fastify.code === "FST_ERR_CTP_INVALID_MEDIA_TYPE") {
+      ({ estado, codigo, mensaje } = { estado: 415, codigo: "tipo_de_contenido_no_admitido", mensaje: "el cuerpo debe ser JSON" });
     } else if (error instanceof ErrorHttp) {
       ({ estado, codigo } = error);
       mensaje = error.message;

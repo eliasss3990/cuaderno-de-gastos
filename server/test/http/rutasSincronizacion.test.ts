@@ -134,15 +134,49 @@ describe("POST /v1/trips/:trip/ops", () => {
     expect(r.statusCode).toBe(400);
   });
 
-  it("acepta un lote de 100 operaciones aunque pase de los 16 KB generales y rechaza uno de más de 512 KB", async () => {
+  it("acepta un lote de 100 operaciones aunque pase de los 16 KB generales y rechaza uno de más de 2 MB con 413", async () => {
     const { a, subir, e } = await conViaje();
     const cien = Array.from({ length: 100 }, (_, i) => categoria(a, i + 1));
     expect(JSON.stringify({ ops: cien }).length).toBeGreaterThan(16 * 1024);
     const r = await subir(cien);
     expect(r.statusCode).toBe(200);
     expect(r.json<{ resultados: { estado: string }[] }>().resultados.every((x) => x.estado === "accepted")).toBe(true);
-    const enorme = await e.app.inject({ method: "POST", url: `/v1/trips/${a.trip_id}/ops`, headers: e.con(a.token), payload: { ops: [{ ...categoria(a, 1), payload: { nombre: "x".repeat(600 * 1024) } }] } });
-    expect(enorme.statusCode).toBe(400);
+    const enorme = await e.app.inject({ method: "POST", url: `/v1/trips/${a.trip_id}/ops`, headers: e.con(a.token), payload: { ops: [{ ...categoria(a, 1), payload: { nombre: "x".repeat(2100 * 1024) } }] } });
+    // 413 y no 400: la app sabe que tiene que partir el envío
+    expect([enorme.statusCode, enorme.json<{ error: { codigo: string } }>().error.codigo]).toEqual([413, "cuerpo_demasiado_grande"]);
+  });
+
+  it("el límite del lote es de 2 MB justos, un 413 o un 415 no dejan nada aplicado", async () => {
+    const { e, a, bajar } = await conViaje();
+    const antes = (await bajar()).json<{ head_seq: number }>().head_seq;
+    const conRelleno = (bytes: number) => {
+      const base = JSON.stringify({ ops: [{ ...categoria(a, 1), payload: { nombre: "" } }] });
+      return JSON.stringify({ ops: [{ ...categoria(a, 1), payload: { nombre: "x".repeat(bytes - Buffer.byteLength(base)) } }] });
+    };
+    const enviar = (payload: string, tipo = "application/json") => e.app.inject({ method: "POST", url: `/v1/trips/${a.trip_id}/ops`, headers: { ...e.con(a.token), "content-type": tipo }, payload });
+    // justo en el límite entra (y lo rechaza la validación); un byte más ya es 413
+    expect((await enviar(conRelleno(2 * 1024 * 1024))).statusCode).toBe(200);
+    expect((await enviar(conRelleno(2 * 1024 * 1024 + 1))).statusCode).toBe(413);
+    const xml = await enviar("<ops/>", "application/xml");
+    expect([xml.statusCode, xml.json<{ error: { codigo: string } }>().error.codigo]).toEqual([415, "tipo_de_contenido_no_admitido"]);
+    expect((await bajar()).json<{ head_seq: number }>().head_seq).toBe(antes);
+  });
+
+  it("un lote de 100 gastos válidos con la nota más larga posible (2000 €, unos 900 KB) se acepta entero", async () => {
+    const { a, subir } = await conViaje();
+    const gastos = Array.from({ length: 100 }, (_, i) => ({
+      op_id: `018f3a6e-9000-7000-8000-${String(i + 1).padStart(12, "0")}`,
+      type: "expense.create",
+      entity_type: "expense",
+      entity_id: `018f3a6e-2000-7000-8000-${String(i + 1).padStart(12, "0")}`,
+      hlc: marca(a, i + 1),
+      payload: { monto_minor: 1, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: 1, dia_imputado: "2027-02-18", nota: "€".repeat(2000) },
+      schema_version: 1,
+    }));
+    expect(Buffer.byteLength(JSON.stringify({ ops: gastos }))).toBeGreaterThan(512 * 1024);
+    const r = await subir(gastos);
+    expect(r.statusCode).toBe(200);
+    expect(r.json<{ resultados: { estado: string }[] }>().resultados.map((x) => x.estado)).toEqual(Array(100).fill("accepted"));
   });
 });
 

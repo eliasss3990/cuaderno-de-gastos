@@ -197,12 +197,12 @@ describe("los errores del enrutador (URL mal codificada, parámetro larguísimo)
 });
 
 describe("el límite del cuerpo es de 16 KB en todas las rutas", () => {
-  it("también en las que no leen el cuerpo (revocar): más de 16 KB es 400 con el mensaje genérico", async () => {
+  it("también en las que no leen el cuerpo (revocar): más de 16 KB es 413 cuerpo_demasiado_grande", async () => {
     const e = entornoApi();
     const org = await e.crearViaje();
     const url = `/v1/trips/${org.trip_id}/devices/${org.device_id}/revoke`;
     const r = await e.app.inject({ method: "POST", url, headers: { ...e.con(org.token), "content-type": "text/plain" }, payload: "x".repeat(20 * 1024) });
-    expect([r.statusCode, (r.json() as { error: { mensaje: string } }).error.mensaje]).toEqual([400, "el pedido no es válido"]);
+    expect([r.statusCode, (r.json() as { error: { codigo: string } }).error.codigo]).toEqual([413, "cuerpo_demasiado_grande"]);
     const chico = await e.app.inject({ method: "POST", url, headers: { ...e.con(org.token), "content-type": "text/plain" }, payload: "x".repeat(10 * 1024) });
     expect(chico.statusCode).toBe(204);
   });
