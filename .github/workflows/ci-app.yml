@@ -94,14 +94,17 @@ jobs:
             exit 0
           fi
           get() { grep -oP "$1 = \"?\K[^\"\n]+" "$2" | head -1; }
-          # Primera versión: si main todavía no tiene la app, no hay versión anterior con qué comparar.
-          if ! git show "$BASE_SHA:app/build.gradle.kts" > "$RUNNER_TEMP/base.kts" 2>/dev/null; then
-            echo "main no tiene app/build.gradle.kts: es la primera versión, no se compara."
-            echo "versionCode=$(get versionCode app/build.gradle.kts) versionName=$(get versionName app/build.gradle.kts)"
+          ACTUAL=app/android/build.gradle.kts
+          # la versión de main puede estar todavía donde estaba antes de que la app pasara a su módulo
+          if ! git show "$BASE_SHA:$ACTUAL" > "$RUNNER_TEMP/base.kts" 2>/dev/null \
+            && ! git show "$BASE_SHA:app/build.gradle.kts" > "$RUNNER_TEMP/base.kts" 2>/dev/null; then
+            # primera versión: si main todavía no tiene la app, no hay versión anterior con qué comparar
+            echo "main no tiene la app: es la primera versión, no se compara."
+            echo "versionCode=$(get versionCode $ACTUAL) versionName=$(get versionName $ACTUAL)"
             exit 0
           fi
-          old_code=$(get versionCode "$RUNNER_TEMP/base.kts"); new_code=$(get versionCode app/build.gradle.kts)
-          old_name=$(get versionName "$RUNNER_TEMP/base.kts"); new_name=$(get versionName app/build.gradle.kts)
+          old_code=$(get versionCode "$RUNNER_TEMP/base.kts"); new_code=$(get versionCode $ACTUAL)
+          old_name=$(get versionName "$RUNNER_TEMP/base.kts"); new_name=$(get versionName $ACTUAL)
           echo "versionCode: $old_code -> $new_code | versionName: $old_name -> $new_name"
           if [ "$new_code" -le "$old_code" ]; then
             echo "::error::versionCode debe subir (era $old_code, es $new_code)"; exit 1
@@ -157,7 +160,7 @@ jobs:
         with:
           name: resultados-pruebas-app
           path: |
-            app/build/reports/tests/testDebugUnitTest
+            app/android/build/reports/tests/testDebugUnitTest
             app/dominio/build/reports/tests/test
             app/datos/build/reports/tests/test
           retention-days: 14

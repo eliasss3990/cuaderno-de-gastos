@@ -32,7 +32,7 @@ jobs:
       - name: Leer versionName
         id: version
         run: |
-          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          VERSION=$(grep -oP 'versionName = "\K[^"]+' app/android/build.gradle.kts)
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
       - name: ¿Ya está publicada?
         id: existe
@@ -111,5 +111,5 @@ jobs:
           tag_name: app-v${{ needs.version.outputs.version }}
           name: app-v${{ needs.version.outputs.version }}
           generate_release_notes: true
-          files: app/build/outputs/apk/release/*-release.apk
+          files: app/android/build/outputs/apk/release/*-release.apk
           fail_on_unmatched_files: true
