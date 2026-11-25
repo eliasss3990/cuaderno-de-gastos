@@ -3,6 +3,7 @@ import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, uti
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import Database from "better-sqlite3";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { arrancar, CADA_DIEZ_MINUTOS_MS, iniciarMantenimiento, NOMBRE_DE_LA_BASE, PLAZO_DE_APAGADO_MS, type Servidor } from "../src/arranque.js";
 import type { Configuracion } from "../src/configuracion.js";
@@ -255,6 +256,56 @@ describe("arrancar", () => {
     await segundo.servidor.detener();
     const tercero = await levantar(e);
     expect(tercero.registro.entradas.some((x) => x.evento === "aceptar_pepper_nuevo_activo")).toBe(false);
+  });
+
+  it("una base con datos en una versión vieja de esquema se respalda antes de migrar (con BACKUP_DIR), y sin BACKUP_DIR se avisa", async () => {
+    const e = entorno();
+    const primero = await levantar(e);
+    expect((await post(`${primero.url}/v1/trips`, VIAJE)).status).toBe(201);
+    await primero.servidor.detener();
+    // la base vuelve a la versión 3 (antes de la tabla de parámetros y del tope de invitaciones)
+    const vieja = new Database(join(e.datos, NOMBRE_DE_LA_BASE));
+    vieja.exec("DROP INDEX ix_invitation_pendiente; ALTER TABLE invitation DROP COLUMN por_administrador; DROP TABLE servidor_parametro; DELETE FROM schema_migration WHERE version = 4;");
+    vieja.close();
+    const respaldos = join(e.dir, "respaldos");
+    mkdirSync(respaldos);
+    const segundo = await levantar(e, { dirRespaldos: respaldos });
+    const archivos = readdirSync(respaldos);
+    expect(archivos).toHaveLength(1);
+    expect(archivos[0]).toMatch(/^\d{4}-\d{2}-\d{2}T\d{6}-premigracion\.sqlite$/);
+    const copia = new Database(join(respaldos, archivos[0] ?? ""), { readonly: true });
+    expect(copia.prepare("SELECT MAX(version) AS v FROM schema_migration").get()).toEqual({ v: 3 });
+    expect((copia.prepare("SELECT COUNT(*) AS n FROM entity WHERE tipo = 'trip'").get() as { n: number }).n).toBe(1);
+    copia.close();
+    expect(segundo.registro.entradas.filter((x) => x.evento === "respaldo_premigracion").map((x) => [x.nivel, x.campos.version_guardada])).toEqual([["info", 3]]);
+    await segundo.servidor.detener();
+    // ya migrada: un nuevo arranque no respalda de nuevo
+    const tercero = await levantar(e, { dirRespaldos: respaldos });
+    expect(readdirSync(respaldos)).toHaveLength(1);
+    expect(tercero.registro.entradas.some((x) => x.evento === "respaldo_premigracion")).toBe(false);
+    await tercero.servidor.detener();
+    const otra = new Database(join(e.datos, NOMBRE_DE_LA_BASE));
+    otra.exec("DROP INDEX ix_invitation_pendiente; ALTER TABLE invitation DROP COLUMN por_administrador; DROP TABLE servidor_parametro; DELETE FROM schema_migration WHERE version = 4;");
+    otra.close();
+    const sinCarpeta = await levantar(e);
+    expect(sinCarpeta.registro.entradas.filter((x) => x.evento === "migracion_sin_respaldo").map((x) => x.nivel)).toEqual(["warn"]);
+  });
+
+  it("una base nueva no se respalda antes de migrar (no hay nada que guardar)", async () => {
+    const e = entorno();
+    const respaldos = join(e.dir, "respaldos");
+    mkdirSync(respaldos);
+    await levantar(e, { dirRespaldos: respaldos });
+    expect(readdirSync(respaldos)).toEqual([]);
+  });
+
+  it("una carpeta de respaldos configurada que no existe impide arrancar", async () => {
+    const e = entorno();
+    const error = await arrancar(configuracion(e, { dirRespaldos: join(e.dir, "no-existe") }), { registro: new RegistroDeMemoria() }).then(
+      () => new Error("debía fallar"),
+      (err: unknown) => err as Error,
+    );
+    expect(error.message).toBe(`BACKUP_DIR no es una carpeta que exista (${join(e.dir, "no-existe")})`);
   });
 
   it("la primera vez registra la huella del pepper y lo avisa una sola vez", async () => {

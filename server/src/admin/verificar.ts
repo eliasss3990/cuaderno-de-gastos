@@ -85,8 +85,12 @@ function verificarViaje(db: Base, tripId: string): string[] {
   return [...problemas.slice(0, MAX_DETALLES), `viaje ${tripId}: y ${problemas.length - MAX_DETALLES} problemas más`];
 }
 
-/** Verifica un archivo de respaldo abriéndolo en solo lectura (no lo migra ni lo modifica). */
-export function verificarRespaldo(archivo: string): string[] {
+/**
+ * Verifica un archivo de respaldo abriéndolo en solo lectura (no lo migra ni lo modifica). Con `aceptarAnteriores`, uno
+ * de una versión de esquema anterior se acepta con solo la integridad de SQLite (lo migra el servidor al arrancar): la
+ * reconstrucción exige la versión actual.
+ */
+export function verificarRespaldo(archivo: string, aceptarAnteriores = false): string[] {
   let db: Base;
   try {
     db = new Database(archivo, { readonly: true, fileMustExist: true });
@@ -95,8 +99,10 @@ export function verificarRespaldo(archivo: string): string[] {
   }
   try {
     const version = (db.prepare("SELECT COALESCE(MAX(version), 0) AS v FROM schema_migration").get() as { v: number }).v;
-    if (version !== VERSION_ACTUAL) return [`el respaldo está en la versión ${version} de esquema y este código espera la ${VERSION_ACTUAL}`];
-    return verificarBase(db);
+    if (version === VERSION_ACTUAL) return verificarBase(db);
+    if (!aceptarAnteriores || version > VERSION_ACTUAL || version < 1) return [`el respaldo está en la versión ${version} de esquema y este código espera la ${VERSION_ACTUAL}`];
+    const integridad = (db.pragma("integrity_check") as { integrity_check: string }[]).map((f) => f.integrity_check);
+    return integridad.length === 1 && integridad[0] === "ok" ? [] : integridad.map((l) => `integridad: ${l}`);
   } catch (e) {
     return [`el respaldo no es una base del servidor: ${(e as Error).message}`];
   } finally {

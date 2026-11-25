@@ -6,6 +6,8 @@ import { AlmacenSqlite } from "../almacen/operaciones/almacenSqlite.js";
 import { estadoDelViaje } from "../dominio/base/estadoViaje.js";
 import { planDelViaje } from "../dominio/operaciones/cierreViaje.js";
 import { borrarViaje } from "./borrarViaje.js";
+import { hacerRespaldo, MOTIVOS_DE_BACKUP } from "./respaldos.js";
+import { ErrorDeServicio } from "../dominio/identidad/servicioIdentidad.js";
 import { cargarEjemplo } from "./cargarEjemplo.js";
 import { FalloDeHumo, humo } from "./humo.js";
 import { verificarBase, verificarRespaldo } from "./verificar.js";
@@ -17,6 +19,7 @@ export interface EntornoDeAdministracion {
   readonly ahora: () => number;
   readonly puerto: number;
   readonly dirAdjuntos: string;
+  readonly dirRespaldos?: string;
   /** Para `humo` (las pruebas lo reemplazan). */
   readonly pedir?: typeof fetch;
 }
@@ -40,6 +43,8 @@ export const AYUDA = [
   "  humo                                              prueba de humo contra el servidor que corre (crea y borra un viaje humo-)",
   "  cargar-ejemplo --viaje <id> --archivo <json>      carga operaciones en un viaje ejemplo-",
   "  borrar-viaje --id <id>                            borra un viaje humo- o ejemplo- (se niega con cualquier otro)",
+  "  backup [--motivo diario|semanal|predeploy]        copia la base a BACKUP_DIR, la verifica y rota las de su motivo",
+  "  restaurar --desde <archivo>                       reemplaza la base por un respaldo (con el servidor DETENIDO)",
   "  ayuda                                             muestra esta ayuda",
 ];
 
@@ -54,6 +59,8 @@ const OPCIONES: Readonly<Record<string, readonly string[]>> = {
   humo: [],
   "cargar-ejemplo": ["viaje", "archivo"],
   "borrar-viaje": ["id"],
+  backup: ["motivo"],
+  restaurar: ["desde"],
 };
 
 /** Separa el comando de sus opciones `--nombre valor`; rechaza opciones desconocidas, repetidas o sin valor. */
@@ -150,6 +157,14 @@ export async function ejecutar(argv: readonly string[], entorno: EntornoDeAdmini
       const id = obligatoria(opciones, "id");
       const filas = await borrarViaje(entorno.db, id, entorno.dirAdjuntos);
       return [`viaje ${id} borrado (${filas} filas y su carpeta de adjuntos)`];
+    }
+    case "backup": {
+      const motivo = opciones.get("motivo") ?? "diario";
+      if (!(MOTIVOS_DE_BACKUP as readonly string[]).includes(motivo)) throw new ErrorDeUso(`motivo de backup desconocido: ${motivo} (${MOTIVOS_DE_BACKUP.join(", ")})`);
+      if (entorno.dirRespaldos === undefined) throw new ErrorDeServicio("formato_invalido", "falta BACKUP_DIR (la carpeta de los respaldos)");
+      const r = hacerRespaldo(entorno.db, entorno.dirRespaldos, motivo, entorno.ahora());
+      if (r.problemas.length > 0) throw new ResultadoConProblemas([`el respaldo ${r.archivo} no verifica:`, ...r.problemas]);
+      return [`respaldo: ${r.archivo}`, "verificar: ok", ...r.borrados.map((b) => `rotado: ${b}`)];
     }
     default:
       throw new ErrorDeUso(`comando desconocido: ${comando}`);
