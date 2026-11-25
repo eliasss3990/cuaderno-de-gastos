@@ -48,6 +48,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       app: ${{ steps.diff.outputs.app }}
+      codigo_app: ${{ steps.diff.outputs.codigo_app }}
       server: ${{ steps.diff.outputs.server }}
       conformance: ${{ steps.diff.outputs.conformance }}
     steps:
@@ -63,6 +64,8 @@ jobs:
           has() { echo "$files" | grep -qE "$1" && echo true || echo false; }
           {
             echo "app=$(has '^(app/|\.github/workflows/ci-app\.yml)')"
+            # solo el código de la app exige subir su versión (un cambio de este flujo corre las pruebas, nada más)
+            echo "codigo_app=$(has '^app/')"
             echo "server=$(has '^server/')"
             echo "conformance=$(has '^conformance/')"
           } >> "$GITHUB_OUTPUT"
@@ -82,7 +85,7 @@ jobs:
           fetch-depth: 0
       - name: Verificar versionCode y versionName
         env:
-          APP: ${{ needs.changes.outputs.app }}
+          APP: ${{ needs.changes.outputs.codigo_app }}
           CONF: ${{ needs.changes.outputs.conformance }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
