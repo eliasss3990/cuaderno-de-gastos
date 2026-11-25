@@ -2,9 +2,12 @@
 // mismas pruebas. Una instancia atiende a un solo viaje (`tripId`): todas las consultas van acotadas a él.
 package com.eliasgonzalez.cuadernodegastos.datos
 
-import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Almacen
 import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.IntervaloCierre
 import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.OpGuardada
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Cola
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoOp
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.OpEnCola
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.ViajeLocal
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
@@ -13,7 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 
-class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Almacen {
+class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Cola {
     private fun texto(f: Fila, i: Int) = f[i] as String
 
     private fun hay(sql: String, vararg args: Any?) = base.consultar(sql, *args).isNotEmpty()
@@ -106,6 +109,73 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Alm
         val desde = ultimo[0] as Long
         check(hastaMs > desde) { "el fin debe ser posterior al inicio" }
         base.ejecutar("UPDATE trip_closed_interval SET hasta_ms = ? WHERE trip_id = ? AND desde_ms = ?", hastaMs, tripId, desde)
+    }
+
+    // ---- cola -------------------------------------------------------------------------------------
+
+    private val COLUMNAS_COLA = "op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, schema_version, estado, seq, server_seq, razon_rechazo, intentos, proximo_intento_en, depende_de"
+
+    private fun opEnCola(f: Fila) = OpEnCola(
+        op = OpGuardada(
+            texto(f, 0), texto(f, 1), texto(f, 2), texto(f, 3), texto(f, 4),
+            (f[5] as String?)?.let { Json.parseToJsonElement(it).jsonObject }, f[6] as Long == 1L, f[7] as String?, (f[8] as Long).toInt(),
+        ),
+        estado = EstadoOp.valueOf(texto(f, 9)),
+        orden = f[10] as Long,
+        serverSeq = f[11] as Long?,
+        razon = f[12] as String?,
+        intentos = (f[13] as Long).toInt(),
+        proximoIntentoEn = f[14] as Long?,
+        dependeDe = f[15] as String?,
+    )
+
+    private fun existeOp(opId: String) = check(opConocida(opId)) { "la operación $opId no está guardada" }
+
+    override fun fijarEstado(opId: String, estado: EstadoOp, serverSeq: Long?, razon: String?, dependeDe: String?) {
+        existeOp(opId)
+        base.ejecutar("UPDATE op SET estado = ?, server_seq = ?, razon_rechazo = ?, depende_de = ? WHERE trip_id = ? AND op_id = ?", estado.name, serverSeq, razon, dependeDe, tripId, opId)
+    }
+
+    override fun buscarEnCola(opId: String): OpEnCola? =
+        base.consultar("SELECT $COLUMNAS_COLA FROM op WHERE trip_id = ? AND op_id = ?", tripId, opId).firstOrNull()?.let { opEnCola(it) }
+
+    override fun enEstado(estado: EstadoOp, limite: Int): List<OpEnCola> =
+        base.consultar("SELECT $COLUMNAS_COLA FROM op WHERE trip_id = ? AND estado = ? ORDER BY seq LIMIT ?", tripId, estado.name, limite.toLong()).map { opEnCola(it) }
+
+    override fun opsDeEntidad(tipo: String, id: String): List<OpEnCola> =
+        base.consultar("SELECT $COLUMNAS_COLA FROM op WHERE trip_id = ? AND entity_type = ? AND entity_id = ? ORDER BY seq", tripId, tipo, id).map { opEnCola(it) }
+
+    override fun cambiarMarca(opId: String, hlc: String) {
+        existeOp(opId)
+        base.ejecutar("UPDATE op SET hlc = ? WHERE trip_id = ? AND op_id = ?", hlc, tripId, opId)
+    }
+
+    override fun borrarEntidad(tipo: String, id: String) {
+        base.ejecutar("DELETE FROM entity_field WHERE trip_id = ? AND tipo = ? AND id = ?", tripId, tipo, id)
+        base.ejecutar("DELETE FROM entity WHERE trip_id = ? AND tipo = ? AND id = ?", tripId, tipo, id)
+    }
+
+    override fun anotarIntento(opId: String, proximoIntentoEn: Long?) {
+        existeOp(opId)
+        base.ejecutar("UPDATE op SET intentos = intentos + 1, proximo_intento_en = ? WHERE trip_id = ? AND op_id = ?", proximoIntentoEn, tripId, opId)
+    }
+
+    override fun borrarOp(opId: String) {
+        buscarEnCola(opId)?.let { check(it.estado == EstadoOp.PENDIENTE || it.estado == EstadoOp.CUARENTENA) { "solo se descarta una op que el servidor no tiene" } }
+        base.ejecutar("DELETE FROM op WHERE trip_id = ? AND op_id = ?", tripId, opId)
+    }
+
+    override fun viajeLocal(): ViajeLocal? =
+        base.consultar("SELECT device_id, member_id, ultimo_seq, desfase_ms, hlc_ultimo, ultima_sync_ok_en, revocado FROM trip_local WHERE trip_id = ?", tripId).firstOrNull()?.let {
+            ViajeLocal(texto(it, 0), texto(it, 1), it[2] as Long, it[3] as Long, it[4] as String?, it[5] as Long?, it[6] as Long == 1L)
+        }
+
+    // sin UPSERT (SQLite 3.18): una sola sentencia que reemplaza la fila
+    override fun guardarViajeLocal(v: ViajeLocal) {
+        base.ejecutar(
+            "INSERT OR REPLACE INTO trip_local (trip_id, device_id, member_id, ultimo_seq, desfase_ms, hlc_ultimo, ultima_sync_ok_en, revocado) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            tripId, v.dispositivo, v.integrante, v.ultimoSeq, v.desfaseMs, v.hlcUltimo, v.ultimaSyncOkEn, if (v.revocado) 1L else 0L,
+        )
     }
 
     /** Números de secuencia de las operaciones guardadas (para comprobar que no hay huecos). */

@@ -82,7 +82,7 @@ interface Almacen {
     /** Padre registrado en el sobre de alguna operación guardada de esa entidad (sobrevive a la redacción). */
     fun padreRegistrado(tipo: String, id: String): String?
 
-    /** Guarda la operación y devuelve su número de secuencia (1, 2, 3… sin huecos). */
+    /** Guarda la operación y devuelve su número de secuencia (1, 2, 3… sin huecos; en el celular, descartar deja huecos). */
     fun guardarOp(op: OpGuardada): Long
 
     /** Id del viaje, o null si todavía no se creó. */

@@ -75,6 +75,31 @@ object Migraciones {
             """.trimIndent(),
             "CREATE UNIQUE INDEX ux_intervalo_abierto ON trip_closed_interval(trip_id) WHERE hasta_ms IS NULL",
         ),
+        listOf(
+            // La cola de salida es la misma tabla op: el estado de cada operación frente al servidor.
+            "ALTER TABLE op ADD COLUMN estado TEXT NOT NULL DEFAULT 'CONFIRMADA' CHECK (estado IN ('PENDIENTE','ENVIANDO','CONFIRMADA','CUARENTENA'))",
+            "ALTER TABLE op ADD COLUMN server_seq INTEGER CHECK (server_seq IS NULL OR server_seq >= 1)",
+            "ALTER TABLE op ADD COLUMN razon_rechazo TEXT",
+            "ALTER TABLE op ADD COLUMN intentos INTEGER NOT NULL DEFAULT 0 CHECK (intentos >= 0)",
+            "ALTER TABLE op ADD COLUMN proximo_intento_en INTEGER",
+            // la operación propia de la que depende: si esa se rechaza, esta también
+            "ALTER TABLE op ADD COLUMN depende_de TEXT",
+            "CREATE UNIQUE INDEX ux_op_server_seq ON op(trip_id, server_seq) WHERE server_seq IS NOT NULL",
+            "CREATE INDEX ix_op_cola ON op(trip_id, estado, seq)",
+            // El vínculo del celular con cada viaje.
+            """
+            CREATE TABLE trip_local (
+              trip_id TEXT PRIMARY KEY,
+              device_id TEXT NOT NULL,
+              member_id TEXT NOT NULL,
+              ultimo_seq INTEGER NOT NULL DEFAULT 0 CHECK (ultimo_seq >= 0),
+              desfase_ms INTEGER NOT NULL DEFAULT 0,
+              hlc_ultimo TEXT,
+              ultima_sync_ok_en INTEGER,
+              revocado INTEGER NOT NULL DEFAULT 0 CHECK (revocado IN (0,1))
+            )
+            """.trimIndent(),
+        ),
     )
 
     /** La versión del esquema que entiende esta app. */

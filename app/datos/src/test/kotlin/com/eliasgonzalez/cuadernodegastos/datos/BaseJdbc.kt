@@ -15,7 +15,8 @@ class BaseJdbc(url: String = "jdbc:sqlite::memory:") : BaseSql, AutoCloseable {
     // como en Android, una sola sentencia por vez (sqlite-jdbc ejecutaría todas y escondería el problema)
     override fun ejecutar(sql: String, vararg args: Any?): Int {
         require(';' !in sql.trimEnd().removeSuffix(";")) { "una sola sentencia por vez: $sql" }
-        return preparar(sql, args).use { it.executeUpdate() }
+        // execute y no executeUpdate: algunas sentencias (ALTER TABLE en sqlite-jdbc) informan que devuelven filas
+        return preparar(sql, args).use { st -> st.execute(); maxOf(st.updateCount, 0) }
     }
 
     override fun consultar(sql: String, vararg args: Any?): List<Fila> = preparar(sql, args).use { st ->
