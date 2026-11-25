@@ -14,7 +14,7 @@ const MAX = 4;
 const huella = (n: number): string => n.toString(16).padStart(64, "0");
 const nuevo = () => new IdentidadSqlite(abrirBase(":memory:"));
 const disp = (n: number, extra: Partial<NuevoDispositivo> = {}): NuevoDispositivo => ({ deviceId: `d${n}`, tripId: "viaje", memberId: `m${n}`, nombre: `Celular ${n}`, tokenHash: huella(n), creadoEn: 1000 + n, ...extra });
-const inv = (n: number, extra: Partial<NuevaInvitacion> = {}): NuevaInvitacion => ({ invitationId: `i${n}`, tripId: "viaje", codigoHash: huella(1000 + n), reemplazaMemberId: null, creadaEn: 1000, venceEn: 1000 + 86_400_000, ...extra });
+const inv = (n: number, extra: Partial<NuevaInvitacion> = {}): NuevaInvitacion => ({ invitationId: `i${n}`, tripId: "viaje", codigoHash: huella(1000 + n), reemplazaMemberId: null, creadaEn: 1000, venceEn: 1000 + 86_400_000, porAdministrador: false, ...extra });
 const crear = (r: IdentidadSqlite, d: NuevoDispositivo) => r.crearDispositivo(d, 100);
 
 describe("identidad: dispositivos", () => {
@@ -549,5 +549,35 @@ describe("identidad: transacciones y archivo", () => {
     expect(b.dispositivoPorToken(huella(1))?.revocadoEn).toBe(5000);
     expect(b.invitacionPorCodigo(huella(1001))?.invitationId).toBe("i1");
     expect(b.intentosFallidos(huella(9), 0)).toBe(1);
+  });
+});
+
+describe("identidad: invitaciones pendientes", () => {
+  it("cuenta solo las del organizador en ese viaje, sin usar, ya empezadas y sin vencer", () => {
+    const r = nuevo();
+    r.crearInvitacion(inv(1));
+    r.crearInvitacion(inv(2, { porAdministrador: true }));
+    r.crearInvitacion(inv(3, { tripId: "otro" }));
+    r.crearInvitacion(inv(4, { creadaEn: 5000, venceEn: 9000 }));
+    r.crearInvitacion(inv(5, { venceEn: 3000 }));
+    crear(r, disp(6, { creadoEn: 1500 }));
+    r.crearInvitacion(inv(6));
+    expect(r.marcarUsada("i6", 2000, "d6")).toBe(true);
+    expect(r.invitacionesPendientes("viaje", 2000)).toBe(2); // i1 y i5
+    expect(r.invitacionesPendientes("viaje", 2999)).toBe(2);
+    expect(r.invitacionesPendientes("viaje", 3000)).toBe(1); // venció i5
+    expect(r.invitacionesPendientes("viaje", 5000)).toBe(2); // empezó i4
+    expect(r.invitacionesPendientes("otro", 2000)).toBe(1);
+  });
+
+  it("guarda si la emitió el administrador", () => {
+    const db = abrirBase(":memory:");
+    const r = new IdentidadSqlite(db);
+    r.crearInvitacion(inv(1, { porAdministrador: true }));
+    r.crearInvitacion(inv(2));
+    expect(db.prepare("SELECT invitation_id, por_administrador FROM invitation ORDER BY invitation_id").all()).toEqual([
+      { invitation_id: "i1", por_administrador: 1 },
+      { invitation_id: "i2", por_administrador: 0 },
+    ]);
   });
 });

@@ -32,7 +32,7 @@ function entorno(pepper = PEPPER_A, conDatos = true) {
   mkdirSync(adjuntos);
   return { dir, datos, adjuntos, archivoPepper };
 }
-const configuracion = (e: ReturnType<typeof entorno>, extra: Partial<Configuracion> = {}): Configuracion => ({ puerto: 0, dirDatos: e.datos, dirAdjuntos: e.adjuntos, archivoPepper: e.archivoPepper, nivelDeLog: "silent", ...extra });
+const configuracion = (e: ReturnType<typeof entorno>, extra: Partial<Configuracion> = {}): Configuracion => ({ puerto: 0, dirDatos: e.datos, dirAdjuntos: e.adjuntos, archivoPepper: e.archivoPepper, nivelDeLog: "silent", aceptarPepperNuevo: false, ...extra });
 async function levantar(e: ReturnType<typeof entorno>, extra: Partial<Configuracion> = {}, registro = new RegistroDeMemoria()) {
   const servidor = await arrancar(configuracion(e, extra), { registro });
   servidores.push(servidor);
@@ -244,17 +244,64 @@ describe("arrancar", () => {
     expect(r.status).toBe(201);
   });
 
-  it("el pepper sale del archivo: con otro pepper un código de invitación de antes ya no sirve", async () => {
+  it("si ACEPTAR_PEPPER_NUEVO quedó puesto sin nada que reemplazar, el arranque lo advierte; al reemplazar, no", async () => {
+    const e = entorno();
+    const primero = await levantar(e, { aceptarPepperNuevo: true });
+    expect(primero.registro.entradas.filter((x) => x.evento === "aceptar_pepper_nuevo_activo").map((x) => x.nivel)).toEqual(["warn"]);
+    await primero.servidor.detener();
+    writeFileSync(e.archivoPepper, PEPPER_B);
+    const segundo = await levantar(e, { aceptarPepperNuevo: true });
+    expect(segundo.registro.entradas.some((x) => x.evento === "aceptar_pepper_nuevo_activo")).toBe(false);
+    await segundo.servidor.detener();
+    const tercero = await levantar(e);
+    expect(tercero.registro.entradas.some((x) => x.evento === "aceptar_pepper_nuevo_activo")).toBe(false);
+  });
+
+  it("la primera vez registra la huella del pepper y lo avisa una sola vez", async () => {
+    const e = entorno();
+    const primero = await levantar(e);
+    expect(primero.registro.entradas.filter((x) => x.evento === "pepper_registrado").map((x) => x.nivel)).toEqual(["info"]);
+    await primero.servidor.detener();
+    const segundo = await levantar(e);
+    expect(segundo.registro.entradas.some((x) => x.evento === "pepper_registrado")).toBe(false);
+  });
+
+  it("con otro pepper no arranca; con el de antes sigue todo como estaba (el código pendiente sirve)", async () => {
     const e = entorno(PEPPER_A);
     const primero = await levantar(e);
     const alta = (await (await post(`${primero.url}/v1/trips`, VIAJE)).json()) as { trip_id: string; token: string };
     const { codigo } = (await (await post(`${primero.url}/v1/trips/${alta.trip_id}/invitations`, {}, { authorization: `Bearer ${alta.token}` })).json()) as { codigo: string };
     await primero.servidor.detener();
     writeFileSync(e.archivoPepper, PEPPER_B);
+    const error = await arrancar(configuracion(e), { registro: new RegistroDeMemoria() }).then(
+      () => new Error("debía fallar"),
+      (err: unknown) => err as Error,
+    );
+    expect(error).toBeInstanceOf(ErrorDeConfiguracion);
+    expect(error.message).toContain("el pepper no coincide con el que usó esta base");
+    expect(error.message).toContain("ACEPTAR_PEPPER_NUEVO=1");
+    expect(error.message).not.toContain(PEPPER_A);
+    expect(error.message).not.toContain(PEPPER_B);
+    writeFileSync(e.archivoPepper, PEPPER_A);
     const segundo = await levantar(e);
+    expect((await post(`${segundo.url}/v1/join`, { codigo, ...NUEVO })).status).toBe(201);
+  });
+
+  it("con otro pepper y ACEPTAR_PEPPER_NUEVO arranca, avisa y el código de antes ya no sirve", async () => {
+    const e = entorno(PEPPER_A);
+    const primero = await levantar(e);
+    const alta = (await (await post(`${primero.url}/v1/trips`, VIAJE)).json()) as { trip_id: string; token: string };
+    const { codigo } = (await (await post(`${primero.url}/v1/trips/${alta.trip_id}/invitations`, {}, { authorization: `Bearer ${alta.token}` })).json()) as { codigo: string };
+    await primero.servidor.detener();
+    writeFileSync(e.archivoPepper, PEPPER_B);
+    const registro = new RegistroDeMemoria();
+    const segundo = await levantar(e, { aceptarPepperNuevo: true }, registro);
+    expect(registro.entradas.some((x) => x.evento === "pepper_registrado")).toBe(false);
+    expect(registro.entradas.filter((x) => x.evento === "pepper_reemplazado").map((x) => [x.nivel, x.campos])).toEqual([["warn", { pendientes_borrados: 1, intentos_borrados: 0 }]]);
     const r = await post(`${segundo.url}/v1/join`, { codigo, ...NUEVO });
     expect(r.status).toBe(400);
     expect(((await r.json()) as { error: { codigo: string } }).error.codigo).toBe("codigo_invalido");
+    expect((await post(`${segundo.url}/v1/trips/${alta.trip_id}/invitations`, {}, { authorization: `Bearer ${alta.token}` })).status).toBe(201);
   });
 
   it("sin la opción de registro arma el suyo (pino) con el nivel configurado y escribe en el destino que se le da", async () => {

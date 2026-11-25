@@ -9,6 +9,7 @@ export const CONSULTAS_IDENTIDAD = {
   contarActivos: "SELECT COUNT(*) AS n FROM device WHERE trip_id = ? AND revocado_en IS NULL",
   dispositivosDelViaje: "SELECT * FROM device WHERE trip_id = ? ORDER BY creado_en, device_id",
   invitacionPorCodigo: "SELECT * FROM invitation WHERE codigo_hash = ?",
+  invitacionesPendientes: "SELECT COUNT(*) AS n FROM invitation WHERE trip_id = ? AND usada_en IS NULL AND por_administrador = 0 AND vence_en > ? AND creada_en <= ?",
   intentosFallidos: "SELECT COUNT(*) AS n FROM join_attempt WHERE ip_hash = ? AND intentado_en >= ? AND ok = 0",
   limpiarIntentos: "DELETE FROM join_attempt WHERE intentado_en < ?",
 } as const;
@@ -157,7 +158,7 @@ export class IdentidadSqlite implements RepositorioDeIdentidad {
     if (i.reemplazaMemberId !== null) texto(i.reemplazaMemberId, "el integrante que se reemplaza");
     entero(i.creadaEn, "la hora de creación");
     entero(i.venceEn, "la hora de vencimiento");
-    this.q("INSERT INTO invitation (invitation_id, trip_id, codigo_hash, reemplaza_member_id, creada_en, vence_en) VALUES (?, ?, ?, ?, ?, ?)").run(i.invitationId, i.tripId, i.codigoHash, i.reemplazaMemberId, i.creadaEn, i.venceEn);
+    this.q("INSERT INTO invitation (invitation_id, trip_id, codigo_hash, reemplaza_member_id, creada_en, vence_en, por_administrador) VALUES (?, ?, ?, ?, ?, ?, ?)").run(i.invitationId, i.tripId, i.codigoHash, i.reemplazaMemberId, i.creadaEn, i.venceEn, i.porAdministrador ? 1 : 0);
   }
 
   invitacionPorCodigo(codigoHash: string): Invitacion | null {
@@ -182,6 +183,12 @@ export class IdentidadSqlite implements RepositorioDeIdentidad {
     entero(ahoraMs, "la hora");
     if (typeof ok !== "boolean") throw new RangeError(`ok debe ser un booleano, llegó ${String(ok)}`);
     this.q("INSERT INTO join_attempt (ip_hash, intentado_en, ok) VALUES (?, ?, ?)").run(ipHash, ahoraMs, ok ? 1 : 0);
+  }
+
+  invitacionesPendientes(tripId: string, ahoraMs: number): number {
+    texto(tripId, "el viaje");
+    entero(ahoraMs, "la hora");
+    return (this.q(CONSULTAS_IDENTIDAD.invitacionesPendientes).get(tripId, ahoraMs, ahoraMs) as { n: number }).n;
   }
 
   intentosFallidos(ipHash: string, desdeMs: number): number {

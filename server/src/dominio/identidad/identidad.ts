@@ -41,6 +41,8 @@ export interface NuevaInvitacion {
   readonly reemplazaMemberId: string | null;
   readonly creadaEn: number;
   readonly venceEn: number;
+  /** La emitió el administrador (rescate): no cuenta para el tope del organizador. */
+  readonly porAdministrador: boolean;
 }
 
 /** El viaje ya tiene el máximo de dispositivos activos. */
@@ -94,6 +96,8 @@ export interface RepositorioDeIdentidad {
   /** Falla si la huella del código ya existe. */
   crearInvitacion(i: NuevaInvitacion): void;
   invitacionPorCodigo(codigoHash: string): Invitacion | null;
+  /** Invitaciones del organizador en el viaje que todavía se pueden usar (sin usar, ya empezadas y sin vencer); no cuenta las de rescate. */
+  invitacionesPendientes(tripId: string, ahoraMs: number): number;
   /**
    * Marca una invitación como usada solo si no estaba usada, no venció, ya empezó (con el reloj del servidor atrasado no
    * sirve todavía) y el dispositivo ya existe, está activo, es del mismo viaje, no se creó antes que la invitación, no consumió

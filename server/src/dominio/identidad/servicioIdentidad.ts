@@ -17,6 +17,7 @@ export type CodigoDeError =
   | "no_existe"
   | "codigo_invalido"
   | "viaje_completo"
+  | "demasiadas_invitaciones"
   | "demasiados_intentos";
 
 /** Un error esperado del servicio, con el código que la API convierte en su respuesta. */
@@ -35,6 +36,8 @@ export const MAX_DISPOSITIVOS_ACTIVOS = 4;
 export const VIGENCIA_DE_LA_INVITACION_MS = 24 * 60 * 60 * 1000;
 /** Con 5 intentos fallidos de unirse en los últimos 15 minutos desde la misma red, el siguiente se rechaza. */
 export const MAX_INTENTOS_FALLIDOS = 5;
+/** Invitaciones sin usar ni vencer que un organizador puede tener a la vez en un viaje (la de rescate del administrador no cuenta). */
+export const MAX_INVITACIONES_PENDIENTES = 5;
 export const VENTANA_DE_INTENTOS_MS = 15 * 60 * 1000;
 /** Las IP que no se pueden leer comparten un solo grupo (0.0.0.0 no puede ser la IP de un cliente real). */
 const IP_ILEGIBLE = "0.0.0.0";
@@ -297,7 +300,10 @@ export class ServicioDeIdentidad {
   invitar(actor: Dispositivo, reemplazaMemberId?: string | null): InvitacionEmitida {
     const almacen = this.dep.almacenDe(actor.tripId);
     this.exigirOrganizador(actor, almacen);
-    return this.emitirInvitacion(actor.tripId, reemplazaMemberId ?? null, almacen);
+    if (this.dep.identidad.invitacionesPendientes(actor.tripId, this.dep.ahora()) >= MAX_INVITACIONES_PENDIENTES) {
+      throw new ErrorDeServicio("demasiadas_invitaciones", `ya hay ${MAX_INVITACIONES_PENDIENTES} invitaciones sin usar; esperá a que se usen o venzan`);
+    }
+    return this.emitirInvitacion(actor.tripId, reemplazaMemberId ?? null, almacen, false);
   }
 
   /**
@@ -308,7 +314,7 @@ export class ServicioDeIdentidad {
   invitarComoAdministrador(tripId: string, reemplazaMemberId: string | null): InvitacionEmitida {
     const almacen = this.dep.almacenDe(tripId);
     if (almacen.idDelViaje() === null) throw new ErrorDeServicio("no_existe", "el viaje no existe");
-    return this.emitirInvitacion(tripId, reemplazaMemberId, almacen);
+    return this.emitirInvitacion(tripId, reemplazaMemberId, almacen, true);
   }
 
   /**
@@ -350,7 +356,7 @@ export class ServicioDeIdentidad {
     if (almacen.leerCampo("member", actor.memberId, "es_organizador") !== 1) throw new ErrorDeServicio("solo_organizador", "solo el organizador puede hacerlo");
   }
 
-  private emitirInvitacion(tripId: string, reemplazaMemberId: string | null, almacen: Almacen): InvitacionEmitida {
+  private emitirInvitacion(tripId: string, reemplazaMemberId: string | null, almacen: Almacen, porAdministrador: boolean): InvitacionEmitida {
     if (reemplazaMemberId !== null) {
       if (typeof reemplazaMemberId !== "string" || reemplazaMemberId === "") throw new ErrorDeServicio("formato_invalido", "reemplazaMemberId: debe ser texto");
       if (!almacen.entidadExiste("member", reemplazaMemberId)) throw new ErrorDeServicio("no_existe", "el integrante no existe");
@@ -358,7 +364,7 @@ export class ServicioDeIdentidad {
     const ahora = this.dep.ahora();
     const codigo = generarCodigo(this.aleatorio);
     const venceEn = ahora + VIGENCIA_DE_LA_INVITACION_MS;
-    this.dep.identidad.crearInvitacion({ invitationId: uuidV7(ahora, this.aleatorio), tripId, codigoHash: huellaDeCodigo(codigo, this.dep.pepper), reemplazaMemberId, creadaEn: ahora, venceEn });
+    this.dep.identidad.crearInvitacion({ invitationId: uuidV7(ahora, this.aleatorio), tripId, codigoHash: huellaDeCodigo(codigo, this.dep.pepper), reemplazaMemberId, creadaEn: ahora, venceEn, porAdministrador });
     return { codigo, venceEn };
   }
 

@@ -495,7 +495,7 @@ describe("invitaciones que la base no deja consumir", () => {
   it("una invitación de reemplazo de un integrante que no existe es un error del servidor, no de la persona, y no deja nada", () => {
     const e = viajeConOrganizador();
     const codigo = generarCodigo(azarDeterminista());
-    e.identidad.crearInvitacion({ invitationId: "inv-rota", tripId: e.alta.tripId, codigoHash: huellaDeCodigo(codigo, PEPPER), reemplazaMemberId: "no-existe", creadaEn: AHORA, venceEn: AHORA + 1000 });
+    e.identidad.crearInvitacion({ invitationId: "inv-rota", tripId: e.alta.tripId, codigoHash: huellaDeCodigo(codigo, PEPPER), reemplazaMemberId: "no-existe", creadaEn: AHORA, venceEn: AHORA + 1000, porAdministrador: false });
     const antes = { dispositivos: e.contar("device"), activos: e.identidad.contarActivos(e.alta.tripId) };
     expect(() => e.servicio.unirse({ codigo, ip: IP, nombreDispositivo: "Celular" })).toThrow(/no existe en el viaje/);
     expect({ dispositivos: e.contar("device"), activos: e.identidad.contarActivos(e.alta.tripId) }).toEqual(antes);

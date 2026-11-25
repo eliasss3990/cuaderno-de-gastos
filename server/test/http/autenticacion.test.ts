@@ -102,12 +102,12 @@ describe("lo que el celular informa en cada pedido (X-Ultimo-Seq y X-Pendientes)
       { "x-ultimo-seq": "1", "x-pendientes": " 2" },
     ];
     for (const extra of malos) {
-      const r = await e.app.inject({ method: "POST", url: `/v1/trips/${org.trip_id}/invitations`, headers: e.con(org.token, extra), payload: {} });
-      expect([JSON.stringify(extra), r.statusCode]).toEqual([JSON.stringify(extra), 201]);
+      const r = await e.app.inject({ method: "GET", url: `/v1/trips/${org.trip_id}/changes`, headers: e.con(org.token, extra) });
+      expect([JSON.stringify(extra), r.statusCode]).toEqual([JSON.stringify(extra), 200]);
       expect([JSON.stringify(extra), visto(e, org.device_id)]).toEqual([JSON.stringify(extra), { ultimoSeq: 0, pendientes: 0, vistoEn: null }]);
     }
-    const borde = await e.app.inject({ method: "POST", url: `/v1/trips/${org.trip_id}/invitations`, headers: e.con(org.token, { "x-ultimo-seq": "9".repeat(15), "x-pendientes": "0" }), payload: {} });
-    expect(borde.statusCode).toBe(201);
+    const borde = await e.app.inject({ method: "GET", url: `/v1/trips/${org.trip_id}/changes`, headers: e.con(org.token, { "x-ultimo-seq": "9".repeat(15), "x-pendientes": "0" }) });
+    expect(borde.statusCode).toBe(200);
     expect(visto(e, org.device_id)?.ultimoSeq).toBe(999999999999999);
   });
 });

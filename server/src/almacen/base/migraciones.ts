@@ -144,6 +144,20 @@ export const MIGRACIONES: readonly Migracion[] = [
       CREATE INDEX ix_join_attempt_hora ON join_attempt(intentado_en);
     `,
   },
+  {
+    version: 4,
+    sql: `
+      -- parámetros propios del servidor (por ahora, la huella con la que se detecta un cambio de pepper)
+      CREATE TABLE servidor_parametro (
+        clave TEXT PRIMARY KEY,
+        valor TEXT NOT NULL
+      ) STRICT;
+      -- las invitaciones de rescate que emite el administrador no ocupan el tope del organizador
+      ALTER TABLE invitation ADD COLUMN por_administrador INTEGER NOT NULL DEFAULT 0 CHECK (por_administrador IN (0,1));
+      -- contar las invitaciones pendientes del organizador sin recorrer las usadas
+      CREATE INDEX ix_invitation_pendiente ON invitation(trip_id, vence_en) WHERE usada_en IS NULL AND por_administrador = 0;
+    `,
+  },
 ];
 
 export const VERSION_ACTUAL = MIGRACIONES[MIGRACIONES.length - 1]?.version ?? 0;

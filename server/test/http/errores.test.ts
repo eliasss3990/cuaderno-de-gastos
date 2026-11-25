@@ -56,6 +56,45 @@ describe("cada código de error del servicio sale con su estado HTTP", () => {
     expect([r.statusCode, cuerpoDe(r).error.codigo]).toEqual([409, "viaje_completo"]);
   });
 
+  it("demasiadas_invitaciones es 409 desde la 6.ª invitación pendiente del viaje, con un mensaje que explica qué hacer", async () => {
+    const e = entornoApi();
+    const org = await e.crearViaje();
+    for (let i = 1; i <= 5; i++) expect((await e.invitar(org.token, org.trip_id)).estado).toBe(201);
+    const r = await e.app.inject({ method: "POST", url: `/v1/trips/${org.trip_id}/invitations`, headers: e.con(org.token), payload: {} });
+    expect([r.statusCode, cuerpoDe(r).error.codigo]).toEqual([409, "demasiadas_invitaciones"]);
+    expect(cuerpoDe(r).error.mensaje).toBe("ya hay 5 invitaciones sin usar; esperá a que se usen o venzan");
+  });
+
+  it("una invitación usada libera su lugar", async () => {
+    const e = entornoApi();
+    const org = await e.crearViaje();
+    const codigos: string[] = [];
+    for (let i = 1; i <= 5; i++) codigos.push((await e.invitar(org.token, org.trip_id)).cuerpo.codigo);
+    expect((await e.unirse(codigos[0])).statusCode).toBe(201);
+    expect((await e.invitar(org.token, org.trip_id)).estado).toBe(201);
+    expect((await e.invitar(org.token, org.trip_id)).estado).toBe(409);
+  });
+
+  it("una invitación vencida libera su lugar justo al vencer, no antes", async () => {
+    const e = entornoApi();
+    const org = await e.crearViaje();
+    for (let i = 1; i <= 5; i++) await e.invitar(org.token, org.trip_id);
+    e.reloj.ahora += 24 * 60 * 60 * 1000 - 1;
+    expect((await e.invitar(org.token, org.trip_id)).estado).toBe(409);
+    e.reloj.ahora += 1;
+    expect((await e.invitar(org.token, org.trip_id)).estado).toBe(201);
+  });
+
+  it("las invitaciones de rescate del administrador no ocupan lugar del organizador ni se frenan por el tope", async () => {
+    const e = entornoApi();
+    const org = await e.crearViaje();
+    for (let i = 1; i <= 4; i++) await e.invitar(org.token, org.trip_id);
+    for (let i = 1; i <= 3; i++) expect(() => e.servicio.invitarComoAdministrador(org.trip_id, null)).not.toThrow();
+    expect((await e.invitar(org.token, org.trip_id)).estado).toBe(201); // 4 propias + 3 de rescate: todavía hay lugar
+    expect((await e.invitar(org.token, org.trip_id)).estado).toBe(409);
+    expect(() => e.servicio.invitarComoAdministrador(org.trip_id, null)).not.toThrow();
+  });
+
   it("demasiados_intentos es 429 desde el 6.º intento fallido; los 5 primeros devuelven su error normal", async () => {
     const e = entornoApi();
     const cabeceras = { "x-real-ip": "203.0.113.9" };
