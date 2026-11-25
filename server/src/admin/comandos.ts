@@ -5,12 +5,27 @@ import type { Database } from "better-sqlite3";
 import { AlmacenSqlite } from "../almacen/operaciones/almacenSqlite.js";
 import { estadoDelViaje } from "../dominio/base/estadoViaje.js";
 import { planDelViaje } from "../dominio/operaciones/cierreViaje.js";
+import { borrarViaje } from "./borrarViaje.js";
+import { cargarEjemplo } from "./cargarEjemplo.js";
+import { FalloDeHumo, humo } from "./humo.js";
+import { verificarBase, verificarRespaldo } from "./verificar.js";
 import type { ServicioDeIdentidad } from "../dominio/identidad/servicioIdentidad.js";
 
 export interface EntornoDeAdministracion {
   readonly db: Database;
   readonly servicio: ServicioDeIdentidad;
   readonly ahora: () => number;
+  readonly puerto: number;
+  readonly dirAdjuntos: string;
+  /** Para `humo` (las pruebas lo reemplazan). */
+  readonly pedir?: typeof fetch;
+}
+
+/** Un comando que terminó con problemas (verificar, humo, una carga con rechazos): se muestran y sale con error. */
+export class ResultadoConProblemas extends Error {
+  constructor(readonly lineas: readonly string[]) {
+    super("el comando encontró problemas");
+  }
 }
 
 /** Un comando o una opción mal escrita: se muestra con la ayuda. */
@@ -21,6 +36,10 @@ export const AYUDA = [
   "  viajes                                            lista los viajes con su estado, integrantes y dispositivos (con sus ids)",
   "  invitar --viaje <id> [--reemplaza <integrante>]   emite una invitación de rescate (vale 24 h)",
   "  revocar --dispositivo <id>                        revoca un dispositivo",
+  "  verificar [--archivo <respaldo>]                  integridad y estado reconstruido desde las operaciones (la base viva o un respaldo)",
+  "  humo                                              prueba de humo contra el servidor que corre (crea y borra un viaje humo-)",
+  "  cargar-ejemplo --viaje <id> --archivo <json>      carga operaciones en un viaje ejemplo-",
+  "  borrar-viaje --id <id>                            borra un viaje humo- o ejemplo- (se niega con cualquier otro)",
   "  ayuda                                             muestra esta ayuda",
 ];
 
@@ -31,6 +50,10 @@ const OPCIONES: Readonly<Record<string, readonly string[]>> = {
   viajes: [],
   invitar: ["viaje", "reemplaza"],
   revocar: ["dispositivo"],
+  verificar: ["archivo"],
+  humo: [],
+  "cargar-ejemplo": ["viaje", "archivo"],
+  "borrar-viaje": ["id"],
 };
 
 /** Separa el comando de sus opciones `--nombre valor`; rechaza opciones desconocidas, repetidas o sin valor. */
@@ -88,7 +111,7 @@ function viajes(db: Database, ahoraMs: number): string[] {
 }
 
 /** Ejecuta un comando ya leído. Los errores del servicio (`ErrorDeServicio`) y de uso se propagan. */
-export function ejecutar(argv: readonly string[], entorno: EntornoDeAdministracion): string[] {
+export async function ejecutar(argv: readonly string[], entorno: EntornoDeAdministracion): Promise<string[]> {
   const { comando, opciones } = leerArgumentos(argv);
   switch (comando) {
     case "viajes":
@@ -102,6 +125,31 @@ export function ejecutar(argv: readonly string[], entorno: EntornoDeAdministraci
       const { dispositivo: d, yaEstaba } = entorno.servicio.revocarComoAdministrador(obligatoria(opciones, "dispositivo"));
       const quien = `${d.deviceId} (${JSON.stringify(d.nombre)}) del viaje ${d.tripId}`;
       return yaEstaba ? [`ya estaba revocado: ${quien}`] : [`revocado: ${quien}`, "si estaba conectado en vivo, lo nota al reconectar (y desde ahí recibe 401)"];
+    }
+    case "verificar": {
+      const archivo = opciones.get("archivo");
+      const problemas = archivo === undefined
+        ? verificarBase(entorno.db)
+        : verificarRespaldo(archivo);
+      if (problemas.length > 0) throw new ResultadoConProblemas(problemas);
+      return ["verificar: ok"];
+    }
+    case "humo":
+      try {
+        return await humo(entorno);
+      } catch (e) {
+        if (e instanceof FalloDeHumo) throw new ResultadoConProblemas([`humo: ${e.message}`]);
+        throw e;
+      }
+    case "cargar-ejemplo": {
+      const r = cargarEjemplo(entorno.db, obligatoria(opciones, "viaje"), obligatoria(opciones, "archivo"), entorno.ahora);
+      if (r.rechazadas > 0) throw new ResultadoConProblemas(r.lineas);
+      return r.lineas;
+    }
+    case "borrar-viaje": {
+      const id = obligatoria(opciones, "id");
+      const filas = await borrarViaje(entorno.db, id, entorno.dirAdjuntos);
+      return [`viaje ${id} borrado (${filas} filas y su carpeta de adjuntos)`];
     }
     default:
       throw new ErrorDeUso(`comando desconocido: ${comando}`);

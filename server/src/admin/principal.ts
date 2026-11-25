@@ -8,7 +8,7 @@ import { servicioDeIdentidadSobre } from "../almacen/identidad/servicioSqlite.js
 import { leerElPepper, NOMBRE_DE_LA_BASE } from "../archivosDelServidor.js";
 import { ErrorDeConfiguracion, leerConfiguracion } from "../configuracion.js";
 import { ErrorDeServicio } from "../dominio/identidad/servicioIdentidad.js";
-import { AYUDA, ejecutar, ErrorDeUso, esPedidoDeAyuda, leerArgumentos } from "./comandos.js";
+import { AYUDA, ejecutar, ErrorDeUso, esPedidoDeAyuda, leerArgumentos, ResultadoConProblemas } from "./comandos.js";
 
 export const SALIDA_OK = 0;
 export const SALIDA_ERROR = 1;
@@ -35,7 +35,13 @@ function abrirLaBase(ruta: string) {
   }
 }
 
-export function principal(argv: readonly string[], env: Readonly<Record<string, string | undefined>>, consola: Consola, ahora: () => number = Date.now): number {
+export async function principal(
+  argv: readonly string[],
+  env: Readonly<Record<string, string | undefined>>,
+  consola: Consola,
+  ahora: () => number = Date.now,
+  pedir?: typeof fetch,
+): Promise<number> {
   if (esPedidoDeAyuda(argv)) {
     for (const linea of AYUDA) consola.salida(linea);
     return SALIDA_OK;
@@ -50,12 +56,17 @@ export function principal(argv: readonly string[], env: Readonly<Record<string, 
       const pepperGuardado = pepperDeLaBase(db, pepper);
       if (pepperGuardado === "distinto") throw new ErrorDeConfiguracion("el pepper no coincide con el que usó esta base");
       if (pepperGuardado === "sin_huella") throw new ErrorDeConfiguracion("la base todavía no tiene la huella del pepper: arrancá el servidor una vez antes de administrarla");
-      for (const linea of ejecutar(argv, { db, servicio: servicioDeIdentidadSobre(db, { ahora, pepper }), ahora })) consola.salida(linea);
+      const entorno = { db, servicio: servicioDeIdentidadSobre(db, { ahora, pepper }), ahora, puerto: config.puerto, dirAdjuntos: config.dirAdjuntos };
+      for (const linea of await ejecutar(argv, pedir === undefined ? entorno : { ...entorno, pedir })) consola.salida(linea);
       return SALIDA_OK;
     } finally {
       db.close();
     }
   } catch (e) {
+    if (e instanceof ResultadoConProblemas) {
+      for (const linea of e.lineas) consola.error(linea);
+      return SALIDA_ERROR;
+    }
     if (e instanceof ErrorDeUso) {
       consola.error(e.message);
       for (const linea of AYUDA) consola.error(linea);

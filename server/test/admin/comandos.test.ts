@@ -20,7 +20,7 @@ function entorno() {
   const db = abrirBase(":memory:");
   const reloj = { ahora: AHORA };
   const servicio = servicioDeIdentidadSobre(db, { ahora: () => reloj.ahora, pepper: PEPPER });
-  return { db, reloj, servicio, correr: (...argv: string[]) => ejecutar(argv, { db, servicio, ahora: () => reloj.ahora }) };
+  return { db, reloj, servicio, correr: (...argv: string[]) => ejecutar(argv, { db, servicio, ahora: () => reloj.ahora, puerto: 1, dirAdjuntos: "/no-se-usa" }) };
 }
 
 describe("leerArgumentos", () => {
@@ -51,11 +51,11 @@ describe("leerArgumentos", () => {
 });
 
 describe("comandos", () => {
-  it("viajes sin ninguno lo dice", () => {
-    expect(entorno().correr("viajes")).toEqual(["no hay viajes"]);
+  it("viajes sin ninguno lo dice", async () => {
+    expect(await entorno().correr("viajes")).toEqual(["no hay viajes"]);
   });
 
-  it("viajes lista cada viaje con su estado, sus integrantes y sus dispositivos, con los ids que piden los otros comandos", () => {
+  it("viajes lista cada viaje con su estado, sus integrantes y sus dispositivos, con los ids que piden los otros comandos", async () => {
     const e = entorno();
     const a = e.servicio.crearViaje({ ...DATOS, fechaInicio: "2027-02-10", fechaFin: "2027-02-25" });
     const { codigo } = e.servicio.invitarComoAdministrador(a.tripId, null);
@@ -67,7 +67,7 @@ describe("comandos", () => {
       `  integrante ${a.memberId}  "Papá"  organizador`,
       `  integrante ${ana.memberId}  "Ana"`,
     ].sort((x, y) => (x.slice(13, 49) < y.slice(13, 49) ? -1 : 1));
-    expect(e.correr("viajes")).toEqual([
+    expect(await e.correr("viajes")).toEqual([
       `viaje ${a.tripId}  "Brasil 2027"  PLANIFICADO  operaciones 3  última ${new Date(AHORA + 60_000).toISOString()}`,
       ...integrantes,
       `  dispositivo ${a.deviceId}  "Celular de Papá"  de ${a.memberId}  activo`,
@@ -75,12 +75,12 @@ describe("comandos", () => {
     ]);
   });
 
-  it("viajes muestra el estado según las fechas y la hora del servidor, y ordena los viajes por id", () => {
+  it("viajes muestra el estado según las fechas y la hora del servidor, y ordena los viajes por id", async () => {
     const e = entorno();
     const a = e.servicio.crearViaje({ ...DATOS, nombre: "En curso \"ya\"", fechaInicio: "2027-02-01" });
     const b = e.servicio.crearViaje({ ...DATOS, nombre: "Sin fechas" });
     e.reloj.ahora = Date.UTC(2027, 1, 5);
-    const cabeceras = e.correr("viajes").filter((l) => l.startsWith("viaje "));
+    const cabeceras = (await e.correr("viajes")).filter((l) => l.startsWith("viaje "));
     expect(cabeceras).toEqual(
       [
         `viaje ${a.tripId}  "En curso \\"ya\\""  EN_CURSO  operaciones 2  última ${new Date(AHORA).toISOString()}`,
@@ -89,47 +89,47 @@ describe("comandos", () => {
     );
   });
 
-  it("invitar emite una invitación de rescate que sirve para unirse, y dice cuándo vence", () => {
+  it("invitar emite una invitación de rescate que sirve para unirse, y dice cuándo vence", async () => {
     const e = entorno();
     const a = e.servicio.crearViaje(DATOS);
-    const [codigo, vence] = e.correr("invitar", "--viaje", a.tripId);
+    const [codigo, vence] = await e.correr("invitar", "--viaje", a.tripId);
     expect(vence).toBe(`vence: ${new Date(AHORA + 24 * 60 * 60 * 1000).toISOString()}`);
     expect(codigo).toMatch(/^código: [2-9A-HJKMNP-Z]{8}$/);
     const alta = e.servicio.unirse({ codigo: (codigo ?? "").slice("código: ".length), nombreDispositivo: "Nuevo", apodo: "Ana", color: "#E8E4F3", emoji: "🧒", ip: "203.0.113.5" });
     expect(alta.tripId).toBe(a.tripId);
   });
 
-  it("invitar con --reemplaza deja la invitación atada a ese integrante; uno que no existe es no_existe", () => {
+  it("invitar con --reemplaza deja la invitación atada a ese integrante; uno que no existe es no_existe", async () => {
     const e = entorno();
     const a = e.servicio.crearViaje(DATOS);
-    const [codigo] = e.correr("invitar", "--viaje", a.tripId, "--reemplaza", a.memberId);
+    const [codigo] = await e.correr("invitar", "--viaje", a.tripId, "--reemplaza", a.memberId);
     const alta = e.servicio.unirse({ codigo: (codigo ?? "").slice("código: ".length), nombreDispositivo: "Celular nuevo de Papá", ip: "203.0.113.5" });
     expect(alta.memberId).toBe(a.memberId);
-    expect(() => e.correr("invitar", "--viaje", a.tripId, "--reemplaza", "no-existe")).toThrow(expect.objectContaining({ codigo: "no_existe" }));
+    await expect(e.correr("invitar", "--viaje", a.tripId, "--reemplaza", "no-existe")).rejects.toThrow(expect.objectContaining({ codigo: "no_existe" }));
   });
 
-  it("invitar a un viaje que no existe es no_existe, y sin --viaje es un error de uso", () => {
+  it("invitar a un viaje que no existe es no_existe, y sin --viaje es un error de uso", async () => {
     const e = entorno();
-    expect(() => e.correr("invitar", "--viaje", "no-existe")).toThrow(ErrorDeServicio);
-    expect(() => e.correr("invitar")).toThrow(/falta --viaje/);
+    await expect(e.correr("invitar", "--viaje", "no-existe")).rejects.toThrow(ErrorDeServicio);
+    await expect(e.correr("invitar")).rejects.toThrow(/falta --viaje/);
   });
 
-  it("revocar revoca el dispositivo (deja de autenticar) y repetirlo dice que ya estaba", () => {
+  it("revocar revoca el dispositivo (deja de autenticar) y repetirlo dice que ya estaba", async () => {
     const e = entorno();
     const a = e.servicio.crearViaje(DATOS);
-    expect(e.correr("revocar", "--dispositivo", a.deviceId)).toEqual([
+    expect(await e.correr("revocar", "--dispositivo", a.deviceId)).toEqual([
       `revocado: ${a.deviceId} ("Celular de Papá") del viaje ${a.tripId}`,
       "si estaba conectado en vivo, lo nota al reconectar (y desde ahí recibe 401)",
     ]);
     expect(() => e.servicio.autenticar(a.token)).toThrow(expect.objectContaining({ codigo: "dispositivo_revocado" }));
     e.reloj.ahora += 5000;
-    expect(e.correr("revocar", "--dispositivo", a.deviceId)).toEqual([`ya estaba revocado: ${a.deviceId} ("Celular de Papá") del viaje ${a.tripId}`]);
+    expect(await e.correr("revocar", "--dispositivo", a.deviceId)).toEqual([`ya estaba revocado: ${a.deviceId} ("Celular de Papá") del viaje ${a.tripId}`]);
     expect(e.db.prepare("SELECT revocado_en AS r FROM device WHERE device_id = ?").get(a.deviceId)).toEqual({ r: AHORA }); // repetir no cambia la hora
   });
 
-  it("revocar uno que no existe es no_existe, y sin --dispositivo es un error de uso", () => {
+  it("revocar uno que no existe es no_existe, y sin --dispositivo es un error de uso", async () => {
     const e = entorno();
-    expect(() => e.correr("revocar", "--dispositivo", "no-existe")).toThrow(expect.objectContaining({ codigo: "no_existe" }));
-    expect(() => e.correr("revocar")).toThrow(/falta --dispositivo/);
+    await expect(e.correr("revocar", "--dispositivo", "no-existe")).rejects.toThrow(expect.objectContaining({ codigo: "no_existe" }));
+    await expect(e.correr("revocar")).rejects.toThrow(/falta --dispositivo/);
   });
 });

@@ -2,7 +2,7 @@
 
 import { principal } from "./admin/principal.js";
 
-process.exitCode = principal(process.argv.slice(2), process.env, {
+process.exitCode = await principal(process.argv.slice(2), process.env, {
   salida: (linea) => process.stdout.write(`${linea}\n`),
   error: (linea) => process.stderr.write(`${linea}\n`),
 });
