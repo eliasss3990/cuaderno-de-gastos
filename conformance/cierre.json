@@ -6,6 +6,7 @@
    "nombre": "cierre manual: se juzga por la hora de creacion, no por la de llegada; reabrir deja pasar lo nuevo",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -24,6 +25,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -38,6 +40,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -48,6 +51,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -62,6 +66,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -76,6 +81,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -86,6 +92,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -142,6 +149,7 @@
    "nombre": "trip.update se acepta siempre, tambien cerrado",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -160,6 +168,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -170,6 +179,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -181,6 +191,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -225,6 +236,7 @@
    "nombre": "cierre por fechas: abre al terminar el dia de fin; reabrir cambiando la fecha lo cierra con la hora de ese cambio",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -244,6 +256,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -258,6 +271,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -272,6 +286,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -286,6 +301,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -296,6 +312,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -346,6 +363,7 @@
    "nombre": "el estado manual en curso gana a las fechas; al borrarlo vuelve a regir el cierre por fechas",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -365,6 +383,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -375,6 +394,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -389,6 +409,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -399,6 +420,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -446,6 +468,7 @@
    "nombre": "una edicion vieja del estado manual que pierde por reloj no cambia nada",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -464,6 +487,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -474,6 +498,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -484,6 +509,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -528,6 +554,7 @@
    "nombre": "cerrar y reabrir dos veces deja dos intervalos",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -546,6 +573,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -556,6 +584,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -566,6 +595,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -576,6 +606,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -586,6 +617,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -600,6 +632,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -614,6 +647,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -628,6 +662,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -692,6 +727,7 @@
    "nombre": "lo ya terminado se acepta redactado aunque el viaje este cerrado",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -710,6 +746,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -724,6 +761,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.purge",
      "entidadTipo": "expense",
@@ -732,6 +770,7 @@
      "payload": {}
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -742,6 +781,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.update",
      "entidadTipo": "expense",
@@ -752,6 +792,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -802,6 +843,7 @@
    "nombre": "sin viaje no hay cierre; cualquier operacion cierra el intervalo por fechas que faltaba abrir",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -831,6 +873,7 @@
    "nombre": "bordes del intervalo: el inicio esta cerrado y el fin esta abierto",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -849,6 +892,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -859,6 +903,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -873,6 +918,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -887,6 +933,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -901,6 +948,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -911,6 +959,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -925,6 +974,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -981,6 +1031,7 @@
    "nombre": "un cierre manual empieza con la hora de ese cambio aunque haya fecha de fin",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1000,6 +1051,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1010,6 +1062,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1051,6 +1104,7 @@
    "nombre": "al borrar el estado manual el cierre por fechas empieza con la hora de ese cambio: lo creado mientras estuvo abierto a mano se acepta",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1070,6 +1124,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1080,6 +1135,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1090,6 +1146,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1100,6 +1157,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1114,6 +1172,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1169,6 +1228,7 @@
    "nombre": "reabrir con una marca anterior al inicio del cierre por fechas deja un intervalo de 1 ms",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1188,6 +1248,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1202,6 +1263,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1212,6 +1274,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1226,6 +1289,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1273,6 +1337,7 @@
    "nombre": "reabrir con la misma milesima que el cierre manual deja un intervalo de 1 ms",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1291,6 +1356,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1301,6 +1367,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1338,6 +1405,7 @@
    "nombre": "solo trip.update esta exento: un trip.create dentro de un cierre se rechaza",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1356,6 +1424,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.update",
      "entidadTipo": "trip",
@@ -1366,6 +1435,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1411,6 +1481,7 @@
    "nombre": "un viaje creado con la fecha de fin ya pasada queda cerrado desde la creacion",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1451,6 +1522,7 @@
    "nombre": "si el reloj del servidor retrocede un cierre por fechas ya abierto no se cierra ni se fragmenta",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1470,6 +1542,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1484,6 +1557,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1498,6 +1572,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",

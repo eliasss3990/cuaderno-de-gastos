@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { AlmacenMemoria, type Instantanea } from "../../../src/dominio/operaciones/almacenMemoria.js";
-import { MotorOperaciones, type Campos, type Json, type Operacion, type OpGuardada } from "../../../src/dominio/operaciones/operaciones.js";
+import { AlmacenMemoria, type Instantanea, type OpDelEstado } from "../../../src/dominio/operaciones/almacenMemoria.js";
+import { MotorOperaciones, type Campos, type Json, type Operacion } from "../../../src/dominio/operaciones/operaciones.js";
 import { formatearHlc } from "../../../src/dominio/base/reloj.js";
+import { AUTOR } from "../../ayudas/autor.js";
 
 const DISPOSITIVOS = [
   "018f3a6e-0000-7000-8000-00000000000a",
@@ -39,7 +40,7 @@ function generar(azar: () => number): Operacion[] {
   const op = (tipo: string, entidadTipo: string, entidadId: string, payload: Campos): Operacion => {
     n += 1;
     const hlc = formatearHlc({ ms: 1 + Math.floor(azar() * 400), contador: n, dispositivo: elegir(azar, DISPOSITIVOS) });
-    const o = { opId: id("00000000", n), tipo, entidadTipo, entidadId, hlc, payload };
+    const o = { opId: id("00000000", n), tipo, entidadTipo, entidadId, hlc, payload, schemaVersion: 1 };
     ops.push(o);
     return o;
   };
@@ -214,7 +215,7 @@ function oraculo(ops: readonly Operacion[]): Instantanea {
     .sort(menor)
     .map((k) => { const [tipo, i] = k.split("\u0000"); return { tipo: tipo as string, id: i as string }; });
   const vistas = new Set<string>();
-  const guardadas: OpGuardada[] = [];
+  const guardadas: OpDelEstado[] = [];
   for (const o of ops) {
     if (vistas.has(o.opId)) continue;
     vistas.add(o.opId);
@@ -241,7 +242,7 @@ describe("aplicar operaciones: propiedades contra un oráculo independiente", ()
         const vistas = new Set<string>();
         const secuencias: number[] = [];
         for (const o of orden) {
-          const r = motor.aplicar(o);
+          const r = motor.aplicar(o, AUTOR);
           if (vistas.has(o.opId)) expect(r.estado).toBe("duplicate");
           else {
             expect(r.estado).toBe("accepted");
@@ -261,7 +262,7 @@ describe("aplicar operaciones: propiedades contra un oráculo independiente", ()
       const terminadas = new Set(ops.filter((o) => TERMINALES.has(o.tipo)).map((o) => clave(o.entidadTipo, o.entidadId)));
       const almacen = new AlmacenMemoria();
       const motor = new MotorOperaciones(almacen);
-      for (const o of ordenAleatorio(azar, ops)) motor.aplicar(o);
+      for (const o of ordenAleatorio(azar, ops)) motor.aplicar(o, AUTOR);
       const instantanea = almacen.instantanea();
       for (const e of instantanea.entidades) expect(terminadas.has(clave(e.tipo, e.id))).toBe(false);
       for (const t of terminadas) {
@@ -276,7 +277,7 @@ describe("aplicar operaciones: propiedades contra un oráculo independiente", ()
       const ops = generar(azar);
       const almacen = new AlmacenMemoria();
       const motor = new MotorOperaciones(almacen);
-      for (const o of ordenAleatorio(azar, ops)) motor.aplicar(o);
+      for (const o of ordenAleatorio(azar, ops)) motor.aplicar(o, AUTOR);
       const porId = new Map(ops.map((o) => [o.opId, o]));
       for (const g of almacen.instantanea().ops) {
         if (g.redactada) expect(g.payload).toBeNull();
@@ -290,12 +291,12 @@ describe("aplicar operaciones: propiedades contra un oráculo independiente", ()
       const ops = generar(azar);
       const almacen = new AlmacenMemoria();
       const motor = new MotorOperaciones(almacen);
-      for (const o of ordenAleatorio(azar, ops)) motor.aplicar(o);
+      for (const o of ordenAleatorio(azar, ops)) motor.aplicar(o, AUTOR);
       const antes = almacen.instantanea();
       for (let i = 0; i < 15; i++) {
         const original = elegir(azar, ops);
         const gemela: Operacion = { ...original, opId: id("ffffffff", 1000 + i) };
-        expect(motor.aplicar(gemela)).toEqual({ estado: "rejected", razon: "formato" });
+        expect(motor.aplicar(gemela, AUTOR)).toEqual({ estado: "rejected", razon: "formato" });
       }
       expect(almacen.instantanea()).toEqual(antes);
     }

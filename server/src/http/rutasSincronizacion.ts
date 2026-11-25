@@ -29,7 +29,15 @@ const CAMBIOS = { type: "object", additionalProperties: false, properties: { aft
 function delCable(op: unknown): unknown {
   if (op === null || typeof op !== "object" || Array.isArray(op)) return op;
   const o = op as Record<string, unknown>;
-  return { opId: o.op_id, tipo: o.type, entidadTipo: o.entity_type, entidadId: o.entity_id, hlc: o.hlc, payload: o.payload };
+  return { 
+    opId: o.op_id, 
+    tipo: o.type, 
+    entidadTipo: o.entity_type, 
+    entidadId: o.entity_id, 
+    hlc: o.hlc, 
+    payload: o.payload, 
+    schemaVersion: o.schema_version 
+  };
 }
 
 /** Cada cuánto se escribe un comentario para que ni nginx ni Cloudflare corten una conexión sin novedades. */
@@ -69,7 +77,19 @@ export function rutasDeSincronizacion(app: FastifyInstance, dep: DependenciasDeR
       const actor = delViaje(request.params.trip, request.dispositivo);
       const pagina = sincronizacion.bajar(actor, Number(request.query.after ?? "0"), Number(request.query.limit ?? String(MAX_OPERACIONES_POR_PAGINA)));
       return {
-        ops: pagina.ops.map((o) => ({ server_seq: o.seq, op_id: o.opId, type: o.tipo, entity_type: o.entidadTipo, entity_id: o.entidadId, hlc: o.hlc, payload: o.payload, redacted: o.redactada })),
+        ops: pagina.ops.map((o) => ({ 
+          server_seq: o.seq, 
+          op_id: o.opId, 
+          type: o.tipo, 
+          entity_type: o.entidadTipo, 
+          entity_id: o.entidadId, 
+          hlc: o.hlc, 
+          payload: o.payload, 
+          redacted: o.redactada, 
+          schema_version: o.schemaVersion, 
+          device_id: o.deviceId, 
+          member_id: o.memberId 
+        })),
         next: pagina.siguiente,
         hay_mas: pagina.hayMas,
         head_seq: pagina.cabeza,

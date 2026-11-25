@@ -46,6 +46,7 @@ export function generar(azar: () => number): Operacion[] {
       entidadId,
       hlc: formatearHlc({ ms: 1 + Math.floor(azar() * 1000), contador: n, dispositivo: elegir(azar, DISPOSITIVOS) }),
       payload,
+      schemaVersion: 1,
     };
     ops.push(o);
     return o;

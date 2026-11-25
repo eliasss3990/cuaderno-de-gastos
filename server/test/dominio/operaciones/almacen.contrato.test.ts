@@ -3,6 +3,7 @@ import { AlmacenSqlite } from "../../../src/almacen/operaciones/almacenSqlite.js
 import { abrirBase } from "../../../src/almacen/base/base.js";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import type { Almacen, OpGuardada } from "../../../src/dominio/operaciones/operaciones.js";
+import { SOBRE_GUARDADO } from "../../ayudas/autor.js";
 
 const MARCA_1 = "0000000000064-0000-018f3a6e-0000-7000-8000-00000000000a";
 const MARCA_2 = "00000000000c8-0000-018f3a6e-0000-7000-8000-00000000000a";
@@ -19,7 +20,7 @@ function marcaPropia(opId: string): string {
 }
 
 function op(opId: string, extra: Partial<OpGuardada> = {}): OpGuardada {
-  return { opId, tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", hlc: marcaPropia(opId), payload: { concepto: "x" }, redactada: false, padreId: null, ...extra };
+  return { opId, tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", hlc: marcaPropia(opId), payload: { concepto: "x" }, redactada: false, padreId: null, ...SOBRE_GUARDADO, ...extra };
 }
 
 // Contrato que debe cumplir cualquier almacén: el de memoria y el de SQLite pasan exactamente las mismas pruebas.
@@ -279,6 +280,21 @@ describe.each<[string, () => Almacen]>([
     expect(a.buscarOp("o1")).toEqual({ seq: 1, hlc: MARCA_1 });
     expect(a.buscarOp("o2")).toEqual({ seq: 2, hlc: MARCA_2 });
     expect(a.buscarOp("o3")).toBeNull();
+  });
+
+  it("guarda y devuelve la versión, el autor y la hora de cada operación, y la instantánea los deja afuera", () => {
+    const a = crear();
+    a.guardarOp(op("o1", { schemaVersion: 1, deviceId: "dev-a", memberId: "mem-a", aceptadaEn: 1802000000123 }));
+    a.guardarOp(op("o2", { schemaVersion: 2, deviceId: "dev-b", memberId: "mem-b", aceptadaEn: 7 }));
+    expect(a.leerOps(0, 10).map((o) => [o.opId, o.schemaVersion, o.deviceId, o.memberId, o.aceptadaEn])).toEqual([
+      ["o1", 1, "dev-a", "mem-a", 1802000000123],
+      ["o2", 2, "dev-b", "mem-b", 7],
+    ]);
+    const enEstado = (a as unknown as { instantanea(): { ops: object[] } }).instantanea().ops[0];
+    expect(enEstado).not.toHaveProperty("deviceId");
+    expect(enEstado).not.toHaveProperty("memberId");
+    expect(enEstado).not.toHaveProperty("aceptadaEn");
+    expect(enEstado).not.toHaveProperty("schemaVersion");
   });
 
   it("leerOps devuelve las operaciones después de una secuencia, en orden, con tope, y seqMaximo da la última", () => {

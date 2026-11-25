@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { MotorOperaciones, type Json, type Operacion } from "../../../src/dominio/operaciones/operaciones.js";
 import { validarOperacion } from "../../../src/dominio/operaciones/validacion.js";
+import { AUTOR } from "../../ayudas/autor.js";
 
 interface Valida {
   nombre: string;
@@ -49,6 +50,17 @@ describe("validación de formato: propiedades sobre las operaciones válidas", (
     expect(comprobaciones).toBeGreaterThan(1000);
   });
 
+  it("sin versión de formato, o con una que no sea la 1, ninguna operación es válida", () => {
+    for (const { op } of validas) {
+      const sin = clon(op) as { schemaVersion?: number };
+      delete sin.schemaVersion;
+      expect(validarOperacion(sin as Operacion), `${op.tipo} sin versión`).toMatchObject({ ok: false, campo: "schemaVersion" });
+      for (const otra of [0, 2, 1.5, "1", null, true]) {
+        expect(validarOperacion({ ...op, schemaVersion: otra as number }).ok, `${op.tipo} con ${String(otra)}`).toBe(false);
+      }
+    }
+  });
+
   it("quitar un campo obligatorio de una alta la invalida, y quitar todos los opcionales la deja válida", () => {
     for (const { op, opcionales } of validas) {
       if (opcionales === undefined) continue;
@@ -88,7 +100,7 @@ describe("validación de formato: propiedades sobre las operaciones válidas", (
   it("lo que el validador acepta nunca lo rechaza el motor por formato", () => {
     for (const { op, nombre } of validas) {
       const motor = new MotorOperaciones(new AlmacenMemoria());
-      const r = motor.aplicar(clon(op));
+      const r = motor.aplicar(clon(op), AUTOR);
       expect(r.estado === "rejected" && r.razon === "formato", `el motor rechaza por formato: ${nombre}`).toBe(false);
     }
   });

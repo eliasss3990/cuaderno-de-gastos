@@ -16,6 +16,8 @@ export interface Operacion {
   readonly entidadId: string;
   readonly hlc: string;
   readonly payload: Campos;
+  /** Versión del formato de la operación (la del cable `schema_version`). */
+  readonly schemaVersion: number;
 }
 
 export type Razon = "formato" | "entidad_inexistente" | "moneda_no_habilitada" | "limite_superado" | "viaje_cerrado";
@@ -35,6 +37,19 @@ export interface OpGuardada {
   readonly payload: Campos | null;
   readonly redactada: boolean;
   readonly padreId: string | null;
+  readonly schemaVersion: number;
+  /** Quién la envió: lo pone el servidor a partir del token, nunca la app. */
+  readonly deviceId: string;
+  readonly memberId: string;
+  /** Hora del servidor (ms) en que se aceptó. */
+  readonly aceptadaEn: number;
+}
+
+/** El dispositivo e integrante que envía una operación, y la hora del servidor en que se acepta. */
+export interface Autor {
+  readonly deviceId: string;
+  readonly memberId: string;
+  readonly aceptadaEn: number;
 }
 
 /** Una operación guardada con su número de secuencia. */
@@ -180,11 +195,17 @@ function leerMonedas(valor: Json | undefined): MonedaDelViaje[] | null {
 }
 
 export class MotorOperaciones {
+  /** Autor de la operación que se está aplicando (solo vale dentro de `aplicar`). */
+  private autor: Autor = { deviceId: "", memberId: "", aceptadaEn: 0 };
+
   constructor(private readonly almacen: Almacen) {}
 
   /** Aplica la operación como una unidad: o queda todo escrito o no queda nada. */
-  aplicar(op: Operacion): Resultado {
-    return this.almacen.transaccion(() => this.decidir(op));
+  aplicar(op: Operacion, autor: Autor): Resultado {
+    return this.almacen.transaccion(() => {
+      this.autor = autor;
+      return this.decidir(op);
+    });
   }
 
   private decidir(op: Operacion): Resultado {
@@ -316,6 +337,7 @@ export class MotorOperaciones {
   }
 
   private sobre(op: Operacion, padreId: string | null) {
-    return { opId: op.opId, tipo: op.tipo, entidadTipo: op.entidadTipo, entidadId: op.entidadId, hlc: op.hlc, padreId };
+    const { deviceId, memberId, aceptadaEn } = this.autor;
+    return { opId: op.opId, tipo: op.tipo, entidadTipo: op.entidadTipo, entidadId: op.entidadId, hlc: op.hlc, padreId, schemaVersion: op.schemaVersion, deviceId, memberId, aceptadaEn };
   }
 }

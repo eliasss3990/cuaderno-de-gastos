@@ -323,7 +323,7 @@ describe("crear un viaje con datos inválidos", () => {
     const alta = servicio.crearViaje({ ...DATOS, fechaInicio: "2019-12-20", fechaFin: "2020-01-02" });
     const ingesta = new Ingesta(almacen(alta.tripId), () => AHORA);
     const hlc = `${AHORA.toString(16).padStart(13, "0")}-0005-${alta.deviceId}`;
-    const r = ingesta.procesar({ opId: "018f3a6e-9000-7000-8000-000000000001", tipo: "member.update", entidadTipo: "member", entidadId: alta.memberId, hlc, payload: { apodo: "Papi" } });
+    const r = ingesta.procesar({ opId: "018f3a6e-9000-7000-8000-000000000001", tipo: "member.update", entidadTipo: "member", entidadId: alta.memberId, hlc, payload: { apodo: "Papi" }, schemaVersion: 1 }, { deviceId: alta.deviceId, memberId: alta.memberId });
     expect(r).toEqual({ estado: "rejected", razon: "viaje_cerrado" });
     expect((db.prepare("SELECT COUNT(*) AS n FROM trip_closed_interval").get() as { n: number }).n).toBe(1);
   });

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AlmacenMemoria, type Instantanea } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { MotorOperaciones, type Campos, type Json, type OpGuardada, type Operacion } from "../../../src/dominio/operaciones/operaciones.js";
+import { AUTOR } from "../../ayudas/autor.js";
 
 interface Escenario {
   nombre: string;
@@ -72,14 +73,14 @@ describe("aplicar una operación es todo o nada", () => {
         const almacen = new AlmacenQueFalla();
         almacen.despues = despues;
         const motor = new MotorOperaciones(almacen);
-        for (const i of orden.slice(0, p)) motor.aplicar(esc.ops[i] as Operacion);
+        for (const i of orden.slice(0, p)) motor.aplicar(esc.ops[i] as Operacion, AUTOR);
         const antes = almacen.instantanea();
         const secuenciasAntes = almacen.secuencias();
         const siguiente = esc.ops[orden[p] as number] as Operacion;
         for (let k = 0; ; k++) {
           almacen.restantes = k;
           try {
-            motor.aplicar(siguiente);
+            motor.aplicar(siguiente, AUTOR);
             almacen.restantes = null;
             break; // llegó hasta el final sin fallar: ya probamos todas las escrituras de esta operación
           } catch {
@@ -90,7 +91,7 @@ describe("aplicar una operación es todo o nada", () => {
           }
         }
         // la operación que acabó bien ya está aplicada; sigue el resto del escenario
-        for (const i of orden.slice(p + 1)) motor.aplicar(esc.ops[i] as Operacion);
+        for (const i of orden.slice(p + 1)) motor.aplicar(esc.ops[i] as Operacion, AUTOR);
         expect(almacen.instantanea()).toEqual(esc.esperado);
         // tras tantas fallas y reintentos la secuencia sigue siendo 1, 2, 3… sin huecos
         const secuencias = almacen.secuencias();
@@ -106,8 +107,8 @@ describe("aplicar una operación es todo o nada", () => {
   it("un payload que no es un objeto se rechaza antes de escribir nada", () => {
     const almacen = new AlmacenMemoria();
     const motor = new MotorOperaciones(almacen);
-    const mala = { opId: "o1", tipo: "expense.create", entidadTipo: "expense", entidadId: "e1", hlc: "0000000000064-0000-018f3a6e-0000-7000-8000-00000000000a", payload: null as unknown as Campos };
-    expect(motor.aplicar(mala)).toEqual({ estado: "rejected", razon: "formato" });
+    const mala = { opId: "o1", tipo: "expense.create", entidadTipo: "expense", entidadId: "e1", hlc: "0000000000064-0000-018f3a6e-0000-7000-8000-00000000000a", payload: null as unknown as Campos, schemaVersion: 1 };
+    expect(motor.aplicar(mala, AUTOR)).toEqual({ estado: "rejected", razon: "formato" });
     expect(almacen.entidadExiste("expense", "e1")).toBe(false);
   });
 });

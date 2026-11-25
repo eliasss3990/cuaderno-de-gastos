@@ -56,6 +56,10 @@ export const MIGRACIONES: readonly Migracion[] = [
         hlc         TEXT    NOT NULL,
         payload     TEXT,
         redactada   INTEGER NOT NULL DEFAULT 0 CHECK (redactada IN (0,1)),
+        device_id      TEXT    NOT NULL CHECK (device_id <> ''),
+        member_id      TEXT    NOT NULL CHECK (member_id <> ''),
+        schema_version INTEGER NOT NULL CHECK (schema_version >= 1),
+        aceptada_en    INTEGER NOT NULL,
         PRIMARY KEY (trip_id, server_seq),
         CHECK ((redactada = 1) = (payload IS NULL))
       ) WITHOUT ROWID;

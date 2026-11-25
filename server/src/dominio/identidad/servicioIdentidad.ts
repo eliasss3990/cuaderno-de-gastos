@@ -7,7 +7,7 @@ import { aleatorioDelSistema, generarCodigo, generarToken, huellaDeCodigo, huell
 import { ViajeCompletoError, type Dispositivo, type RepositorioDeIdentidad } from "./identidad.js";
 import { MotorOperaciones, type Almacen, type Campos, type Json, type Operacion } from "../operaciones/operaciones.js";
 import { formatearHlc } from "../base/reloj.js";
-import { validarOperacion, validarTextoDeUnaLinea } from "../operaciones/validacion.js";
+import { validarOperacion, validarTextoDeUnaLinea, VERSION_DE_FORMATO } from "../operaciones/validacion.js";
 
 export type CodigoDeError =
   | "formato_invalido"
@@ -167,7 +167,15 @@ export class ServicioDeIdentidad {
     if (datos.fechaInicio !== undefined) payloadViaje.fecha_inicio = datos.fechaInicio;
     if (datos.fechaFin !== undefined) payloadViaje.fecha_fin = datos.fechaFin;
     const operaciones: Operacion[] = [
-      { opId: uuidV7(ahora, this.aleatorio), tipo: "trip.create", entidadTipo: "trip", entidadId: tripId, hlc: formatearHlc({ ms: ahora, contador: 0, dispositivo: deviceId }), payload: payloadViaje as Campos },
+      { 
+        opId: uuidV7(ahora, this.aleatorio), 
+        tipo: "trip.create", 
+        entidadTipo: "trip", 
+        entidadId: tripId, 
+        hlc: formatearHlc({ ms: ahora, contador: 0, dispositivo: deviceId }), 
+        payload: payloadViaje as Campos, 
+        schemaVersion: VERSION_DE_FORMATO 
+      },
       {
         opId: uuidV7(ahora, this.aleatorio),
         tipo: "member.join",
@@ -175,6 +183,7 @@ export class ServicioDeIdentidad {
         entidadId: memberId,
         hlc: formatearHlc({ ms: ahora, contador: 1, dispositivo: deviceId }),
         payload: { apodo: datos.apodo, color: datos.color, emoji: datos.emoji, es_organizador: 1 },
+        schemaVersion: VERSION_DE_FORMATO,
       },
     ];
     for (const op of operaciones) {
@@ -185,7 +194,7 @@ export class ServicioDeIdentidad {
     return this.dep.identidad.transaccion(() => {
       const motor = new MotorOperaciones(this.dep.almacenDe(tripId));
       for (const op of operaciones) {
-        const r = motor.aplicar(op);
+        const r = motor.aplicar(op, { deviceId, memberId, aceptadaEn: ahora });
         if (r.estado !== "accepted") throw new Error(`la operación propia ${op.tipo} no se aceptó: ${JSON.stringify(r)}`);
       }
       this.dep.identidad.crearDispositivo({ deviceId, tripId, memberId, nombre, tokenHash: huellaDeToken(token), creadoEn: ahora }, MAX_DISPOSITIVOS_ACTIVOS);
@@ -266,7 +275,7 @@ export class ServicioDeIdentidad {
           throw e;
         }
         if (!esReemplazo && miembro !== null) {
-          const r = new MotorOperaciones(almacen).aplicar(miembro);
+          const r = new MotorOperaciones(almacen).aplicar(miembro, { deviceId, memberId: integrante, aceptadaEn: ahora });
           if (r.estado !== "accepted") throw new Error(`la operación propia ${miembro.tipo} no se aceptó: ${JSON.stringify(r)}`);
         }
         if (!this.dep.identidad.marcarUsada(invitacion.invitationId, ahora, deviceId)) throw codigoInvalido();
@@ -368,6 +377,7 @@ export class ServicioDeIdentidad {
       entidadId: memberId,
       hlc: formatearHlc({ ms: ahora, contador: 0, dispositivo: deviceId }),
       payload: { apodo: datos.apodo as string, color: datos.color as string, emoji: datos.emoji as string, es_organizador: 0 },
+      schemaVersion: VERSION_DE_FORMATO,
     };
     const v = validarOperacion(op);
     if (!v.ok) throw new ErrorDeServicio("formato_invalido", `${v.campo}: ${v.motivo}`);

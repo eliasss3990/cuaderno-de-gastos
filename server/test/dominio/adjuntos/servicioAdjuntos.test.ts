@@ -5,6 +5,7 @@ import { MAX_BYTES_IMAGEN, MAX_BYTES_PDF } from "../../../src/dominio/operacione
 import { MAX_LADO_MINIATURA_PX, MAX_LADO_PX } from "../../../src/dominio/adjuntos/formatos.js";
 import { jpeg, pdf, png, sha256, webp, type Mime } from "../../ayudas/adjuntos.js";
 import { ArchivosEnMemoria } from "../../ayudas/archivosEnMemoria.js";
+import { SOBRE_GUARDADO } from "../../ayudas/autor.js";
 
 const TRIP = "018f3a6e-0000-7000-8000-000000000001";
 const ADJ = "aaaaaaaa-0000-4000-8000-000000000001";
@@ -506,7 +507,7 @@ describe("barrer: solo los viajes con cambios", () => {
   /** Una operación cualquiera aceptada: sube la cabeza del viaje, como lo hace una purga de verdad. */
   const unaOperacion = (almacen: AlmacenMemoria): void => {
     operaciones += 1;
-    almacen.guardarOp({ opId: `op-${operaciones}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", hlc: marca(), payload: {}, redactada: false, padreId: null });
+    almacen.guardarOp({ opId: `op-${operaciones}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e1", hlc: marca(), payload: {}, redactada: false, padreId: null, ...SOBRE_GUARDADO });
   };
 
   function entorno() {

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { Ingesta } from "../../../src/dominio/operaciones/ingesta.js";
 import type { Operacion, Resultado } from "../../../src/dominio/operaciones/operaciones.js";
+import { REMITENTE } from "../../ayudas/autor.js";
 
 interface Escenario {
   nombre: string;
@@ -26,7 +27,7 @@ describe("ingesta de operaciones: vectores de conformidad", () => {
     it(esc.nombre, () => {
       const almacen = new AlmacenMemoria();
       const ingesta = new Ingesta(almacen);
-      const obtenidos = esc.orden.map((i) => describir(ingesta.procesar(esc.ops[i] as Operacion)));
+      const obtenidos = esc.orden.map((i) => describir(ingesta.procesar(esc.ops[i] as Operacion, REMITENTE)));
       expect(obtenidos).toEqual(esc.resultados);
       // solo lo aceptado queda guardado, con secuencia 1, 2, 3 sin huecos
       const aceptadas = esc.resultados.filter((r) => r === "accepted").length;

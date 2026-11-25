@@ -3,6 +3,7 @@ import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.
 import { Ingesta } from "../../../src/dominio/operaciones/ingesta.js";
 import type { Operacion } from "../../../src/dominio/operaciones/operaciones.js";
 import { barajar, conDuplicados, DINERO, generador, generar } from "../../ayudas/operacionesAleatorias.js";
+import { REMITENTE } from "../../ayudas/autor.js";
 
 describe("ingesta de operaciones: las invariantes del modelo se cumplen siempre", () => {
   const azar = generador(20261123);
@@ -19,7 +20,7 @@ describe("ingesta de operaciones: las invariantes del modelo se cumplen siempre"
       const vistas = new Set<string>();
       let aceptadas = 0;
       for (const o of orden) {
-        const r = ingesta.procesar(o);
+        const r = ingesta.procesar(o, REMITENTE);
         if (vistas.has(o.opId)) expect(r.estado).toBe("duplicate");
         if (r.estado === "accepted") aceptadas += 1;
         // si se aceptó, no pudo ser un duplicado; las razones posibles son las del plan
@@ -65,7 +66,7 @@ describe("ingesta de operaciones: las invariantes del modelo se cumplen siempre"
     const almacen = new AlmacenMemoria();
     const ingesta = new Ingesta(almacen);
     for (const basura of [null, undefined, 5, "texto", true, [], [1, 2]]) {
-      expect(ingesta.procesar(basura as unknown as Operacion)).toEqual({ estado: "rejected", razon: "formato" });
+      expect(ingesta.procesar(basura as unknown as Operacion, REMITENTE)).toEqual({ estado: "rejected", razon: "formato" });
     }
     expect(almacen.secuencias()).toEqual([]);
   });

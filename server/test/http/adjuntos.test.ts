@@ -14,7 +14,7 @@ const uuid = (n: number): string => `aaaaaaaa-0000-4000-8000-${String(n).padStar
 async function entorno(opciones: Parameters<typeof entornoApi>[0] = {}) {
   const e = entornoApi(opciones);
   const a = await e.crearViaje();
-  const op = (a_: Alta, tipo: string, entidadTipo: string, entidadId: string, payload: object, n: number) => ({ op_id: `018f3a6e-9000-7000-8000-${String(n).padStart(12, "0")}`, type: tipo, entity_type: entidadTipo, entity_id: entidadId, hlc: marca(a_), payload });
+  const op = (a_: Alta, tipo: string, entidadTipo: string, entidadId: string, payload: object, n: number) => ({ op_id: `018f3a6e-9000-7000-8000-${String(n).padStart(12, "0")}`, type: tipo, entity_type: entidadTipo, entity_id: entidadId, hlc: marca(a_), payload, schema_version: 1 });
   const subirOps = async (a_: Alta, ops: object[]) => {
     const r = await e.app.inject({ method: "POST", url: `/v1/trips/${a_.trip_id}/ops`, headers: e.con(a_.token), payload: { ops } });
     return r.json<{ resultados: { estado: string; razon?: string }[] }>().resultados;

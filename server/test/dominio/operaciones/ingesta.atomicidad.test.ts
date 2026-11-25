@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { Ingesta } from "../../../src/dominio/operaciones/ingesta.js";
 import type { IntervaloCierre, Json, OpGuardada, Operacion } from "../../../src/dominio/operaciones/operaciones.js";
+import { REMITENTE } from "../../ayudas/autor.js";
 
 interface Escenario { nombre: string; ops: Operacion[]; orden: number[]; ahoras: number[]; intervalos: IntervaloCierre[] }
 const { escenarios } = JSON.parse(readFileSync(new URL("../../../../conformance/cierre.json", import.meta.url), "utf8")) as { escenarios: Escenario[] };
@@ -33,7 +34,7 @@ describe("ingestar una operación es todo o nada, también con los intervalos de
         almacen.despues = despues;
         let ahora = 0;
         const ingesta = new Ingesta(almacen, () => ahora);
-        const paso = (k: number) => { ahora = esc.ahoras[k] as number; return ingesta.procesar(esc.ops[esc.orden[k] as number] as Operacion); };
+        const paso = (k: number) => { ahora = esc.ahoras[k] as number; return ingesta.procesar(esc.ops[esc.orden[k] as number] as Operacion, REMITENTE); };
         for (let k = 0; k < p; k++) paso(k);
         const antes = almacen.instantanea();
         const intervalosAntes = almacen.intervalosDeCierre();

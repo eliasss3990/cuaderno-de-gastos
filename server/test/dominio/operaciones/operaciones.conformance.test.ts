@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { AlmacenMemoria, type Instantanea } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { MotorOperaciones, type Operacion, type Resultado } from "../../../src/dominio/operaciones/operaciones.js";
+import { AUTOR } from "../../ayudas/autor.js";
 
 interface Escenario {
   nombre: string;
@@ -22,7 +23,7 @@ function describir(r: Resultado): string {
 function ejecutar(esc: Escenario, orden: readonly number[]): { almacen: AlmacenMemoria; resultados: Resultado[] } {
   const almacen = new AlmacenMemoria();
   const motor = new MotorOperaciones(almacen);
-  const resultados = orden.map((i) => motor.aplicar(esc.ops[i] as Operacion));
+  const resultados = orden.map((i) => motor.aplicar(esc.ops[i] as Operacion, AUTOR));
   return { almacen, resultados };
 }
 
@@ -52,7 +53,7 @@ describe("aplicar operaciones: vectores de conformidad", () => {
         const motor = new MotorOperaciones(almacen);
         orden.forEach((i, k) => {
           if ((resultados[k] as Resultado).estado === "accepted") {
-            expect(motor.aplicar(esc.ops[i] as Operacion)).toEqual({ estado: "duplicate" });
+            expect(motor.aplicar(esc.ops[i] as Operacion, AUTOR)).toEqual({ estado: "duplicate" });
           }
         });
         expect(almacen.instantanea()).toEqual(esc.esperado);
@@ -65,7 +66,7 @@ describe("aplicar operaciones: vectores de conformidad", () => {
         orden.forEach((i, k) => {
           const antes = resultados[k] as Resultado;
           if (antes.estado === "rejected" && antes.razon === "formato") {
-            expect(motor.aplicar(esc.ops[i] as Operacion)).toEqual(antes);
+            expect(motor.aplicar(esc.ops[i] as Operacion, AUTOR)).toEqual(antes);
           }
         });
         expect(almacen.instantanea()).toEqual(esc.esperado);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { Ingesta } from "../../../src/dominio/operaciones/ingesta.js";
 import type { IntervaloCierre, Operacion, Resultado } from "../../../src/dominio/operaciones/operaciones.js";
+import { REMITENTE } from "../../ayudas/autor.js";
 
 interface Escenario {
   nombre: string;
@@ -30,7 +31,7 @@ describe("cierre del viaje: vectores de conformidad", () => {
       const ingesta = new Ingesta(almacen, () => ahora);
       const obtenidos = esc.orden.map((i, k) => {
         ahora = esc.ahoras[k] as number;
-        return describir(ingesta.procesar(esc.ops[i] as Operacion));
+        return describir(ingesta.procesar(esc.ops[i] as Operacion, REMITENTE));
       });
       expect(obtenidos).toEqual(esc.resultados);
       expect(almacen.intervalosDeCierre()).toEqual(esc.intervalos);

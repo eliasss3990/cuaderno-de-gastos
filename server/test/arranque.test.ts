@@ -147,8 +147,8 @@ describe("arrancar", () => {
     const gasto = "018f3a6e-2000-7000-8000-000000000001";
     const adjunto = "aaaaaaaa-0000-4000-8000-000000000001";
     const ops = [
-      { op_id: "018f3a6e-9000-7000-8000-000000000001", type: "expense.create", entity_type: "expense", entity_id: gasto, hlc: marca(1), payload: { monto_minor: 1000, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: Date.now() - 10_000, dia_imputado: "2027-02-18" } },
-      { op_id: "018f3a6e-9000-7000-8000-000000000002", type: "attachment.add", entity_type: "attachment", entity_id: adjunto, hlc: marca(2), payload: { owner_tipo: "EXPENSE", owner_id: gasto, mime: "image/jpeg", bytes: contenido.length, sha256: createHash("sha256").update(contenido).digest("hex"), tiene_miniatura: 0 } },
+      { op_id: "018f3a6e-9000-7000-8000-000000000001", type: "expense.create", entity_type: "expense", entity_id: gasto, hlc: marca(1), payload: { monto_minor: 1000, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: Date.now() - 10_000, dia_imputado: "2027-02-18" } , schema_version: 1 },
+      { op_id: "018f3a6e-9000-7000-8000-000000000002", type: "attachment.add", entity_type: "attachment", entity_id: adjunto, hlc: marca(2), payload: { owner_tipo: "EXPENSE", owner_id: gasto, mime: "image/jpeg", bytes: contenido.length, sha256: createHash("sha256").update(contenido).digest("hex"), tiene_miniatura: 0 } , schema_version: 1 },
     ];
     const subidas = (await (await post(`${primero.url}/v1/trips/${alta.trip_id}/ops`, { ops }, auth)).json()) as { resultados: { estado: string }[] };
     expect(subidas.resultados.map((r) => r.estado)).toEqual(["accepted", "accepted"]);
@@ -173,7 +173,7 @@ describe("arrancar", () => {
     const auth = { authorization: `Bearer ${alta.token}` };
     let n = 0;
     const marca = () => `${(Date.now() - 20_000 + ++n).toString(16).padStart(13, "0")}-${n.toString(16).padStart(4, "0")}-${alta.device_id}`;
-    const op = (tipo: string, entidad: string, id: string, payload: object) => ({ op_id: `018f3a6e-9000-7000-8000-${String(n + 1).padStart(12, "0")}`, type: tipo, entity_type: entidad, entity_id: id, hlc: marca(), payload });
+    const op = (tipo: string, entidad: string, id: string, payload: object) => ({ op_id: `018f3a6e-9000-7000-8000-${String(n + 1).padStart(12, "0")}`, type: tipo, entity_type: entidad, entity_id: id, hlc: marca(), payload, schema_version: 1 });
     const foto = jpeg(1000);
     const registrar = (id: string, dueno: string) => op("attachment.add", "attachment", id, { owner_tipo: "EXPENSE", owner_id: dueno, mime: "image/jpeg", bytes: foto.length, sha256: createHash("sha256").update(foto).digest("hex"), tiene_miniatura: 0 });
     const gasto = (id: string) => op("expense.create", "expense", id, { monto_minor: 1000, moneda: "BRL", categoria_id: "otro", cuando_ocurrio: Date.now() - 10_000, dia_imputado: "2027-02-18" });

@@ -3,7 +3,7 @@
 // estado, aplicar); un duplicado devuelve la secuencia y la marca final de la primera vez. Un rechazo no frena a las demás operaciones del lote. Las
 // operaciones que dependen de otra rechazada fallan solas, porque la entidad no existe.
 
-import { Ingesta } from "./ingesta.js";
+import { Ingesta, type Remitente } from "./ingesta.js";
 import type { Almacen, Operacion, Razon } from "./operaciones.js";
 import { corregirMarcaFutura, formatearHlc, parsearHlc } from "../base/reloj.js";
 
@@ -33,13 +33,14 @@ export class RecepcionDeOperaciones {
     this.ingesta = new Ingesta(almacen, ahora);
   }
 
-  procesarLote(operaciones: readonly Operacion[], dispositivoId: string): ResultadoDeOperacion[] {
+  procesarLote(operaciones: readonly Operacion[], remitente: Remitente): ResultadoDeOperacion[] {
     if (!Array.isArray(operaciones) || operaciones.length === 0) throw new LoteInvalidoError("el lote está vacío");
     if (operaciones.length > MAX_OPERACIONES_POR_LOTE) throw new LoteInvalidoError(`el lote tiene más de ${MAX_OPERACIONES_POR_LOTE} operaciones`);
-    return operaciones.map((op) => this.procesar(op, dispositivoId));
+    return operaciones.map((op) => this.procesar(op, remitente));
   }
 
-  private procesar(op: Operacion, dispositivoId: string): ResultadoDeOperacion {
+  private procesar(op: Operacion, remitente: Remitente): ResultadoDeOperacion {
+    const dispositivoId = remitente.deviceId;
     if ((op as unknown) === null || typeof op !== "object") return { opId: "", estado: "rejected", razon: "formato", hlc: "" };
     const opId = typeof op.opId === "string" ? op.opId : "";
     const enviada = typeof op.hlc === "string" ? op.hlc : "";
@@ -55,7 +56,7 @@ export class RecepcionDeOperaciones {
       const ultimaMarca = ultima === null ? null : parsearHlc(ultima);
       const corregida = corregirMarcaFutura(marca.hlc, this.ahora(), ultimaMarca !== null && ultimaMarca.ok ? ultimaMarca.hlc : null);
 
-      const resultado = this.ingesta.procesar(corregida.corregida ? { ...op, hlc: formatearHlc(corregida.hlc) } : op);
+      const resultado = this.ingesta.procesar(corregida.corregida ? { ...op, hlc: formatearHlc(corregida.hlc) } : op, remitente);
       if (resultado.estado === "rejected") return rechazada(resultado.razon);
       // lo que se devuelve es lo que quedó guardado: en un duplicado, la secuencia y la marca final de la primera vez
       const guardada = this.almacen.buscarOp(op.opId);
