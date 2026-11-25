@@ -9,6 +9,7 @@ const categoria = (a: Alta, n: number, id = `018f3a6e-7000-7000-8000-${String(n)
   entity_id: id,
   hlc: marca(a, n),
   payload: { nombre: `Cat ${n}`, color: "#E8E4F3", emoji: "🛣️" },
+  schema_version: 1,
 });
 
 async function conViaje() {
@@ -49,6 +50,61 @@ describe("POST /v1/trips/:trip/ops", () => {
     const { resultados } = r.json<{ resultados: { estado: string; razon?: string }[] }>();
     expect(resultados.map((x) => x.estado)).toEqual(["rejected", "accepted", "rejected"]);
     expect(resultados[0]?.razon).toBe("formato");
+  });
+
+  it("la versión de formato es obligatoria: sin ella, como texto o una que el servidor no entiende, se rechaza sola", async () => {
+    const { a, subir } = await conViaje();
+    const { schema_version: _v, ...sinVersion } = categoria(a, 1);
+    const r = await subir([sinVersion, { ...categoria(a, 2), schema_version: 2 }, { ...categoria(a, 3), schema_version: "1" }, categoria(a, 4)]);
+    const { resultados } = r.json<{ resultados: { estado: string; razon?: string }[] }>();
+    expect(resultados.map((x) => [x.estado, x.razon])).toEqual([
+      ["rejected", "formato"],
+      ["rejected", "formato"],
+      ["rejected", "formato"],
+      ["accepted", undefined],
+    ]);
+  });
+
+  it("el dispositivo y el integrante de cada operación salen del token: lo que mande la app en esos campos no cuenta", async () => {
+    const { e, a, subir, bajar } = await conViaje();
+    const b = await e.sumar(a);
+    const ajena = { ...categoria(a, 1), device_id: b.device_id, member_id: b.member_id };
+    expect((await subir([ajena])).json<{ resultados: { estado: string }[] }>().resultados[0]?.estado).toBe("accepted");
+    const ops = (await bajar()).json<{ ops: { op_id: string; device_id: string; member_id: string; schema_version: number }[] }>().ops;
+    expect(ops.find((o) => o.op_id === ajena.op_id)).toMatchObject({ device_id: a.device_id, member_id: a.member_id, schema_version: 1 });
+  });
+
+  it("la bajada devuelve la versión guardada de cada operación (no una fija)", async () => {
+    const { e, a, subir, bajar } = await conViaje();
+    const op = categoria(a, 1);
+    await subir([op]);
+    e.db.prepare("UPDATE op SET schema_version = 2 WHERE op_id = ?").run(op.op_id);
+    const ops = (await bajar()).json<{ ops: { op_id: string; schema_version: number }[] }>().ops;
+    expect(ops.find((o) => o.op_id === op.op_id)?.schema_version).toBe(2);
+  });
+
+  it("cada operación guarda la hora del servidor en que se aceptó, y un duplicado no la cambia", async () => {
+    const { e, a, subir } = await conViaje();
+    const op = categoria(a, 1);
+    e.reloj.ahora += 7000;
+    await subir([op]);
+    const hora = () => (e.db.prepare("SELECT aceptada_en AS h FROM op WHERE op_id = ?").get(op.op_id) as { h: number }).h;
+    const aceptada = e.reloj.ahora;
+    expect(hora()).toBe(aceptada);
+    e.reloj.ahora += 5000;
+    await subir([op]);
+    expect(hora()).toBe(aceptada);
+  });
+
+  it("las operaciones que genera el servidor al crear el viaje y al unirse llevan a su dispositivo e integrante", async () => {
+    const { e, a, bajar } = await conViaje();
+    const b = await e.sumar(a);
+    const ops = (await bajar()).json<{ ops: { type: string; entity_id: string; device_id: string; member_id: string; schema_version: number }[] }>().ops;
+    expect(ops.filter((o) => o.type === "trip.create")).toEqual([expect.objectContaining({ device_id: a.device_id, member_id: a.member_id, schema_version: 1 })]);
+    expect(ops.filter((o) => o.type === "member.join").map((o) => [o.entity_id, o.device_id, o.member_id])).toEqual([
+      [a.member_id, a.device_id, a.member_id],
+      [b.member_id, b.device_id, b.member_id],
+    ]);
   });
 
   it("una operación con la marca de otro dispositivo se rechaza", async () => {

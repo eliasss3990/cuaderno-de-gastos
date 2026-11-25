@@ -5,6 +5,7 @@ import { abrirBase } from "../../../src/almacen/base/base.js";
 import type { Instantanea } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { Ingesta } from "../../../src/dominio/operaciones/ingesta.js";
 import type { IntervaloCierre, Json, OpGuardada, Operacion } from "../../../src/dominio/operaciones/operaciones.js";
+import { REMITENTE } from "../../ayudas/autor.js";
 
 const leer = <T>(archivo: string): T => JSON.parse(readFileSync(new URL(`../../../../conformance/${archivo}`, import.meta.url), "utf8")) as T;
 
@@ -38,7 +39,7 @@ function probar(nombre: string, esc: Paso, esperado: (almacen: AlmacenQueFalla) 
       almacen.despues = despues;
       let ahora = 0;
       const ingesta = new Ingesta(almacen, () => ahora);
-      const paso = (k: number) => { ahora = esc.ahoras[k] ?? 1; return ingesta.procesar(esc.ops[esc.orden[k] as number] as Operacion); };
+      const paso = (k: number) => { ahora = esc.ahoras[k] ?? 1; return ingesta.procesar(esc.ops[esc.orden[k] as number] as Operacion, REMITENTE); };
       for (let k = 0; k < p; k++) paso(k);
       const antes: Instantanea = almacen.instantanea();
       const intervalosAntes = almacen.intervalosDeCierre();

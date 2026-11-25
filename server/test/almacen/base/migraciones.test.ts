@@ -45,7 +45,7 @@ describe("migraciones", () => {
     migrar(db, 1, MIGRACIONES.slice(0, 1));
     const dispositivo = "018f3a6e-0000-7000-8000-00000000000a";
     const hlc = (ms: number) => `${ms.toString(16).padStart(13, "0")}-0000-${dispositivo}`;
-    db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada) VALUES ('v', 1, 'o1', 'expense', 'e1', NULL, 'expense.create', ?, '{}', 0)").run(hlc(100));
+    db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada, schema_version, device_id, member_id, aceptada_en) VALUES ('v', 1, 'o1', 'expense', 'e1', NULL, 'expense.create', ?, '{}', 0, 1, 'd', 'm', 0)").run(hlc(100));
     expect(migrar(db, 2, MIGRACIONES.slice(0, 2))).toEqual([2]);
     expect(db.prepare("SELECT dispositivo FROM op").all()).toEqual([{ dispositivo }]);
   });
@@ -122,7 +122,27 @@ describe("migraciones", () => {
     const db = abrirBase(":memory:");
     const op = (extra: { [c: string]: unknown } = {}) => ({ t: "v", s: 1, id: "o1", hlc: "h1", p: "{}", r: 0, ...extra });
     const insertar = (o: ReturnType<typeof op>) =>
-      db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada) VALUES (@t, @s, @id, 'expense', 'e1', NULL, 'expense.create', @hlc, @p, @r)").run(o);
+      db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada, schema_version, device_id, member_id, aceptada_en) VALUES (@t, @s, @id, 'expense', 'e1', NULL, 'expense.create', @hlc, @p, @r, 1, 'd', 'm', 0)").run(o);
+
+    it("op: la versión, el dispositivo, el integrante y la hora son obligatorios", () => {
+      const columnas = ["schema_version", "device_id", "member_id", "aceptada_en"];
+      for (const columna of columnas) {
+        const valores = columnas.map((c) => (c === columna ? "NULL" : c === "device_id" || c === "member_id" ? "'x'" : "1")).join(", ");
+        expect(
+          () => db.prepare(`INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, type, hlc, payload, redactada, ${columnas.join(", ")}) VALUES ('v', 1, 'o1', 'expense', 'e1', 'expense.create', 'h1', '{}', 0, ${valores})`).run(),
+          columna,
+        ).toThrow(/NOT NULL constraint failed: op\./);
+      }
+    });
+
+    it("op: dispositivo e integrante no pueden ser vacíos y la versión es al menos 1", () => {
+      const insertarCon = (device: string, member: string, version: number) =>
+        db.prepare("INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, type, hlc, payload, redactada, schema_version, device_id, member_id, aceptada_en) VALUES ('viaje-check', 1, 'o-check', 'expense', 'e1', 'expense.create', 'h-check', '{}', 0, ?, ?, ?, 0)").run(version, device, member);
+      expect(() => insertarCon("", "m", 1)).toThrow(/CHECK/);
+      expect(() => insertarCon("d", "", 1)).toThrow(/CHECK/);
+      expect(() => insertarCon("d", "m", 0)).toThrow(/CHECK/);
+      insertarCon("d", "m", 1);
+    });
 
     it("op: el op_id y la marca son únicos, y redactada exige payload nulo (y al revés)", () => {
       insertar(op());

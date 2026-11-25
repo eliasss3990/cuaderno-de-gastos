@@ -7,6 +7,12 @@ import { dentroDeUnCierre, horaDeCreacion, sincronizarCierre } from "./cierreVia
 import { validarOperacion } from "./validacion.js";
 import { validarContraEstado } from "./validacionEstado.js";
 
+/** Quién envía la operación (sale del token). */
+export interface Remitente {
+  readonly deviceId: string;
+  readonly memberId: string;
+}
+
 export class Ingesta {
   private readonly motor: MotorOperaciones;
 
@@ -19,7 +25,7 @@ export class Ingesta {
     this.motor = new MotorOperaciones(almacen);
   }
 
-  procesar(op: Operacion): Resultado {
+  procesar(op: Operacion, remitente: Remitente): Resultado {
     if ((op as unknown) === null || typeof op !== "object") return { estado: "rejected", razon: "formato" };
     return this.almacen.transaccion(() => {
       if (!validarOperacion(op).ok) return { estado: "rejected", razon: "formato" };
@@ -31,7 +37,7 @@ export class Ingesta {
       }
       const razon = validarContraEstado(op, this.almacen);
       if (razon !== null) return { estado: "rejected", razon };
-      const resultado = this.motor.aplicar(op);
+      const resultado = this.motor.aplicar(op, { ...remitente, aceptadaEn: this.ahora() });
       if (resultado.estado === "accepted" && (op.tipo === "trip.create" || op.tipo === "trip.update")) {
         sincronizarCierre(this.almacen, this.ahora(), horaDeCreacion(op));
       }

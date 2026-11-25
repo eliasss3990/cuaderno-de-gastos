@@ -11,6 +11,7 @@ export const MAX_OPERACIONES_POR_PAGINA = 200;
 export interface ActorDeSincronizacion {
   readonly tripId: string;
   readonly deviceId: string;
+  readonly memberId: string;
 }
 
 export interface PaginaDeCambios {
@@ -37,7 +38,7 @@ export class ServicioDeSincronizacion {
     const recepcion = new RecepcionDeOperaciones(almacen, this.dep.ahora);
     try {
       // lo que no tenga forma de operación lo rechaza la ingesta
-      const resultados = recepcion.procesarLote(operaciones as readonly Operacion[], actor.deviceId);
+      const resultados = recepcion.procesarLote(operaciones as readonly Operacion[], { deviceId: actor.deviceId, memberId: actor.memberId });
       if (resultados.some((r) => r.estado === "accepted")) this.dep.canal?.notificar(actor.tripId, almacen.seqMaximo());
       return resultados;
     } catch (e) {

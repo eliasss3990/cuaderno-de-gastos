@@ -21,10 +21,13 @@ export interface InstantaneaEntidad {
   readonly relojes: { readonly [campo: string]: string };
 }
 
+/** Una operación tal como cuenta para el estado: sin lo que el servidor anota al recibirla (versión, autor y hora). */
+export type OpDelEstado = Omit<OpGuardada, "schemaVersion" | "deviceId" | "memberId" | "aceptadaEn">;
+
 export interface Instantanea {
   readonly entidades: readonly InstantaneaEntidad[];
   readonly lapidas: readonly { readonly tipo: string; readonly id: string }[];
-  readonly ops: readonly OpGuardada[];
+  readonly ops: readonly OpDelEstado[];
 }
 
 type Guardada = OpGuardada & { readonly seq: number };
@@ -247,7 +250,7 @@ export class AlmacenMemoria implements Almacen {
     const lapidas = [...this.lapidas.values()].sort((x, y) => ordenar(clave(x.tipo, x.id), clave(y.tipo, y.id)));
     const ops = [...this.ops.values()]
       .sort((x, y) => ordenar(x.opId, y.opId))
-      .map(({ seq: _seq, ...resto }) => ({ ...resto, payload: resto.payload === null ? null : (copia(resto.payload) as Campos) }));
+      .map(({ seq: _seq, schemaVersion: _v, deviceId: _d, memberId: _m, aceptadaEn: _a, ...resto }) => ({ ...resto, payload: resto.payload === null ? null : (copia(resto.payload) as Campos) }));
     return copia({ entidades, lapidas, ops });
   }
 

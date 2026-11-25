@@ -29,6 +29,10 @@ interface FilaOp {
   payload: string | null;
   redactada: number;
   padre_id: string | null;
+  schema_version: number;
+  device_id: string;
+  member_id: string;
+  aceptada_en: number;
   server_seq: number;
 }
 
@@ -144,8 +148,23 @@ export class AlmacenSqlite implements Almacen {
   guardarOp(op: OpGuardada): number {
     const { s } = this.q("SELECT COALESCE(MAX(server_seq), 0) + 1 AS s FROM op WHERE trip_id = ?").get(this.tripId) as { s: number };
     this.q(
-      "INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    ).run(this.tripId, s, op.opId, op.entidadTipo, op.entidadId, op.padreId, op.tipo, op.hlc, op.payload === null ? null : JSON.stringify(op.payload), op.redactada ? 1 : 0);
+      "INSERT INTO op (trip_id, server_seq, op_id, entity_type, entity_id, padre_id, type, hlc, payload, redactada, schema_version, device_id, member_id, aceptada_en) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    ).run(
+      this.tripId,
+      s,
+      op.opId,
+      op.entidadTipo,
+      op.entidadId,
+      op.padreId,
+      op.tipo,
+      op.hlc,
+      op.payload === null ? null : JSON.stringify(op.payload),
+      op.redactada ? 1 : 0,
+      op.schemaVersion,
+      op.deviceId,
+      op.memberId,
+      op.aceptadaEn,
+    );
     return s;
   }
 
@@ -155,7 +174,7 @@ export class AlmacenSqlite implements Almacen {
   }
 
   leerOps(despuesDe: number, limite: number): readonly OpLeida[] {
-    const filas = this.q("SELECT op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, server_seq FROM op WHERE trip_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?").all(this.tripId, despuesDe, limite) as FilaOp[];
+    const filas = this.q("SELECT op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, schema_version, device_id, member_id, aceptada_en, server_seq FROM op WHERE trip_id = ? AND server_seq > ? ORDER BY server_seq LIMIT ?").all(this.tripId, despuesDe, limite) as FilaOp[];
     return filas.map((f) => ({
       opId: f.op_id,
       tipo: f.type,
@@ -165,6 +184,10 @@ export class AlmacenSqlite implements Almacen {
       payload: f.payload === null ? null : (JSON.parse(f.payload) as Campos),
       redactada: f.redactada === 1,
       padreId: f.padre_id,
+      schemaVersion: f.schema_version,
+      deviceId: f.device_id,
+      memberId: f.member_id,
+      aceptadaEn: f.aceptada_en,
       seq: f.server_seq,
     }));
   }
@@ -199,7 +222,7 @@ export class AlmacenSqlite implements Almacen {
       relojes: Object.fromEntries(llaves(e.relojes).map((k) => [k, e.relojes[k] as string])),
     }));
     const lapidas = (this.q("SELECT tipo, id FROM entity_tombstone WHERE trip_id = ?").all(this.tripId) as { tipo: string; id: string }[]).sort(ordenadoPorClave);
-    const ops = (this.q("SELECT op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, server_seq FROM op WHERE trip_id = ?").all(this.tripId) as FilaOp[])
+    const ops = (this.q("SELECT op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, schema_version, device_id, member_id, aceptada_en, server_seq FROM op WHERE trip_id = ?").all(this.tripId) as FilaOp[])
       .sort((x, y) => ordenar(x.op_id, y.op_id))
       .map((f) => ({
         opId: f.op_id,

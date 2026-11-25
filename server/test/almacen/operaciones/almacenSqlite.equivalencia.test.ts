@@ -8,6 +8,7 @@ import { RecepcionDeOperaciones } from "../../../src/dominio/operaciones/recepci
 import { formatearHlc, parsearHlc } from "../../../src/dominio/base/reloj.js";
 import { MotorOperaciones, type IntervaloCierre, type Operacion, type Resultado } from "../../../src/dominio/operaciones/operaciones.js";
 import { barajar, conDuplicados, generador, generar } from "../../ayudas/operacionesAleatorias.js";
+import { AUTOR, REMITENTE, remitenteDe } from "../../ayudas/autor.js";
 
 const leer = <T>(archivo: string): T => JSON.parse(readFileSync(new URL(`../../../../conformance/${archivo}`, import.meta.url), "utf8")) as T;
 const describir = (r: Resultado): string => (r.estado === "rejected" ? `rejected:${r.razon}` : r.estado);
@@ -20,7 +21,7 @@ describe("almacén SQLite: los vectores de operaciones llegan al estado esperado
       for (const orden of esc.ordenes) {
         const almacen = sqlite();
         const motor = new MotorOperaciones(almacen);
-        for (const i of orden) motor.aplicar(esc.ops[i] as Operacion);
+        for (const i of orden) motor.aplicar(esc.ops[i] as Operacion, AUTOR);
         expect(almacen.instantanea()).toEqual(esc.esperado);
         const s = almacen.secuencias();
         expect(s).toEqual(s.map((_, i) => i + 1));
@@ -35,7 +36,7 @@ describe("almacén SQLite: igual que el de memoria en la ingesta, el cierre y lo
     const ingesta = new Ingesta(almacen, () => ahora);
     const resultados = orden.map((i, k) => {
       ahora = ahoras[k] ?? 1;
-      return describir(ingesta.procesar(ops[i] as Operacion));
+      return describir(ingesta.procesar(ops[i] as Operacion, REMITENTE));
     });
     return { resultados, estado: almacen.instantanea(), intervalos: almacen.intervalosDeCierre(), secuencias: almacen.secuencias() };
   }
@@ -90,7 +91,7 @@ describe("almacén SQLite: igual que el de memoria en la ingesta, el cierre y lo
       const recepcion = new RecepcionDeOperaciones(almacen, () => ahora);
       const resultados = pasos.map((p) => {
         ahora = p.ahora;
-        return recepcion.procesarLote(p.ops, p.dispositivo);
+        return recepcion.procesarLote(p.ops, remitenteDe(p.dispositivo));
       });
       return { resultados, estado: almacen.instantanea(), secuencias: almacen.secuencias() };
     };

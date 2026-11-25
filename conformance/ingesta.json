@@ -6,6 +6,7 @@
    "nombre": "la moneda debe ser una del viaje y la categoría debe existir",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -20,6 +21,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -43,6 +45,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -57,6 +60,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -71,6 +75,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -85,6 +90,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "currency.enable",
      "entidadTipo": "trip_currency",
@@ -97,6 +103,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -111,6 +118,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "currency.disable",
      "entidadTipo": "trip_currency",
@@ -121,6 +129,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -135,6 +144,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000010",
      "tipo": "expense.update",
      "entidadTipo": "expense",
@@ -145,6 +155,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000011",
      "tipo": "expense.update",
      "entidadTipo": "expense",
@@ -155,6 +166,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000012",
      "tipo": "expense.update",
      "entidadTipo": "expense",
@@ -165,6 +177,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000013",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -217,6 +230,7 @@
    "nombre": "todas las entidades con moneda o categoría validan sus referencias",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -240,6 +254,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "fixed.create",
      "entidadTipo": "fixed_cost",
@@ -253,6 +268,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "fixed.create",
      "entidadTipo": "fixed_cost",
@@ -266,6 +282,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "fixed.update",
      "entidadTipo": "fixed_cost",
@@ -276,6 +293,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -290,6 +308,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -304,6 +323,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -318,6 +338,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "shortcut.update",
      "entidadTipo": "shortcut",
@@ -328,6 +349,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -341,6 +363,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000010",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -354,6 +377,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000011",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -369,6 +393,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000012",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -420,6 +445,7 @@
    "nombre": "una categoría archivada se puede seguir usando",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -443,6 +469,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "category.create",
      "entidadTipo": "category",
@@ -455,6 +482,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "category.archive",
      "entidadTipo": "category",
@@ -465,6 +493,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -499,6 +528,7 @@
    "nombre": "seis atajos como máximo; borrar uno deja crear otro; repetir el alta de uno existente no cuenta",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -522,6 +552,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -536,6 +567,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -550,6 +582,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -564,6 +597,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -578,6 +612,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -592,6 +627,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -606,6 +642,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -620,6 +657,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "shortcut.delete",
      "entidadTipo": "shortcut",
@@ -628,6 +666,7 @@
      "payload": {}
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000010",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -642,6 +681,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000011",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -656,6 +696,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000012",
      "tipo": "shortcut.create",
      "entidadTipo": "shortcut",
@@ -670,6 +711,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000013",
      "tipo": "shortcut.update",
      "entidadTipo": "shortcut",
@@ -718,6 +760,7 @@
    "nombre": "un reintento da duplicado aunque ahora el límite ya no lo admitiría",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -736,6 +779,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -750,6 +794,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -765,6 +810,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -780,6 +826,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -795,6 +842,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "attachment.remove",
      "entidadTipo": "attachment",
@@ -805,6 +853,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -848,6 +897,7 @@
    "nombre": "tres adjuntos activos por dueño; el propio adjunto no cuenta",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -871,6 +921,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -885,6 +936,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "fixed.create",
      "entidadTipo": "fixed_cost",
@@ -898,6 +950,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -913,6 +966,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -928,6 +982,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -943,6 +998,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -958,6 +1014,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -973,6 +1030,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "attachment.remove",
      "entidadTipo": "attachment",
@@ -983,6 +1041,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000010",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -998,6 +1057,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000011",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1049,6 +1109,7 @@
    "nombre": "lo ya terminado no se vuelve a mirar: se acepta redactado aunque el límite o la referencia no lo admitirían",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1072,6 +1133,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1086,6 +1148,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1101,6 +1164,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1116,6 +1180,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1131,6 +1196,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "expense.purge",
      "entidadTipo": "expense",
@@ -1139,6 +1205,7 @@
      "payload": {}
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1154,6 +1221,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "expense.update",
      "entidadTipo": "expense",
@@ -1164,6 +1232,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "expense.update",
      "entidadTipo": "expense",
@@ -1205,6 +1274,7 @@
    "nombre": "la edición de un movimiento de efectivo debe corresponder a su tipo",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1228,6 +1298,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "currency.enable",
      "entidadTipo": "trip_currency",
@@ -1240,6 +1311,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -1255,6 +1327,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -1268,6 +1341,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -1281,6 +1355,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000006",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1291,6 +1366,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000007",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1301,6 +1377,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000008",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1311,6 +1388,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000009",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1321,6 +1399,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000010",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1331,6 +1410,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000011",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1342,6 +1422,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000012",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1352,6 +1433,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000013",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1362,6 +1444,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000014",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1373,6 +1456,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000015",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1383,6 +1467,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000016",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1393,6 +1478,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000017",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1403,6 +1489,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000018",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1413,6 +1500,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000019",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1423,6 +1511,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000020",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1485,6 +1574,7 @@
    "nombre": "el formato se mira antes que el estado",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1508,6 +1598,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "expense.create",
      "entidadTipo": "expense",
@@ -1522,6 +1613,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1537,6 +1629,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "attachment.add",
      "entidadTipo": "attachment",
@@ -1573,6 +1666,7 @@
    "nombre": "el cambio de moneda se valida con lo que quedaría tras resolver los relojes, no con lo que trae la operación",
    "ops": [
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000001",
      "tipo": "trip.create",
      "entidadTipo": "trip",
@@ -1601,6 +1695,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000002",
      "tipo": "cashmove.create",
      "entidadTipo": "cash_movement",
@@ -1616,6 +1711,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000003",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1627,6 +1723,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000004",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",
@@ -1638,6 +1735,7 @@
      }
     },
     {
+     "schemaVersion": 1,
      "opId": "018f3a6e-9000-7000-8000-000000000005",
      "tipo": "cashmove.update",
      "entidadTipo": "cash_movement",

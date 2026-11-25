@@ -284,6 +284,12 @@ const ESQUEMAS: ReadonlyMap<string, Esquema> = new Map<string, Esquema>([
 
 const fallo = (campo: string, motivo: string): ResultadoValidacion => ({ ok: false, campo, motivo });
 
+/** La versión del formato de las operaciones que genera este servidor (la de la app actual). */
+export const VERSION_DE_FORMATO = 1;
+
+/** Las versiones del formato que el servidor entiende (la actual y, cuando haya, la anterior). */
+export const VERSIONES_DE_FORMATO: readonly number[] = [VERSION_DE_FORMATO];
+
 /** Valida el formato de una operación recibida (sin mirar el estado). Los rechazos son de razón `formato`. */
 export function validarOperacion(op: Operacion): ResultadoValidacion {
   if (typeof op.tipo !== "string") return fallo("tipo", "debe ser texto");
@@ -295,6 +301,7 @@ export function validarOperacion(op: Operacion): ResultadoValidacion {
   if (errorId !== null) return fallo("entidadId", errorId);
   if (typeof op.hlc !== "string" || !parsearHlc(op.hlc).ok) return fallo("hlc", "debe ser una marca válida");
   if (!es(op.payload as Json)) return fallo("payload", "debe ser un objeto");
+  if (!(VERSIONES_DE_FORMATO as readonly unknown[]).includes(op.schemaVersion)) return fallo("schemaVersion", "versión de formato que este servidor no entiende");
 
   const payload: Campos = op.payload;
   for (const clave of Object.keys(payload)) {

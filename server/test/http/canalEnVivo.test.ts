@@ -11,6 +11,7 @@ const categoria = (a: Alta, n: number) => ({
   entity_id: `018f3a6e-7000-7000-8000-${String(n).padStart(12, "0")}`,
   hlc: marca(a, n),
   payload: { nombre: `Cat ${n}`, color: "#E8E4F3", emoji: "🛣️" },
+  schema_version: 1,
 });
 
 const abiertos: AbortController[] = [];

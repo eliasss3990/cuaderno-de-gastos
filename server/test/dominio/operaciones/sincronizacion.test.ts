@@ -2,10 +2,11 @@ import { describe, expect, it } from "vitest";
 import { AlmacenMemoria } from "../../../src/dominio/operaciones/almacenMemoria.js";
 import { ServicioDeSincronizacion } from "../../../src/dominio/operaciones/sincronizacion.js";
 import { delViaje } from "../../../src/http/autenticacion.js";
+import { SOBRE_GUARDADO } from "../../ayudas/autor.js";
 import { ErrorDeServicio } from "../../../src/dominio/identidad/servicioIdentidad.js";
 
 const DISP = "018f3a6e-0000-7000-8000-00000000000a";
-const actor = { tripId: "t1", deviceId: DISP };
+const actor = { tripId: "t1", deviceId: DISP, memberId: "m1" };
 const marca = (n: number): string => `${(1000 + n).toString(16).padStart(13, "0")}-0000-${DISP}`;
 
 function armar(): { servicio: ServicioDeSincronizacion; almacen: AlmacenMemoria } {
@@ -43,7 +44,7 @@ describe("ServicioDeSincronizacion", () => {
 
   it("bajar pagina: siguiente es la última secuencia devuelta y hayMas avisa si queda algo", () => {
     const { servicio, almacen } = armar();
-    for (let i = 1; i <= 5; i++) almacen.guardarOp({ opId: `o${i}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(i), payload: { n: i }, redactada: false, padreId: null });
+    for (let i = 1; i <= 5; i++) almacen.guardarOp({ opId: `o${i}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(i), payload: { n: i }, redactada: false, padreId: null, ...SOBRE_GUARDADO });
     const p1 = servicio.bajar(actor, 0, 2);
     expect([p1.ops.map((o) => o.seq), p1.siguiente, p1.hayMas, p1.cabeza]).toEqual([[1, 2], 2, true, 5]);
     const p2 = servicio.bajar(actor, p1.siguiente, 10);
@@ -53,20 +54,20 @@ describe("ServicioDeSincronizacion", () => {
 
   it("un after mayor que la cabeza no adelanta el cursor: next es la cabeza", () => {
     const { servicio, almacen } = armar();
-    almacen.guardarOp({ opId: "o1", tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(1), payload: {}, redactada: false, padreId: null });
+    almacen.guardarOp({ opId: "o1", tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(1), payload: {}, redactada: false, padreId: null, ...SOBRE_GUARDADO });
     expect(servicio.bajar(actor, 999999999999999, 10)).toEqual({ ops: [], siguiente: 1, hayMas: false, cabeza: 1 });
   });
 
   it("una página nunca pasa de 200 operaciones aunque se pida más", () => {
     const { servicio, almacen } = armar();
-    for (let i = 1; i <= 201; i++) almacen.guardarOp({ opId: `o${i}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(i), payload: {}, redactada: false, padreId: null });
+    for (let i = 1; i <= 201; i++) almacen.guardarOp({ opId: `o${i}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(i), payload: {}, redactada: false, padreId: null, ...SOBRE_GUARDADO });
     expect(servicio.bajar(actor, 0, 500)).toMatchObject({ siguiente: 200, hayMas: true, cabeza: 201 });
     expect(servicio.bajar(actor, 0, 500).ops).toHaveLength(200);
   });
 
   it("el tope de la página se limita a 200 y a por lo menos 1", () => {
     const { servicio, almacen } = armar();
-    for (let i = 1; i <= 3; i++) almacen.guardarOp({ opId: `o${i}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(i), payload: {}, redactada: false, padreId: null });
+    for (let i = 1; i <= 3; i++) almacen.guardarOp({ opId: `o${i}`, tipo: "expense.update", entidadTipo: "expense", entidadId: "e", hlc: marca(i), payload: {}, redactada: false, padreId: null, ...SOBRE_GUARDADO });
     expect(servicio.bajar(actor, 0, 0).ops).toHaveLength(1);
     expect(servicio.bajar(actor, 0, 99999).ops).toHaveLength(3);
   });
