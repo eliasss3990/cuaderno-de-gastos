@@ -62,11 +62,17 @@ interface Cola : Almacen {
     /** Todas las operaciones de una entidad, en el orden en que se aplicaron (para recalcularla). */
     fun opsDeEntidad(tipo: String, id: String): List<OpEnCola>
 
+    /** Las operaciones cuyo padre es `padreId` (las de los adjuntos de un gasto), en orden. */
+    fun opsConPadre(padreId: String): List<OpEnCola>
+
     /** Cambia la marca de una operación (el servidor la corrigió). La nueva no puede estar en uso. */
     fun cambiarMarca(opId: String, hlc: String)
 
     /** Borra la entidad y sus campos sin dejar lápida (y sin quitar una que ya hubiera): para rehacerla desde el registro. */
     fun borrarEntidad(tipo: String, id: String)
+
+    /** Quita la lápida de una entidad (solo para deshacer una que nació de una op propia descartada). */
+    fun quitarLapida(tipo: String, id: String)
 
     /** Anota un intento fallido de subirla y cuándo volver a probar. */
     fun anotarIntento(opId: String, proximoIntentoEn: Long?)
