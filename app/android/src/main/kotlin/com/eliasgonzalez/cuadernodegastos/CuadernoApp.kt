@@ -5,6 +5,7 @@ package com.eliasgonzalez.cuadernodegastos
 import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
+import android.util.Log
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -15,6 +16,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import com.eliasgonzalez.cuadernodegastos.base.BaseAndroid
 import com.eliasgonzalez.cuadernodegastos.datos.Migraciones
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.TiemposDelCoordinador
 import com.eliasgonzalez.cuadernodegastos.sesion.CifradorKeystore
 import com.eliasgonzalez.cuadernodegastos.sesion.Tokens
 import com.eliasgonzalez.cuadernodegastos.sincronizacion.Sincronizacion
@@ -32,7 +34,14 @@ class CuadernoApp : Application() {
     val sincronizacion: Sincronizacion by lazy {
         val db = SQLiteDatabase.openOrCreateDatabase(getDatabasePath(BASE).apply { parentFile?.mkdirs() }, null)
         val base = BaseAndroid(db).also { Migraciones.aplicar(it) }
-        Sincronizacion(base, Tokens(getSharedPreferences(Tokens.ARCHIVO, Context.MODE_PRIVATE), CifradorKeystore()), BuildConfig.SERVIDOR, BuildConfig.VERSION_NAME)
+        Sincronizacion(
+            base,
+            Tokens(getSharedPreferences(Tokens.ARCHIVO, Context.MODE_PRIVATE), CifradorKeystore()),
+            BuildConfig.SERVIDOR,
+            versionParaElServidor(BuildConfig.VERSION_NAME),
+            alCambiarEstado = { viaje, e -> if (BuildConfig.DEBUG) Log.i("CuadernoDev", "estado ${viaje.takeLast(4)}: $e") },
+            tiempos = TiemposDelCoordinador(BuildConfig.CIERRE_EN_SEGUNDO_PLANO_MS, BuildConfig.CONSULTA_DE_RESPALDO_MS),
+        )
     }
 
     override fun onCreate() {
@@ -53,6 +62,9 @@ class EventosDeLaApp(private val alPrimerPlano: () -> Unit, private val alSegund
 
     override fun onStop(owner: LifecycleOwner) = hilo.execute(alSegundoPlano)
 }
+
+/** La versión que se le informa al servidor: sin el sufijo de desarrollo ("0.1.1-debug" → "0.1.1"), porque compara números. */
+fun versionParaElServidor(nombre: String) = nombre.substringBefore('-')
 
 /** Una sola tarea con nombre: si ya está programada, se deja como está. */
 fun programarTareaPeriodica(context: Context) {

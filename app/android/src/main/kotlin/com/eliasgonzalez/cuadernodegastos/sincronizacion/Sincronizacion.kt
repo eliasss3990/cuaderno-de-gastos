@@ -11,6 +11,9 @@ import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoDeSincron
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoOp
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.FinDelCiclo
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Sincronizador
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.TiemposDelCoordinador
+import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Operacion
+import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Resultado
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.ViajeLocal
 import com.eliasgonzalez.cuadernodegastos.red.CanalEnHilo
 import com.eliasgonzalez.cuadernodegastos.red.CanalEnVivo
@@ -28,6 +31,7 @@ class Sincronizacion(
     /** Llega desde hilos de fondo (el de cada viaje, el de la tarea periódica): la pantalla lo pasa a su hilo. */
     private val alCambiarEstado: (viaje: String, EstadoDeSincronizacion) -> Unit = { _, _ -> },
     private val hora: () -> Long = System::currentTimeMillis,
+    private val tiempos: TiemposDelCoordinador = TiemposDelCoordinador(),
 ) : AutoCloseable {
     /** Lo de un viaje: su almacén, su ciclo y su coordinador (con su planificador). */
     class DelViaje(val almacen: AlmacenSqlite, val sinc: Sincronizador, val ciclo: Ciclo, val coordinador: Coordinador, val planificador: PlanificadorDeHilos)
@@ -73,6 +77,7 @@ class Sincronizacion(
             planificador = planificador,
             ultimoSeq = { almacen.viajeLocal()?.ultimoSeq ?: 0 },
             alCambiarEstado = { alCambiarEstado(viaje, it) },
+            tiempos = tiempos,
         )
         DelViaje(almacen, sinc, ciclo, coordinador, planificador).also { porViaje[viaje] = it }
     }
@@ -110,6 +115,34 @@ class Sincronizacion(
     fun alCambioLocal(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.alCambioLocal() } } }
 
     fun sincronizarAhora(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.sincronizarAhora() } } }
+
+    /** Las credenciales guardadas de un viaje (para invitar), o null si no está vinculado o el token no se lee. Bloquea. */
+    fun credenciales(viaje: String): Credenciales? {
+        val v = AlmacenSqlite(base, viaje).viajeLocal() ?: return null
+        return Credenciales(viaje, v.dispositivo, v.integrante, tokens.leer(viaje) ?: return null)
+    }
+
+    /**
+     * Registra una operación propia del viaje y avisa para subirla. Bloquea: llamar fuera del hilo principal. La marca
+     * (que `op` pide con nuevaMarca) y el registro van en transacciones separadas: un ciclo puede correr en el medio, y
+     * no pasa nada porque la marca queda reservada y se vuelve a validar al registrar. Desde cualquier hilo: `delViaje`
+     * se sincroniza sobre `porViaje`.
+     */
+    fun registrar(viaje: String, op: (Sincronizador) -> Operacion): Resultado {
+        val d = delViaje(viaje) ?: error("el viaje no tiene token: hay que volver a vincular")
+        val r = d.sinc.registrar(op(d.sinc))
+        alCambioLocal(viaje)
+        return r
+    }
+
+    /** Un resumen del viaje para revisar a mano (sin el token). Bloquea. */
+    fun resumen(viaje: String): String {
+        val a = AlmacenSqlite(base, viaje)
+        val v = a.viajeLocal()
+        val gastos = base.consultar("SELECT COUNT(*) FROM entity WHERE trip_id = ? AND tipo = 'expense'", viaje).single()[0]
+        val porEstado = EstadoOp.entries.joinToString(" ") { e -> "${e.name.lowercase()}=${a.enEstado(e).size}" }
+        return "viaje=$viaje seq=${v?.ultimoSeq} revocado=${v?.revocado} gastos=$gastos $porEstado"
+    }
 
     /** Para la tarea periódica: un ciclo de cada viaje, en este hilo (bloquea). Devuelve cómo terminó cada uno. */
     fun cicloDeTodos(): Map<String, FinDelCiclo> = viajes().associateWith { v ->
