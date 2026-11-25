@@ -57,11 +57,16 @@ class CoordinadorTest {
     private val fines = ArrayDeque<FinDelCiclo>()
     private var ciclos = 0
     private var romper = false
+
+    /** Lo que pasa mientras corre el próximo ciclo (por ejemplo, el aviso del canal de lo que ese ciclo sube). */
+    private var durante: (() -> Unit)? = null
     private var ultimoSeq = 0L
     private val estados = mutableListOf<EstadoDeSincronizacion>()
     private val c = Coordinador(
         ciclo = {
             ciclos++
+            durante?.invoke()
+            durante = null
             if (romper) {
                 romper = false
                 throw IllegalStateException("la base falló")
@@ -103,6 +108,50 @@ class CoordinadorTest {
         canal.abierta!!.alNovedad(6)
         plan.avanzar(0)
         assertEquals(2, ciclos)
+    }
+
+    @Test
+    fun elAvisoDeLoQueElCicloSubioNoProvocaOtroCiclo() {
+        enPantalla()
+        // el ciclo sube y baja hasta la 9; el aviso de la 9 llega mientras corre
+        // el aviso llega antes de que el ciclo termine de bajar: se procesa con la secuencia vieja
+        durante = {
+            canal.abierta!!.alNovedad(9)
+            plan.despues(0) { ultimoSeq = 9 }
+        }
+        c.alCambioLocal()
+        plan.avanzar(60_000)
+        // el de abrir la app y el del cambio: ninguno más
+        assertEquals(2, ciclos)
+    }
+
+    @Test
+    fun unAvisoDuranteUnCicloQueSeQuedaSinConexionAdelantaElReintento() {
+        enPantalla()
+        // el canal reconecta mientras el ciclo falla por red: su aviso (sin nada nuevo) prueba que ya hay conexión
+        fines += FinDelCiclo.Reintentar(300_000)
+        durante = { canal.abierta!!.alNovedad(0) }
+        c.alCambioLocal()
+        plan.avanzar(0)
+        assertEquals(3, ciclos)
+        assertEquals(EstadoDeSincronizacion.AlDia, estados.last())
+    }
+
+    @Test
+    fun unAvisoDeAlgoQueElCicloNoBajoProvocaOtroCicloAlTerminar() {
+        enPantalla()
+        // el aviso llega antes de que el ciclo termine de bajar: se procesa con la secuencia vieja
+        durante = {
+            canal.abierta!!.alNovedad(10)
+            // un aviso viejo que llega después no tapa al de la 10
+            canal.abierta!!.alNovedad(8)
+            plan.despues(0) { ultimoSeq = 9 }
+        }
+        c.alCambioLocal()
+        plan.avanzar(0)
+        assertEquals(3, ciclos)
+        plan.avanzar(60_000)
+        assertEquals(3, ciclos)
     }
 
     @Test

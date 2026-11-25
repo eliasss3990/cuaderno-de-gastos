@@ -204,6 +204,22 @@ class SincronizacionTest {
     }
 
     @Test
+    fun unViajeYaRevocadoAvisaRevocadoDeEntradaYNoPideNada() {
+        vinculado()
+        val almacen = AlmacenSqlite(base, viaje)
+        almacen.guardarViajeLocal(almacen.viajeLocal()!!.copy(revocado = true))
+        s.alPrimerPlano()
+        // el primer aviso es Revocado (nunca "sincronizando") y no hay pedidos, ni siquiera el canal
+        assertEquals(viaje to EstadoDeSincronizacion.Revocado, estados.poll(5, TimeUnit.SECONDS))
+        assertEquals(mapOf(viaje to FinDelCiclo.Revocado), s.cicloDeTodos())
+        Thread.sleep(500)
+        assertTrue(pedidos.toString(), pedidos.isEmpty())
+        assertTrue(estados.all { it.second == EstadoDeSincronizacion.Revocado })
+        // ni credenciales para invitar con un token muerto
+        assertEquals(null, s.credenciales(viaje))
+    }
+
+    @Test
     fun unViajeSinTokenLegibleNoSincronizaYPideVolverAVincular() {
         vinculado()
         prefs.edit().clear().commit()

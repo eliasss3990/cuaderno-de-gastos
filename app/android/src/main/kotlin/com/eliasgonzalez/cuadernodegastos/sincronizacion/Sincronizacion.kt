@@ -56,9 +56,16 @@ class Sincronizacion(
         en { if (enPantalla) delViaje(c.viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.alPrimerPlano() } } }
     }
 
-    /** Arma (una vez) lo del viaje; null si no tiene token legible (hay que volver a vincular). Corre en `hilo`. */
+    /**
+     * Arma (una vez) lo del viaje; null si ya quedó revocado o no tiene token legible (en los dos casos hay que volver a
+     * vincular, y se avisa Revocado sin pedirle nada al servidor).
+     */
     private fun delViaje(viaje: String): DelViaje? = synchronized(porViaje) {
         porViaje[viaje]?.let { return it }
+        if (AlmacenSqlite(base, viaje).viajeLocal()?.revocado == true) {
+            alCambiarEstado(viaje, EstadoDeSincronizacion.Revocado)
+            return null
+        }
         val token = tokens.leer(viaje)
         if (token == null) {
             alCambiarEstado(viaje, EstadoDeSincronizacion.Revocado)
@@ -116,20 +123,21 @@ class Sincronizacion(
 
     fun sincronizarAhora(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.sincronizarAhora() } } }
 
-    /** Las credenciales guardadas de un viaje (para invitar), o null si no está vinculado o el token no se lee. Bloquea. */
+    /** Las credenciales guardadas de un viaje (para invitar), o null si no está vinculado, está revocado o el token no se lee. Bloquea. */
     fun credenciales(viaje: String): Credenciales? {
-        val v = AlmacenSqlite(base, viaje).viajeLocal() ?: return null
+        val v = AlmacenSqlite(base, viaje).viajeLocal()?.takeIf { !it.revocado } ?: return null
         return Credenciales(viaje, v.dispositivo, v.integrante, tokens.leer(viaje) ?: return null)
     }
 
     /**
      * Registra una operación propia del viaje y avisa para subirla. Bloquea: llamar fuera del hilo principal. La marca
      * (que `op` pide con nuevaMarca) y el registro van en transacciones separadas: un ciclo puede correr en el medio, y
-     * no pasa nada porque la marca queda reservada y se vuelve a validar al registrar. Desde cualquier hilo: `delViaje`
+     * no pasa nada porque la marca queda reservada y se vuelve a validar al registrar. En un viaje revocado o sin token
+     * lanza: la pantalla no deja cargar en ese caso. Desde cualquier hilo: `delViaje`
      * se sincroniza sobre `porViaje`.
      */
     fun registrar(viaje: String, op: (Sincronizador) -> Operacion): Resultado {
-        val d = delViaje(viaje) ?: error("el viaje no tiene token: hay que volver a vincular")
+        val d = delViaje(viaje) ?: error("el viaje está revocado o sin token: hay que volver a vincular")
         val r = d.sinc.registrar(op(d.sinc))
         alCambioLocal(viaje)
         return r

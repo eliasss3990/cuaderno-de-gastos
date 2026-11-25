@@ -98,6 +98,9 @@ class Coordinador(
 
     private var corriendo = false
     private var otraVez = false
+
+    /** La cabeza más alta avisada por el canal mientras corría un ciclo: al terminar, se repite solo si no se bajó. */
+    private var cabezaAvisada: Long? = null
     private var reintento: Cancelable? = null
 
     /** La app pasó a primer plano. */
@@ -163,7 +166,12 @@ class Coordinador(
                 }
             }
         }
-        if (otraVez) {
+        // el aviso de lo que este mismo ciclo subió llega mientras corre: si ya se bajó, no hace falta otro ciclo
+        // un aviso también prueba que hay conexión: si el ciclo terminó sin ella, el reintento se adelanta
+        val aviso = cabezaAvisada
+        val porAviso = aviso != null && (aviso > ultimoSeq() || estado == EstadoDeSincronizacion.SinConexion)
+        cabezaAvisada = null
+        if (otraVez || porAviso) {
             otraVez = false
             pedirCiclo()
         }
@@ -184,7 +192,11 @@ class Coordinador(
         consulta = null
         // el primer aviso al conectar trae la cabeza de ahora: si hay algo que no se bajó (se perdió un aviso mientras
         // estaba cortado), este ciclo lo recupera. Si se esperaba un reintento por falta de conexión, el canal prueba que
-        // ya hay: se adelanta
+        // ya hay: se adelanta. Con un ciclo corriendo, se decide al terminar (puede que ese mismo ciclo lo baje)
+        if (corriendo) {
+            cabezaAvisada = maxOf(cabezaAvisada ?: cabeza, cabeza)
+            return
+        }
         if (cabeza > ultimoSeq() || estado == EstadoDeSincronizacion.SinConexion) pedirCiclo()
     }
 
