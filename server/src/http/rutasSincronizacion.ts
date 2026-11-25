@@ -86,6 +86,8 @@ export function rutasDeSincronizacion(app: FastifyInstance, dep: DependenciasDeR
           hlc: o.hlc, 
           payload: o.payload, 
           redacted: o.redactada, 
+          // el dueño de un adjunto: en una op redactada no se puede sacar del payload
+          padre_id: o.padreId, 
           schema_version: o.schemaVersion, 
           device_id: o.deviceId, 
           member_id: o.memberId 
