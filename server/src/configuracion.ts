@@ -17,6 +17,8 @@ export interface Configuracion {
   readonly versionMinima?: string;
   /** Acepta un pepper distinto del que usó la base (borra invitaciones pendientes e intentos). Solo para cambiarlo a propósito. */
   readonly aceptarPepperNuevo: boolean;
+  /** Carpeta de los respaldos de la base (debe existir); sin valor no hay respaldos automáticos antes de migrar. */
+  readonly dirRespaldos?: string;
 }
 
 export class ErrorDeConfiguracion extends Error {
@@ -28,7 +30,7 @@ export class ErrorDeConfiguracion extends Error {
 
 const PUERTO_POR_DEFECTO = 8094;
 
-/** `PORT`, `DATA_DIR`, `ADJUNTOS_DIR`, `PEPPER_FILE`, `LOG_LEVEL`, `APP_MIN_VERSION` y `ACEPTAR_PEPPER_NUEVO`; lanza `ErrorDeConfiguracion` con todos los problemas juntos. */
+/** `PORT`, `DATA_DIR`, `ADJUNTOS_DIR`, `PEPPER_FILE`, `LOG_LEVEL`, `APP_MIN_VERSION`, `ACEPTAR_PEPPER_NUEVO` y `BACKUP_DIR`; lanza `ErrorDeConfiguracion` con todos los problemas juntos. */
 export function leerConfiguracion(env: Readonly<Record<string, string | undefined>>): Configuracion {
   const errores: string[] = [];
   const valor = (nombre: string): string => (env[nombre] ?? "").trim();
@@ -57,5 +59,15 @@ export function leerConfiguracion(env: Readonly<Record<string, string | undefine
   if (pepperNuevo !== "" && pepperNuevo !== "1") errores.push(`ACEPTAR_PEPPER_NUEVO solo puede ser 1 o vacío (llegó "${pepperNuevo}")`);
 
   if (errores.length > 0) throw new ErrorDeConfiguracion(`configuración inválida: ${errores.join("; ")}`);
-  return { puerto, dirDatos, dirAdjuntos, archivoPepper, nivelDeLog, aceptarPepperNuevo: pepperNuevo === "1", ...(versionMinima === "" ? {} : { versionMinima }) };
+  const dirRespaldos = valor("BACKUP_DIR");
+  return {
+    puerto,
+    dirDatos,
+    dirAdjuntos,
+    archivoPepper,
+    nivelDeLog,
+    aceptarPepperNuevo: pepperNuevo === "1",
+    ...(versionMinima === "" ? {} : { versionMinima }),
+    ...(dirRespaldos === "" ? {} : { dirRespaldos }),
+  };
 }

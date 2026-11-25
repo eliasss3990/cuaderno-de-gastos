@@ -66,6 +66,11 @@ describe("leerConfiguracion", () => {
     expect(Object.keys(c).sort()).toEqual(["aceptarPepperNuevo", "archivoPepper", "dirAdjuntos", "dirDatos", "nivelDeLog", "puerto"]);
   });
 
+  it("BACKUP_DIR es opcional: se lee recortado y vacío es como ausente", () => {
+    expect(leerConfiguracion({ ...BASE, BACKUP_DIR: " /backups " }).dirRespaldos).toBe("/backups");
+    expect("dirRespaldos" in leerConfiguracion({ ...BASE, BACKUP_DIR: "  " })).toBe(false);
+  });
+
   it("ACEPTAR_PEPPER_NUEVO solo admite 1 o vacío: cualquier otro valor es un error (no se acepta un pepper nuevo por descuido)", () => {
     expect(leerConfiguracion({ ...BASE, ACEPTAR_PEPPER_NUEVO: "" }).aceptarPepperNuevo).toBe(false);
     for (const malo of ["true", "si", "0", "yes", "11"]) {

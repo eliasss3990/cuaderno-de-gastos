@@ -21,6 +21,7 @@ import { tareaPeriodica, type OpcionesPeriodicas } from "./observabilidad/period
 import type { Registro } from "./observabilidad/registro.js";
 import { crearRegistroPino, type OpcionesDelRegistro } from "./observabilidad/registroPino.js";
 import { comprobarElPepper } from "./almacen/base/pepper.js";
+import { copiarAntesDeMigrar } from "./admin/respaldos.js";
 
 export { NOMBRE_DE_LA_BASE } from "./archivosDelServidor.js";
 export const CADA_DIEZ_MINUTOS_MS = 10 * 60 * 1000;
@@ -201,9 +202,20 @@ export async function arrancar(
   const registro = opciones.registro ?? crearRegistroPino({ nivel: config.nivelDeLog, ...(opciones.destino === undefined ? {} : { destino: opciones.destino }) });
   comprobarLaCarpeta(config.dirDatos, "DATA_DIR");
   comprobarLaCarpeta(config.dirAdjuntos, "ADJUNTOS_DIR");
+  if (config.dirRespaldos !== undefined) comprobarLaCarpeta(config.dirRespaldos, "BACKUP_DIR");
   const pepper = leerElPepper(config.archivoPepper);
 
-  const db: Database = abrirBase(join(config.dirDatos, NOMBRE_DE_LA_BASE));
+  const dirRespaldos = config.dirRespaldos;
+  const db: Database = abrirBase(join(config.dirDatos, NOMBRE_DE_LA_BASE), {
+    // una base con datos que va a migrar se copia antes: si la migración sale mal, se restaura esa copia
+    antesDeMigrar: (base, version) => {
+      if (dirRespaldos === undefined) {
+        registro.warn("migracion_sin_respaldo", { version_guardada: version });
+        return;
+      }
+      registro.info("respaldo_premigracion", { archivo: copiarAntesDeMigrar(base, dirRespaldos, Date.now()), version_guardada: version });
+    },
+  });
   const temporizadores: (() => void)[] = [];
   let app: FastifyInstance | undefined;
   let barridoDeAdjuntos: { detener(): Promise<void> } | undefined;

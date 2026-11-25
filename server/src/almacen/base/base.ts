@@ -10,6 +10,14 @@ export interface OpcionesBase {
   readonly soloExistente?: boolean;
   /** Sin migrar: exige que la base ya esté exactamente en la versión de este código (la administración no cambia el esquema). */
   readonly sinMigrar?: boolean;
+  /** Se llama antes de migrar una base que ya tenía datos y está atrasada (para respaldarla); un error frena la migración. */
+  readonly antesDeMigrar?: (db: Base, versionGuardada: number) => void;
+}
+
+function versionGuardada(db: Base): number {
+  const tabla = db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'schema_migration'").get();
+  if (tabla === undefined) return 0;
+  return (db.prepare("SELECT COALESCE(MAX(version), 0) AS v FROM schema_migration").get() as { v: number }).v;
 }
 
 export function abrirBase(ruta: string, opciones: OpcionesBase = {}): Base {
@@ -25,7 +33,11 @@ export function abrirBase(ruta: string, opciones: OpcionesBase = {}): Base {
     db.pragma("foreign_keys = ON");
     // FULL: una operación ya confirmada al cliente no se pierde ante un corte de energía (con NORMAL podría perderse)
     db.pragma("synchronous = FULL");
-    if (opciones.sinMigrar !== true) migrar(db);
+    if (opciones.sinMigrar !== true) {
+      const guardada = versionGuardada(db);
+      if (opciones.antesDeMigrar !== undefined && guardada > 0 && guardada < VERSION_ACTUAL) opciones.antesDeMigrar(db, guardada);
+      migrar(db);
+    }
     return db;
   } catch (error) {
     db.close();
