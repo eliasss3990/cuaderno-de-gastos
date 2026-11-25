@@ -68,7 +68,8 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "$files"
 
-  # A main el bump de versión de la app es obligatorio cuando cambia app/** o conformance/**.
+  # A main el bump de versión de la app es obligatorio cuando cambia app/** (los vectores de conformance/ corren las
+  # pruebas de la app pero no la publican: no exigen subir la versión).
   version-bump:
     name: Versión de la app
     if: github.base_ref == 'main'
@@ -85,8 +86,8 @@ jobs:
           CONF: ${{ needs.changes.outputs.conformance }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          if [ "$APP" != "true" ] && [ "$CONF" != "true" ]; then
-            echo "No cambia app/ ni conformance/: no se exige subir la versión."
+          if [ "$APP" != "true" ]; then
+            echo "No cambia app/: no se exige subir la versión (conformance/ cambió: $CONF; no publica la app)."
             exit 0
           fi
           get() { grep -oP "$1 = \"?\K[^\"\n]+" "$2" | head -1; }
