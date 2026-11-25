@@ -5,6 +5,7 @@ import {
   dividirHaciaAbajo,
   formatear,
   formatearEntrada,
+  formatearNumero,
   parsear,
   type Moneda,
 } from "../../../src/dominio/base/dinero.js";
@@ -15,6 +16,7 @@ interface Vectores {
   formatear: { moneda: string; minor: number; esperado: string }[];
   parsear: { moneda: string; texto: string; esperado?: number; error?: string }[];
   formatearEntrada: { moneda: string; crudo: string; esperado: string }[];
+  formatearNumero: { minor: number; decimales: number; esperado: string }[];
   dividirHaciaAbajo: { a: number; b: number; esperado?: number; error?: boolean }[];
 }
 
@@ -44,6 +46,10 @@ describe("dinero: vectores de conformidad", () => {
     } else {
       expect(r).toEqual({ ok: true, minor: esperado });
     }
+  });
+
+  it.each(vectores.formatearNumero)("formatearNumero $minor con $decimales decimales -> '$esperado'", ({ minor, decimales, esperado }) => {
+    expect(formatearNumero(minor, decimales)).toBe(esperado);
   });
 
   it.each(vectores.formatearEntrada)("formatearEntrada $moneda '$crudo' -> '$esperado'", ({ moneda: c, crudo, esperado }) => {

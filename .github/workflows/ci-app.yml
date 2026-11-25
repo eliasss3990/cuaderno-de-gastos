@@ -113,7 +113,8 @@ jobs:
   app-checks:
     name: App (lint, pruebas y build debug)
     # PR a next, o hotfix/* a main (validación reducida: solo lint, ver abajo).
-    if: needs.changes.outputs.app == 'true' && (github.base_ref == 'next' || startsWith(github.head_ref, 'hotfix/'))
+    # conformance/ también: el dominio de la app se prueba contra esos vectores
+    if: (needs.changes.outputs.app == 'true' && (github.base_ref == 'next' || startsWith(github.head_ref, 'hotfix/'))) || (needs.changes.outputs.conformance == 'true' && github.base_ref == 'next')
     needs: changes
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -146,7 +147,7 @@ jobs:
       - name: Pruebas unitarias
         if: github.base_ref == 'next'
         working-directory: app
-        run: ./gradlew testDebugUnitTest --console=plain
+        run: ./gradlew :dominio:test testDebugUnitTest --console=plain
       - name: Compilar APK debug
         if: github.base_ref == 'next'
         working-directory: app
@@ -155,7 +156,9 @@ jobs:
         if: always() && github.base_ref == 'next'
         with:
           name: resultados-pruebas-app
-          path: app/build/reports/tests/testDebugUnitTest
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            app/dominio/build/reports/tests/test
           retention-days: 14
 
   # Simulador corto de sincronización: todavía no existe, este job reserva su lugar. Se activa con
