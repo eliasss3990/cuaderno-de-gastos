@@ -27,6 +27,7 @@ android {
         targetSdk = 36
         versionCode = 2
         versionName = "0.1.1"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildFeatures {
@@ -58,8 +59,14 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    // las pruebas con Robolectric leen recursos de la app (las reglas de respaldo)
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     sourceSets["main"].kotlin.srcDirs("src/main/kotlin")
     sourceSets["test"].kotlin.srcDirs("src/test/kotlin")
+    sourceSets["androidTest"].kotlin.srcDirs("src/androidTest/kotlin")
 }
 
 // el APK se sigue llamando cuaderno-de-gastos-*.apk, como antes de que la app pasara a su módulo
@@ -79,5 +86,9 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     // el SQLite de Android en la JVM: el adaptador de la base corre el mismo contrato que memoria y sqlite-jdbc
     testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation("androidx.test:core:1.7.0")
+    // pruebas en el celular (lo que la JVM no tiene, como el Keystore): ./gradlew connectedDebugAndroidTest
+    androidTestImplementation("androidx.test:runner:1.7.0")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
     testImplementation(testFixtures(project(":dominio")))
 }

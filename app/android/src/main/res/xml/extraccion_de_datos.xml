@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los tokens no viajan a otro celular ni a la nube: cifrados con una clave que no sale de este celular, no servirían. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="sharedpref" path="tokens.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="tokens.xml" />
+    </device-transfer>
+</data-extraction-rules>
