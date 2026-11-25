@@ -116,7 +116,18 @@ export function rutasDeSincronizacion(app: FastifyInstance, dep: DependenciasDeR
     void reply.hijack();
     const raw = reply.raw;
     const escritor = new EscritorSse(raw);
-    const latido = setInterval(() => escritor.latido(), dep.latidoMs ?? LATIDO_MS);
+    // en cada latido se vuelve a mirar si el dispositivo sigue activo: una revocación desde la administración (otro proceso)
+    // no pasa por `expulsar`, y así el canal se cierra igual en a lo sumo un latido
+    const latido = setInterval(() => {
+      let activo = true;
+      try {
+        activo = identidad.sigueActivo(actor.deviceId);
+      } catch {
+        /* si la base no responde, se sigue con el latido y se vuelve a mirar en el próximo */
+      }
+      if (activo) escritor.latido();
+      else escritor.cerrar();
+    }, dep.latidoMs ?? LATIDO_MS);
     latido.unref();
     const abierto = ahora();
     let baja = (): void => {};

@@ -126,12 +126,13 @@ describe("POST /v1/join", () => {
     expect(codigoDe(viejo)).toBe("dispositivo_revocado");
   });
 
-  it("un integrante nuevo sin apodo, color y emoji recibe el mismo codigo_invalido que un código malo", async () => {
+  it("un integrante nuevo sin apodo, color y emoji recibe formato_invalido diciendo qué falta (la app puede pedirlo)", async () => {
     const e = entornoApi();
     const org = await e.crearViaje();
     const { cuerpo } = await e.invitar(org.token, org.trip_id);
     const r = await e.unirse(cuerpo.codigo, { nombre_dispositivo: "Celular" });
-    expect([r.statusCode, codigoDe(r)]).toEqual([400, "codigo_invalido"]);
+    expect([r.statusCode, codigoDe(r)]).toEqual([400, "formato_invalido"]);
+    expect(r.json<{ error: { mensaje: string } }>().error.mensaje).toBe("para unirse como integrante nuevo hacen falta apodo, color y emoji");
     expect((await e.unirse(cuerpo.codigo)).statusCode).toBe(201); // la invitación sigue sirviendo
   });
 

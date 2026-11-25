@@ -38,6 +38,8 @@ export const VIGENCIA_DE_LA_INVITACION_MS = 24 * 60 * 60 * 1000;
 export const MAX_INTENTOS_FALLIDOS = 5;
 /** Invitaciones sin usar ni vencer que un organizador puede tener a la vez en un viaje (la de rescate del administrador no cuenta). */
 export const MAX_INVITACIONES_PENDIENTES = 5;
+/** Cuántos dispositivos revocados muestra la lista de la familia (los más recientes; los activos, todos). */
+export const MAX_REVOCADOS_EN_LA_FAMILIA = 10;
 export const VENTANA_DE_INTENTOS_MS = 15 * 60 * 1000;
 /** Las IP que no se pueden leer comparten un solo grupo (0.0.0.0 no puede ser la IP de un cliente real). */
 const IP_ILEGIBLE = "0.0.0.0";
@@ -228,8 +230,9 @@ export class ServicioDeIdentidad {
    * dispositivo viejo y conserva al integrante; con una de integrante nuevo escribe además su `member.join`.
    *
    * Con 5 fallos en 15 minutos desde la misma red (IPv6 por /64) el siguiente da `demasiados_intentos`. Cuenta como fallo
-   * todo `codigo_invalido` (código malo, usado, vencido, o de integrante nuevo sin apodo, color ni emoji, para no delatar que
-   * el código existe); `formato_invalido` y `viaje_completo` no cuentan ni consumen la invitación.
+   * todo `codigo_invalido` (código malo, usado o vencido); `formato_invalido` y `viaje_completo` no cuentan ni consumen la
+   * invitación. Un código bueno de integrante nuevo sin apodo, color ni emoji da `formato_invalido` a propósito (la app sabe
+   * que tiene que pedir el perfil; quien tiene el código podría unirse igual).
    *
    * La validez de la invitación (existe, sin usar, vigente) se comprueba antes de crear el dispositivo: con el viaje lleno, la creación fallaría primero
    * con `viaje_completo` y delataría que el código existió. Los fallos se anotan fuera de la transacción (ya deshecha), así
@@ -256,7 +259,8 @@ export class ServicioDeIdentidad {
         const invitacion = this.dep.identidad.invitacionPorCodigo(huellaDeCodigo(codigo, this.dep.pepper));
         if (invitacion === null || invitacion.usadaEn !== null || invitacion.venceEn <= ahora || invitacion.creadaEn > ahora) throw codigoInvalido();
         const esReemplazo = invitacion.reemplazaMemberId !== null;
-        if (!esReemplazo && miembro === null) throw codigoInvalido();
+        // la invitación es buena pero para alguien nuevo: falta con qué crear su integrante (no es un intento fallido)
+        if (!esReemplazo && miembro === null) throw new ErrorDeServicio("formato_invalido", "para unirse como integrante nuevo hacen falta apodo, color y emoji");
         const tripId = invitacion.tripId;
         const almacen = this.dep.almacenDe(tripId);
         const integrante = invitacion.reemplazaMemberId ?? memberId;
@@ -330,6 +334,11 @@ export class ServicioDeIdentidad {
     this.dep.identidad.revocar(objetivo.deviceId, this.dep.ahora());
   }
 
+  /** Si el dispositivo sigue activo (no revocado). Lo usa el canal en vivo para cerrar a quien revocaron por otro camino. */
+  sigueActivo(deviceId: string): boolean {
+    return this.dep.identidad.dispositivo(deviceId)?.revocadoEn === null;
+  }
+
   /**
    * Revoca un dispositivo por su id, sin pasar por el organizador (lo hace quien administra el servidor). Devuelve cómo
    * quedó y si ya estaba revocado; uno que no existe da `no_existe`.
@@ -344,7 +353,7 @@ export class ServicioDeIdentidad {
   }
 
   /**
-   * La lista de dispositivos del viaje (también los revocados, del más antiguo al más nuevo) con lo que cada uno informó en su
+   * La lista de dispositivos del viaje (los activos y los 10 revocados más recientes, del más antiguo al más nuevo) con lo que cada uno informó en su
    * último pedido, más la cabeza del viaje y la hora del servidor: con eso la app calcula "al día" y "hace X". Quien pregunta
    * ya está autenticado (un revocado no llega acá). Nunca incluye las huellas de los tokens.
    */
@@ -353,8 +362,16 @@ export class ServicioDeIdentidad {
     readonly cabeza: number;
     readonly ahora: number;
   } {
+    const todos = this.dep.identidad.dispositivosDelViaje(actor.tripId);
+    // de los revocados solo los más recientes: cada reemplazo suma uno y la lista no debe crecer para siempre
+    const recientes = new Set(
+      todos
+        .filter((d) => d.revocadoEn !== null)
+        .sort((a, b) => (b.revocadoEn ?? 0) - (a.revocadoEn ?? 0) || b.deviceId.localeCompare(a.deviceId, "en"))
+        .slice(0, MAX_REVOCADOS_EN_LA_FAMILIA),
+    );
     return {
-      dispositivos: this.dep.identidad.dispositivosDelViaje(actor.tripId),
+      dispositivos: todos.filter((d) => d.revocadoEn === null || recientes.has(d)),
       cabeza: this.dep.almacenDe(actor.tripId).seqMaximo(),
       ahora: this.dep.ahora(),
     };

@@ -213,14 +213,14 @@ describe("unirse como integrante nuevo", () => {
     expect(e.contar("join_attempt")).toBe(malos.length); // todos contaron como fallo
   });
 
-  it("sin apodo, color ni emoji una invitación de integrante nuevo da el mismo error que un código malo y no se consume", () => {
+  it("sin apodo, color ni emoji una invitación de integrante nuevo da formato_invalido, no se consume ni cuenta como fallo", () => {
     const e = viajeConOrganizador();
     const { codigo } = e.servicio.invitar(e.organizador);
     const sinDatos = { codigo, ip: IP, nombreDispositivo: "Celular de Ana" };
-    expect(codigoDe(() => e.servicio.unirse(sinDatos))).toBe("codigo_invalido");
+    expect(codigoDe(() => e.servicio.unirse(sinDatos))).toBe("formato_invalido");
     expect(e.db.prepare("SELECT usada_en FROM invitation").get()).toEqual({ usada_en: null });
     expect(e.contar("device")).toBe(1);
-    expect(e.db.prepare("SELECT ok FROM join_attempt").all()).toEqual([{ ok: 0 }]); // cuenta como fallo
+    expect(e.db.prepare("SELECT ok FROM join_attempt").all()).toEqual([]); // el código era bueno: no es un intento fallido
     expect(codigoDe(() => e.servicio.unirse({ codigo, ip: IP, ...NUEVO }))).toBe("sin error"); // sigue sirviendo
   });
 
@@ -409,10 +409,11 @@ describe("límite de intentos fallidos", () => {
     expect(e.contar("join_attempt")).toBe(0);
   });
 
-  it("el fallo de un código bueno al que le faltan datos también cuenta (no deja distinguirlo de uno malo)", () => {
+  it("un código bueno al que le faltan datos no cuenta para el límite (se distingue a propósito: la app pide el perfil); los malos sí", () => {
     const e = viajeConOrganizador();
     const { codigo } = e.servicio.invitar(e.organizador);
-    for (let i = 0; i < MAX_INTENTOS_FALLIDOS; i++) expect(codigoDe(() => e.servicio.unirse({ codigo, ip: IP, nombreDispositivo: "X" }))).toBe("codigo_invalido");
+    for (let i = 0; i < MAX_INTENTOS_FALLIDOS + 2; i++) expect(codigoDe(() => e.servicio.unirse({ codigo, ip: IP, nombreDispositivo: "X" }))).toBe("formato_invalido");
+    for (let i = 0; i < MAX_INTENTOS_FALLIDOS; i++) expect(codigoDe(() => e.servicio.unirse({ codigo: "ZZZZZZZZ", ip: IP, nombreDispositivo: "X" }))).toBe("codigo_invalido");
     expect(codigoDe(() => e.servicio.unirse({ codigo, ip: IP, ...NUEVO }))).toBe("demasiados_intentos");
   });
 });
