@@ -15,17 +15,17 @@ const mensaje = (env: Record<string, string | undefined>): string => {
 
 describe("leerConfiguracion", () => {
   it("con lo obligatorio usa los valores por defecto: puerto 8094, nivel info y sin versión mínima", () => {
-    expect(leerConfiguracion(BASE)).toEqual({ puerto: 8094, dirDatos: "/data", dirAdjuntos: "/adjuntos", archivoPepper: "/run/secrets/pepper", nivelDeLog: "info" });
+    expect(leerConfiguracion(BASE)).toEqual({ puerto: 8094, dirDatos: "/data", dirAdjuntos: "/adjuntos", archivoPepper: "/run/secrets/pepper", nivelDeLog: "info", aceptarPepperNuevo: false });
   });
 
   it("lee todo lo que se informa", () => {
-    const c = leerConfiguracion({ ...BASE, PORT: "9000", LOG_LEVEL: "debug", APP_MIN_VERSION: "0.2.0" });
-    expect(c).toEqual({ puerto: 9000, dirDatos: "/data", dirAdjuntos: "/adjuntos", archivoPepper: "/run/secrets/pepper", nivelDeLog: "debug", versionMinima: "0.2.0" });
+    const c = leerConfiguracion({ ...BASE, PORT: "9000", LOG_LEVEL: "debug", APP_MIN_VERSION: "0.2.0", ACEPTAR_PEPPER_NUEVO: " 1 " });
+    expect(c).toEqual({ puerto: 9000, dirDatos: "/data", dirAdjuntos: "/adjuntos", archivoPepper: "/run/secrets/pepper", nivelDeLog: "debug", versionMinima: "0.2.0", aceptarPepperNuevo: true });
   });
 
   it("recorta los espacios de alrededor y trata un valor vacío como ausente en lo opcional", () => {
     const c = leerConfiguracion({ DATA_DIR: "  /data  ", ADJUNTOS_DIR: " /a ", PEPPER_FILE: " /p ", PORT: "  ", LOG_LEVEL: "", APP_MIN_VERSION: "   " });
-    expect(c).toEqual({ puerto: 8094, dirDatos: "/data", dirAdjuntos: "/a", archivoPepper: "/p", nivelDeLog: "info" });
+    expect(c).toEqual({ puerto: 8094, dirDatos: "/data", dirAdjuntos: "/a", archivoPepper: "/p", nivelDeLog: "info", aceptarPepperNuevo: false });
     expect(leerConfiguracion({ ...BASE, PORT: " 8095 " }).puerto).toBe(8095);
   });
 
@@ -63,6 +63,13 @@ describe("leerConfiguracion", () => {
 
   it("ignora el resto del entorno y no lo copia", () => {
     const c = leerConfiguracion({ ...BASE, PATH: "/usr/bin", SECRETO: "x" });
-    expect(Object.keys(c).sort()).toEqual(["archivoPepper", "dirAdjuntos", "dirDatos", "nivelDeLog", "puerto"]);
+    expect(Object.keys(c).sort()).toEqual(["aceptarPepperNuevo", "archivoPepper", "dirAdjuntos", "dirDatos", "nivelDeLog", "puerto"]);
+  });
+
+  it("ACEPTAR_PEPPER_NUEVO solo admite 1 o vacío: cualquier otro valor es un error (no se acepta un pepper nuevo por descuido)", () => {
+    expect(leerConfiguracion({ ...BASE, ACEPTAR_PEPPER_NUEVO: "" }).aceptarPepperNuevo).toBe(false);
+    for (const malo of ["true", "si", "0", "yes", "11"]) {
+      expect(() => leerConfiguracion({ ...BASE, ACEPTAR_PEPPER_NUEVO: malo }), malo).toThrow(/ACEPTAR_PEPPER_NUEVO solo puede ser 1/);
+    }
   });
 });

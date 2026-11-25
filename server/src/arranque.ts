@@ -20,6 +20,7 @@ import { iniciarResumenPeriodico, MAX_SERIES, MetricasEnMemoria, type Metricas }
 import { tareaPeriodica, type OpcionesPeriodicas } from "./observabilidad/periodico.js";
 import type { Registro } from "./observabilidad/registro.js";
 import { crearRegistroPino, type OpcionesDelRegistro } from "./observabilidad/registroPino.js";
+import { comprobarElPepper } from "./almacen/base/pepper.js";
 
 export const NOMBRE_DE_LA_BASE = "cuaderno.db";
 export const CADA_DIEZ_MINUTOS_MS = 10 * 60 * 1000;
@@ -234,6 +235,18 @@ export async function arrancar(
   };
 
   try {
+    const pepperGuardado = comprobarElPepper(db, pepper, config.aceptarPepperNuevo);
+    if (pepperGuardado.estado === "distinto") {
+      throw new ErrorDeConfiguracion(
+        "el pepper no coincide con el que usó esta base: si se cambió a propósito, arrancar una vez con ACEPTAR_PEPPER_NUEVO=1 (borra las invitaciones sin usar y los intentos de unirse)",
+      );
+    }
+    if (pepperGuardado.estado === "registrado") registro.info("pepper_registrado", {});
+    // la bandera es de un solo arranque: si quedó puesta, un cambio de pepper por error pasaría sin frenar
+    if (config.aceptarPepperNuevo && pepperGuardado.estado !== "reemplazado") registro.warn("aceptar_pepper_nuevo_activo", {});
+    if (pepperGuardado.estado === "reemplazado") {
+      registro.warn("pepper_reemplazado", { pendientes_borrados: pepperGuardado.invitacionesBorradas, intentos_borrados: pepperGuardado.intentosBorrados });
+    }
     const metricas = new MetricasEnMemoria(MAX_SERIES, false);
     const servicio = servicioDeIdentidadSobre(db, { ahora: () => Date.now(), pepper });
     const canal = new CanalEnMemoria();

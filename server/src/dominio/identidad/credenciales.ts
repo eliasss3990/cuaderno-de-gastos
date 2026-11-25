@@ -88,6 +88,11 @@ function hmac(pepper: Uint8Array, dominio: string, texto: string): string {
   return createHmac("sha256", pepper).update(`${dominio}:${texto}`, "utf8").digest("hex");
 }
 
+/** Huella fija del pepper (HMAC con un dominio propio): se guarda en la base para notar que el pepper cambió, sin revelarlo. */
+export function huellaDeVerificacionDelPepper(pepper: Uint8Array): string {
+  return hmac(pepper, "verificacion", "cuaderno-de-gastos");
+}
+
 /** Huella del código ya normalizado (HMAC-SHA256 con el pepper): es lo único que se guarda. */
 export function huellaDeCodigo(codigoNormalizado: string, pepper: Uint8Array): string {
   if (normalizarCodigo(codigoNormalizado) !== codigoNormalizado) throw new RangeError("el código debe estar normalizado");

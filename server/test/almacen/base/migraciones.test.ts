@@ -15,7 +15,7 @@ describe("migraciones", () => {
   it("una base nueva recibe todas las migraciones y queda registrada la versión", () => {
     const db = new Database(":memory:");
     expect(migrar(db, 1234)).toEqual(MIGRACIONES.map((m) => m.version));
-    expect(tablas(db)).toEqual(["device", "entity", "entity_field", "entity_tombstone", "invitation", "join_attempt", "op", "schema_migration", "trip_closed_interval"]);
+    expect(tablas(db)).toEqual(["device", "entity", "entity_field", "entity_tombstone", "invitation", "join_attempt", "op", "schema_migration", "servidor_parametro", "trip_closed_interval"]);
     expect(db.prepare("SELECT version, aplicada_en FROM schema_migration ORDER BY version").all()).toEqual(MIGRACIONES.map((m) => ({ version: m.version, aplicada_en: 1234 })));
     expect(VERSION_ACTUAL).toBe(MIGRACIONES.length);
   });
@@ -97,12 +97,14 @@ describe("migraciones", () => {
       [CONSULTAS_IDENTIDAD.contarActivos, ["v"]],
       [CONSULTAS_IDENTIDAD.dispositivosDelViaje, ["v"]],
       [CONSULTAS_IDENTIDAD.invitacionPorCodigo, ["h"]],
+      [CONSULTAS_IDENTIDAD.invitacionesPendientes, ["v", "1", "1"]],
       [CONSULTAS_IDENTIDAD.intentosFallidos, ["ip", "1"]],
       [CONSULTAS_IDENTIDAD.limpiarIntentos, ["1"]],
     ];
     // ninguna consulta de identidad recorre una tabla entera
     for (const [sql, args] of identidad) expect(plan(sql, ...args), sql).not.toMatch(/SCAN (device|invitation|join_attempt)(?! USING)/);
     expect(plan(CONSULTAS_IDENTIDAD.dispositivoPorToken, "h")).toMatch(/sqlite_autoindex_device/);
+    expect(plan(CONSULTAS_IDENTIDAD.invitacionesPendientes, "v", "1", "1")).toMatch(/ix_invitation_pendiente/);
     expect(plan(CONSULTAS_IDENTIDAD.contarActivos, "v")).toContain("ix_device_trip (trip_id=?");
     expect(plan(CONSULTAS_IDENTIDAD.invitacionPorCodigo, "h")).toMatch(/sqlite_autoindex_invitation/);
     expect(plan(CONSULTAS_IDENTIDAD.intentosFallidos, "ip", "1")).toContain("ix_join_attempt (ip_hash=? AND intentado_en>?)");

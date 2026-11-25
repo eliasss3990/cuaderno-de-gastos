@@ -15,6 +15,8 @@ export interface Configuracion {
   readonly nivelDeLog: Nivel | "silent";
   /** Versión mínima de la app; sin valor, no se exige ninguna. */
   readonly versionMinima?: string;
+  /** Acepta un pepper distinto del que usó la base (borra invitaciones pendientes e intentos). Solo para cambiarlo a propósito. */
+  readonly aceptarPepperNuevo: boolean;
 }
 
 export class ErrorDeConfiguracion extends Error {
@@ -26,7 +28,7 @@ export class ErrorDeConfiguracion extends Error {
 
 const PUERTO_POR_DEFECTO = 8094;
 
-/** `PORT`, `DATA_DIR`, `ADJUNTOS_DIR`, `PEPPER_FILE`, `LOG_LEVEL` y `APP_MIN_VERSION`; lanza `ErrorDeConfiguracion` con todos los problemas juntos. */
+/** `PORT`, `DATA_DIR`, `ADJUNTOS_DIR`, `PEPPER_FILE`, `LOG_LEVEL`, `APP_MIN_VERSION` y `ACEPTAR_PEPPER_NUEVO`; lanza `ErrorDeConfiguracion` con todos los problemas juntos. */
 export function leerConfiguracion(env: Readonly<Record<string, string | undefined>>): Configuracion {
   const errores: string[] = [];
   const valor = (nombre: string): string => (env[nombre] ?? "").trim();
@@ -51,6 +53,9 @@ export function leerConfiguracion(env: Readonly<Record<string, string | undefine
   const versionMinima = valor("APP_MIN_VERSION");
   if (versionMinima !== "" && parsearVersion(versionMinima) === null) errores.push(`APP_MIN_VERSION no es una versión (llegó "${versionMinima}")`);
 
+  const pepperNuevo = valor("ACEPTAR_PEPPER_NUEVO");
+  if (pepperNuevo !== "" && pepperNuevo !== "1") errores.push(`ACEPTAR_PEPPER_NUEVO solo puede ser 1 o vacío (llegó "${pepperNuevo}")`);
+
   if (errores.length > 0) throw new ErrorDeConfiguracion(`configuración inválida: ${errores.join("; ")}`);
-  return { puerto, dirDatos, dirAdjuntos, archivoPepper, nivelDeLog, ...(versionMinima === "" ? {} : { versionMinima }) };
+  return { puerto, dirDatos, dirAdjuntos, archivoPepper, nivelDeLog, aceptarPepperNuevo: pepperNuevo === "1", ...(versionMinima === "" ? {} : { versionMinima }) };
 }

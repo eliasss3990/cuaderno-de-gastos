@@ -25,6 +25,7 @@ const ESTADO_DE_SERVICIO: Record<CodigoDeError, number> = {
   no_existe: 404,
   codigo_invalido: 400,
   viaje_completo: 409,
+  demasiadas_invitaciones: 409,
   demasiados_intentos: 429,
 };
 

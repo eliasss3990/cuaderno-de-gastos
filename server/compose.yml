@@ -1,6 +1,6 @@
 # Despliegue del servicio. En producción lo copia deploy-server.yml a
 # /srv/cuaderno y se levanta con `VERSION=x.y.z docker compose --env-file .env up -d`.
-# El .env vive solo en el VPS (CUADERNO_UID, CUADERNO_GID, APP_MIN_VERSION).
+# El .env vive solo en el VPS (CUADERNO_UID, CUADERNO_GID, APP_MIN_VERSION, ACEPTAR_PEPPER_NUEVO); ver .env.example.
 # Antes del primer arranque con datos: crear /srv/cuaderno/data (de CUADERNO_UID) y
 # /srv/cuaderno-secrets/pepper.txt (un valor secreto de 32 bytes o más, legible por CUADERNO_UID, chmod 600, fuera del repo).
 # Conviene chmod 700 en la carpeta de datos.
@@ -21,6 +21,9 @@ services:
       LOG_LEVEL: info
       APP_MIN_VERSION: ${APP_MIN_VERSION:?falta APP_MIN_VERSION en el .env}
       PEPPER_FILE: /run/secrets/pepper
+      # Solo para cambiar el pepper a propósito: poner ACEPTAR_PEPPER_NUEVO=1 en el .env, arrancar UNA vez y volver a sacarlo.
+      # Borra las invitaciones sin usar y los intentos de unirse. Si queda en 1, un cambio de pepper por error pasaría sin frenar.
+      ACEPTAR_PEPPER_NUEVO: ${ACEPTAR_PEPPER_NUEVO:-}
     secrets: [pepper]
     volumes:
       - /srv/cuaderno/data:/data
