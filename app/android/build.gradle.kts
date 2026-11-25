@@ -74,6 +74,10 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.material3:material3")
     implementation(project(":dominio"))
+    implementation(project(":datos"))
 
     testImplementation("junit:junit:4.13.2")
+    // el SQLite de Android en la JVM: el adaptador de la base corre el mismo contrato que memoria y sqlite-jdbc
+    testImplementation("org.robolectric:robolectric:4.16.1")
+    testImplementation(testFixtures(project(":dominio")))
 }

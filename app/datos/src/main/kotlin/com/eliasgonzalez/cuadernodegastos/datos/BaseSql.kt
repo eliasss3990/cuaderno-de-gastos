@@ -7,7 +7,7 @@ package com.eliasgonzalez.cuadernodegastos.datos
 typealias Fila = List<Any?>
 
 interface BaseSql {
-    /** Ejecuta UNA sentencia con parámetros (`?`) y devuelve las filas cambiadas (Android no admite varias juntas). */
+    /** Ejecuta UNA sentencia con parámetros (`?`) (Android no admite varias juntas); en un UPDATE o DELETE devuelve las filas cambiadas. */
     fun ejecutar(sql: String, vararg args: Any?): Int
 
     /** Las filas de una consulta con parámetros, en orden, cada una como lista de columnas. */
