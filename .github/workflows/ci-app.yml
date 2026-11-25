@@ -166,16 +166,42 @@ jobs:
             app/red/build/reports/tests/test
           retention-days: 14
 
-  # Simulador corto de sincronización: todavía no existe, este job reserva su lugar. Se activa con
-  # cambios en app/, server/ o conformance/ porque usa el servidor real.
+  # La app contra el servidor real: se arma la imagen del servidor de este mismo PR y el cliente de la app (crear viaje,
+  # invitar, unirse, sincronizar dos celulares, canal en vivo) corre contra ella. Se activa con cambios en app/, server/
+  # o conformance/.
   sim-e2e:
-    name: Simulador corto (aún no disponible)
+    name: App contra el servidor real
     if: github.base_ref == 'next' && (needs.changes.outputs.app == 'true' || needs.changes.outputs.server == 'true' || needs.changes.outputs.conformance == 'true')
     needs: changes
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
-      - run: echo "El simulador de sincronización todavía no existe. Este job reserva su lugar en el CI."
+      - uses: actions/checkout@v4
+      - name: Levantar el servidor
+        run: |
+          docker build -q -t cuaderno-server:prueba server
+          # pepper de usar y tirar: el servidor arranca vacío y se descarta al terminar
+          mkdir -p "$RUNNER_TEMP/s" && head -c 48 /dev/urandom | base64 > "$RUNNER_TEMP/s/pepper.txt" && chmod 644 "$RUNNER_TEMP/s/pepper.txt"
+          docker run -d --name servidor -p 127.0.0.1:8094:8094 --tmpfs /data:uid=1000 --tmpfs /adjuntos:uid=1000 --tmpfs /backups:uid=1000 \
+            --user 1000:1000 -e PORT=8094 -e DATA_DIR=/data -e ADJUNTOS_DIR=/adjuntos -e BACKUP_DIR=/backups -e LOG_LEVEL=warn \
+            -e APP_MIN_VERSION=0.1.0 -e PEPPER_FILE=/run/pepper -v "$RUNNER_TEMP/s/pepper.txt:/run/pepper:ro" cuaderno-server:prueba
+          for _ in $(seq 30); do curl -s -o /dev/null http://127.0.0.1:8094/ && exit 0; sleep 1; done
+          docker logs servidor; exit 1
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          build-root-directory: app
+      - name: Prueba contra el servidor
+        working-directory: app
+        run: ./gradlew :red:test --tests '*ServidorReal*' -PservidorDePrueba=http://127.0.0.1:8094 --console=plain
+      - name: Comprobar que la prueba corrió (no se salteó)
+        run: grep -q 'skipped="0"' app/red/build/test-results/test/TEST-com.eliasgonzalez.cuadernodegastos.red.ServidorRealTest.xml
+      - name: Registro del servidor
+        if: failure()
+        run: docker logs servidor 2>&1 | tail -100
 
   app-ok:
     name: App OK
