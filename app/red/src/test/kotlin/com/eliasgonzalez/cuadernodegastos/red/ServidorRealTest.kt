@@ -39,7 +39,9 @@ class ServidorRealTest {
 
         fun gasto(monto: Int, nota: String): String {
             val id = uuid7()
-            sinc.registrar(Operacion(uuid7(), "expense.create", "expense", id, sinc.nuevaMarca(), json("""{"monto_minor":$monto,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":${System.currentTimeMillis()},"dia_imputado":"2027-02-18","nota":"$nota"}"""), 1))
+            val r = sinc.registrar(Operacion(uuid7(), "expense.create", "expense", id, sinc.nuevaMarca(), json("""{"monto_minor":$monto,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":${System.currentTimeMillis()},"dia_imputado":"2027-02-18","nota":"$nota"}"""), 1))
+            // que se guarde de verdad (antes de bajar el viaje se rechazaría: no conoce la moneda)
+            check(r is com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Resultado.Aceptada) { "gasto rechazado: $r" }
             return id
         }
     }
@@ -73,15 +75,21 @@ class ServidorRealTest {
         val fines = LinkedBlockingQueue<FinDelCanal>()
         val escucha = CanalEnHilo { CanalEnVivo(base, b.c.viaje, { b.c.token }, "1.0.0") }.abrir({ avisos.add(it) }, { fines.add(it) })
         val cabezaAlConectar = avisos.poll(10, TimeUnit.SECONDS)!!
+        b.alDia()
 
-        repeat(6) { a.gasto(1000 + it, "ñandú 😀 $it") }
-        repeat(4) { b.gasto(2000 + it, "b$it") }
+        val deA = List(6) { a.gasto(1000 + it, "ñandú 😀 $it") }
+        val deB = List(4) { b.gasto(2000 + it, "b$it") }
         a.alDia()
         // el aviso llega con una cabeza mayor
         var aviso = avisos.poll(10, TimeUnit.SECONDS)!!
         while (aviso <= cabezaAlConectar) aviso = avisos.poll(10, TimeUnit.SECONDS)!!
         for (c in listOf(b, a, b)) c.alDia()
         assertEquals(a.cola.instantanea(), b.cola.instantanea())
+        // cada celular sabe quién cargó cada gasto (el servidor lo saca del token)
+        for (c in listOf(a, b)) {
+            deA.forEach { assertEquals(a.c.integrante, c.cola.autorDe("expense", it)) }
+            deB.forEach { assertEquals(b.c.integrante, c.cola.autorDe("expense", it)) }
+        }
         assertEquals(a.cola.viajeLocal()!!.ultimoSeq, b.cola.viajeLocal()!!.ultimoSeq)
         assertTrue(a.cola.enEstado(EstadoOp.PENDIENTE).isEmpty() && b.cola.enEstado(EstadoOp.CUARENTENA).isEmpty())
         // corta a más tardar con el próximo latido (cada 20 s)

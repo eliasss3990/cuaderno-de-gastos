@@ -114,7 +114,7 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Col
 
     // ---- cola -------------------------------------------------------------------------------------
 
-    private val COLUMNAS_COLA = "op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, schema_version, estado, seq, server_seq, razon_rechazo, intentos, proximo_intento_en, depende_de"
+    private val COLUMNAS_COLA = "op_id, type, entity_type, entity_id, hlc, payload, redactada, padre_id, schema_version, estado, seq, server_seq, razon_rechazo, intentos, proximo_intento_en, depende_de, member_id"
 
     private fun opEnCola(f: Fila) = OpEnCola(
         op = OpGuardada(
@@ -128,6 +128,7 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Col
         intentos = (f[13] as Long).toInt(),
         proximoIntentoEn = f[14] as Long?,
         dependeDe = f[15] as String?,
+        autor = f[16] as String?,
     )
 
     private fun existeOp(opId: String) = check(opConocida(opId)) { "la operación $opId no está guardada" }
@@ -135,6 +136,11 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Col
     override fun fijarEstado(opId: String, estado: EstadoOp, serverSeq: Long?, razon: String?, dependeDe: String?) {
         existeOp(opId)
         base.ejecutar("UPDATE op SET estado = ?, server_seq = ?, razon_rechazo = ?, depende_de = ? WHERE trip_id = ? AND op_id = ?", estado.name, serverSeq, razon, dependeDe, tripId, opId)
+    }
+
+    override fun fijarAutor(opId: String, integrante: String) {
+        existeOp(opId)
+        base.ejecutar("UPDATE op SET member_id = ? WHERE trip_id = ? AND op_id = ?", integrante, tripId, opId)
     }
 
     override fun buscarEnCola(opId: String): OpEnCola? =

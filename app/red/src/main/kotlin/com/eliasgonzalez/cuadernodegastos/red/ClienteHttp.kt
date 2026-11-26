@@ -135,6 +135,7 @@ class ClienteHttp(
                     schemaVersion = (x["schema_version"] as JsonPrimitive).intOrNull!!,
                     serverSeq = (x["server_seq"] as JsonPrimitive).longOrNull!!,
                     padreId = texto(x["padre_id"]),
+                    autor = texto(x["member_id"]),
                 )
             }
             val hayMas = (o["hay_mas"] as? JsonPrimitive)?.booleanOrNull ?: false

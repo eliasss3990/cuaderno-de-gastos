@@ -144,6 +144,8 @@ class AlmacenMemoria : Cola, AlmacenDelServidor {
         deshacer { entidades[k] = antes }
     }
 
+    override fun fijarAutor(opId: String, integrante: String) = cambiarEnCola(opId) { it.copy(autor = integrante) }
+
     override fun buscarEnCola(opId: String): OpEnCola? = cola[opId]
 
     override fun enEstado(estado: EstadoOp, limite: Int): List<OpEnCola> =

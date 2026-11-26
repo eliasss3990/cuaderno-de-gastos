@@ -219,4 +219,31 @@ abstract class ContratoCola {
         assertFalse(c.marcaEnUso(marca(70)))
         assertEquals(0L, c.viajeLocal()!!.ultimoSeq)
     }
+
+    @Test
+    fun elAutorSeGuardaYElDeUnaEntidadEsElDeSuPrimeraOperacion() {
+        val c = crear()
+        c.transaccion {
+            c.guardarOp(op(1))
+            c.guardarOp(op(2))
+            c.fijarAutor("o1", "m-papa")
+            c.fijarAutor("o2", "m-mama")
+        }
+        assertEquals("m-papa", c.buscarEnCola("o1")!!.autor)
+        assertEquals("m-mama", c.opsDeEntidad("expense", "e1")[1].autor)
+        assertEquals("m-papa", c.autorDe("expense", "e1"))
+        // sin operaciones o sin autor conocido: null
+        assertEquals(null, c.autorDe("expense", "e9"))
+        c.transaccion { c.guardarOp(op(3, "e2")) }
+        assertEquals(null, c.autorDe("expense", "e2"))
+        // el autor también se deshace con la transacción
+        try {
+            c.transaccion {
+                c.fijarAutor("o3", "m-lu")
+                error("falla")
+            }
+        } catch (_: IllegalStateException) {
+        }
+        assertEquals(null, c.buscarEnCola("o3")!!.autor)
+    }
 }

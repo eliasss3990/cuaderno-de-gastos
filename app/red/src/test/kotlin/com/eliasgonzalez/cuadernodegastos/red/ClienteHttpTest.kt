@@ -74,6 +74,7 @@ class ClienteHttpTest {
         assertEquals(listOf(5L, 6L), p.ops.map { it.serverSeq })
         assertNull(p.ops[1].payload)
         assertEquals("e5", p.ops[1].padreId)
+        assertEquals("m", p.ops[0].autor)
         assertNull(p.ops[0].padreId)
         assertEquals(true to 1802000000000L, p.hayMas to p.horaDelServidor)
         assertEquals("/v1/trips/$viaje/changes?after=4&limit=200", pedidos.single()["ruta"])
