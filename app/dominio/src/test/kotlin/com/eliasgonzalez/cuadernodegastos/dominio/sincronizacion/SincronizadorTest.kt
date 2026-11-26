@@ -58,6 +58,29 @@ class SincronizadorTest {
     private fun campo(c: AlmacenMemoria, nombre: String, id: String = gasto) = c.leerCampo("expense", id, nombre)
 
     @Test
+    fun cadaOperacionGuardaSuAutor() {
+        val (c, s) = celular()
+        // la propia: el integrante de este celular
+        val a = alta(s)
+        s.registrar(a)
+        assertEquals("m1", c.autorDe("expense", gasto))
+        // una ajena: el que dice el servidor; una redactada también lo guarda
+        val otro = "018f3a6e-2000-7000-8000-000000000077"
+        s.aplicarBajada(listOf(delServidor("expense.create", "expense", otro, """{"monto_minor":5,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":$hora,"dia_imputado":"2027-02-18"}""", marca(hora, "018f3a6e-0000-7000-8000-00000000000b")).copy(autor = "m2")), hora)
+        assertEquals("m2", c.autorDe("expense", otro))
+        val redactada = "018f3a6e-2000-7000-8000-000000000078"
+        s.aplicarBajada(listOf(delServidor("expense.create", "expense", redactada, null, marca(hora, "018f3a6e-0000-7000-8000-00000000000b", 1)).copy(autor = "m3")), hora)
+        assertEquals("m3", c.buscarEnCola(c.opsDeEntidad("expense", redactada).single().op.opId)!!.autor)
+        // la propia confirmada por la bajada: manda el servidor
+        s.aplicarBajada(listOf(OpDelServidor(a.opId, a.tipo, a.entidadTipo, a.entidadId, a.hlc, a.payload, 1, ++seq, autor = "m1-servidor")), hora)
+        assertEquals("m1-servidor", c.autorDe("expense", gasto))
+        // sin autor en la bajada (un servidor viejo): queda el que había
+        val sinAutor = "018f3a6e-2000-7000-8000-000000000079"
+        s.aplicarBajada(listOf(delServidor("expense.create", "expense", sinAutor, """{"monto_minor":5,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":$hora,"dia_imputado":"2027-02-18"}""", marca(hora, "018f3a6e-0000-7000-8000-00000000000b", 2))), hora)
+        assertEquals(null, c.autorDe("expense", sinAutor))
+    }
+
+    @Test
     fun registrarAplicaYEncolaYLaPropiaArmaElLoteEnOrden() {
         val (c, s) = celular()
         val a = alta(s)
@@ -362,6 +385,8 @@ class SincronizadorTest {
         assertTrue(c.entidadTerminada("expense", gasto))
         assertNull(c.buscarEnCola(a.opId)!!.op.payload)
         assertEquals(EstadoOp.CONFIRMADA to seq, c.buscarEnCola(p.opId)!!.let { it.estado to it.serverSeq })
+        // vuelta a guardar al confirmarse, conserva su autor
+        assertEquals("m1", c.buscarEnCola(p.opId)!!.autor)
     }
 
     @Test

@@ -100,6 +100,10 @@ object Migraciones {
             )
             """.trimIndent(),
         ),
+        listOf(
+            // quién hizo cada operación (el integrante): para mostrar quién cargó cada gasto
+            "ALTER TABLE op ADD COLUMN member_id TEXT",
+        ),
     )
 
     /** La versión del esquema que entiende esta app. */

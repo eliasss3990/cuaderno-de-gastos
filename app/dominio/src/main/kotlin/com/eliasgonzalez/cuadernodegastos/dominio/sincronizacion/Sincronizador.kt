@@ -32,6 +32,8 @@ data class OpDelServidor(
     val serverSeq: Long,
     /** El dueño de un adjunto (lo manda el servidor: en una op redactada no se puede sacar del payload). */
     val padreId: String? = null,
+    /** El integrante que la hizo (lo saca el servidor del token). */
+    val autor: String? = null,
 )
 
 /** Respuesta del servidor por cada operación de un lote. */
@@ -85,6 +87,7 @@ class Sincronizador(private val cola: Cola, private val horaDelCelular: () -> Lo
         }
         if (r is Resultado.Aceptada) {
             cola.fijarEstado(op.opId, EstadoOp.PENDIENTE, dependeDe = dependeDe)
+            cola.fijarAutor(op.opId, viaje().integrante)
             if (op.tipo == "trip.update") CierreDelViaje.sincronizar(cola, ahora(), CierreDelViaje.horaDeCreacion(op))
         }
         r
@@ -161,6 +164,8 @@ class Sincronizador(private val cola: Cola, private val horaDelCelular: () -> Lo
             cola.borrarOp(opId)
             terminar(o.op.entidadTipo, o.op.entidadId)
             cola.guardarOp(o.op.copy(hlc = hlcFinal, payload = null, redactada = true))
+            // vuelta a guardar: conserva su autor
+            o.autor?.let { cola.fijarAutor(opId, it) }
         } else if (o.op.hlc != hlcFinal) {
             cola.cambiarMarca(opId, hlcFinal)
             recalcularEntidad(o.op.entidadTipo, o.op.entidadId)
@@ -308,6 +313,8 @@ class Sincronizador(private val cola: Cola, private val horaDelCelular: () -> Lo
             } else {
                 aplicarAjena(o)
             }
+            // el autor que dice el servidor manda (también en una propia: una terminal confirmada se vuelve a guardar)
+            if (o.autor != null && cola.buscarEnCola(o.opId) != null) cola.fijarAutor(o.opId, o.autor)
             observar(o.hlc)
             ultimo = o.serverSeq
         }

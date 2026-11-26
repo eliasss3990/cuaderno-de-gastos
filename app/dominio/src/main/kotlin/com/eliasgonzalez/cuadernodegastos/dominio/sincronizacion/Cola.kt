@@ -30,6 +30,8 @@ data class OpEnCola(
     val proximoIntentoEn: Long? = null,
     /** La operación propia de la que depende (rechazada esa, esta también). */
     val dependeDe: String? = null,
+    /** El integrante que la hizo (el servidor lo saca del token; las propias, el de este celular). */
+    val autor: String? = null,
 )
 
 /** Lo que el celular guarda de su vínculo con un viaje. */
@@ -53,6 +55,12 @@ interface Cola : Almacen {
      * se pasa queda vacío (volver a PENDIENTE una op en cuarentena borra su razón).
      */
     fun fijarEstado(opId: String, estado: EstadoOp, serverSeq: Long? = null, razon: String? = null, dependeDe: String? = null)
+
+    /** Quién hizo la operación (se guarda una vez: el autor no cambia). */
+    fun fijarAutor(opId: String, integrante: String)
+
+    /** Quién creó la entidad: el autor de su primera operación, o null si no se sabe (bajó sin autor). */
+    fun autorDe(tipo: String, id: String): String? = opsDeEntidad(tipo, id).firstOrNull()?.autor
 
     fun buscarEnCola(opId: String): OpEnCola?
 
