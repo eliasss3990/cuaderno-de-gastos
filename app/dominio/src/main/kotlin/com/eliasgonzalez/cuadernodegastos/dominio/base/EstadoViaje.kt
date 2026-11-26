@@ -54,6 +54,13 @@ object EstadoDelViaje {
 
     fun diaSiguiente(fecha: String): String = fecha(fecha).plusDays(1).toString()
 
+    /** El día (AAAA-MM-DD) que marca el reloj de la zona en ese instante. */
+    fun diaEn(ahoraMs: Long, zonaHoraria: String): String =
+        java.time.Instant.ofEpochMilli(ahoraMs).atZone(zona(zonaHoraria)).toLocalDate().toString()
+
+    /** Cuántos días van de `desde` a `hasta`, contando los dos (el mismo día da 1; antes de `desde`, 0 o menos). */
+    fun diasContandoAmbos(desde: String, hasta: String): Long = java.time.temporal.ChronoUnit.DAYS.between(fecha(desde), fecha(hasta)) + 1
+
     /** Instante en que el viaje pasa a cerrado por fechas (al terminar el día de la fecha de fin), o null. */
     fun cierrePorFechas(fechaFin: String?, zonaHoraria: String): Long? =
         fechaFin?.let { inicioDelDia(diaSiguiente(it), zonaHoraria) }
