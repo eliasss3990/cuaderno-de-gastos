@@ -152,6 +152,16 @@ class Sincronizacion(
         return "viaje=$viaje seq=${v?.ultimoSeq} revocado=${v?.revocado} gastos=$gastos $porEstado"
     }
 
+    /** Corre un ciclo del viaje en este hilo (bloquea) y dice cómo terminó; sin token o revocado, Revocado. */
+    fun cicloDe(viaje: String): FinDelCiclo {
+        val d = delViaje(viaje) ?: return FinDelCiclo.Revocado
+        return try {
+            d.ciclo.correr()
+        } catch (_: Exception) {
+            FinDelCiclo.Error
+        }
+    }
+
     /** Para la tarea periódica: un ciclo de cada viaje, en este hilo (bloquea). Devuelve cómo terminó cada uno. */
     fun cicloDeTodos(): Map<String, FinDelCiclo> = viajes().associateWith { v ->
         val d = delViaje(v) ?: return@associateWith FinDelCiclo.Revocado

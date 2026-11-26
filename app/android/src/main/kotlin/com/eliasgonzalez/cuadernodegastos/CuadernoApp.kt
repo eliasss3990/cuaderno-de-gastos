@@ -17,10 +17,13 @@ import androidx.work.WorkManager
 import com.eliasgonzalez.cuadernodegastos.base.BaseAndroid
 import com.eliasgonzalez.cuadernodegastos.datos.Migraciones
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.TiemposDelCoordinador
+import com.eliasgonzalez.cuadernodegastos.red.ClienteDeIdentidad
 import com.eliasgonzalez.cuadernodegastos.sesion.CifradorKeystore
 import com.eliasgonzalez.cuadernodegastos.sesion.Tokens
 import com.eliasgonzalez.cuadernodegastos.sincronizacion.Sincronizacion
 import com.eliasgonzalez.cuadernodegastos.sincronizacion.TrabajoPeriodico
+import com.eliasgonzalez.cuadernodegastos.viajes.PuertosDeLaApp
+import com.eliasgonzalez.cuadernodegastos.viajes.ServicioDeViajes
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -42,6 +45,11 @@ class CuadernoApp : Application() {
             alCambiarEstado = { viaje, e -> if (BuildConfig.DEBUG) Log.i("CuadernoDev", "estado ${viaje.takeLast(4)}: $e") },
             tiempos = TiemposDelCoordinador(BuildConfig.CIERRE_EN_SEGUNDO_PLANO_MS, BuildConfig.CONSULTA_DE_RESPALDO_MS),
         )
+    }
+
+    /** Crear un viaje y unirse (bloquea: fuera del hilo principal). */
+    val viajes: ServicioDeViajes by lazy {
+        ServicioDeViajes(PuertosDeLaApp(ClienteDeIdentidad(BuildConfig.SERVIDOR, versionParaElServidor(BuildConfig.VERSION_NAME)), sincronizacion))
     }
 
     override fun onCreate() {
