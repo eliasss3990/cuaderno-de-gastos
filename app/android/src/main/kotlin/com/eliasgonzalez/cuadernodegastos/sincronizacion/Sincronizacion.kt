@@ -21,6 +21,10 @@ import com.eliasgonzalez.cuadernodegastos.red.ClienteHttp
 import com.eliasgonzalez.cuadernodegastos.red.Credenciales
 import com.eliasgonzalez.cuadernodegastos.red.EstadoDelCelular
 import com.eliasgonzalez.cuadernodegastos.sesion.Tokens
+import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.LectorDelViaje
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import java.util.concurrent.Executors
 
 class Sincronizacion(
@@ -35,6 +39,22 @@ class Sincronizacion(
 ) : AutoCloseable {
     /** Lo de un viaje: su almacén, su ciclo y su coordinador (con su planificador). */
     class DelViaje(val almacen: AlmacenSqlite, val sinc: Sincronizador, val ciclo: Ciclo, val coordinador: Coordinador, val planificador: PlanificadorDeHilos)
+
+    private val _estados = MutableStateFlow<Map<String, EstadoDeSincronizacion>>(emptyMap())
+
+    /** El último estado de cada viaje, para el indicador. */
+    val estados: StateFlow<Map<String, EstadoDeSincronizacion>> = _estados
+
+    private val _cambios = MutableStateFlow(0L)
+
+    /** Sube cada vez que algo pudo cambiar lo que se ve (un ciclo, un registro): las pantallas vuelven a leer. */
+    val cambios: StateFlow<Long> = _cambios
+
+    private fun avisar(viaje: String, e: EstadoDeSincronizacion) {
+        _estados.update { it + (viaje to e) }
+        _cambios.update { it + 1 }
+        alCambiarEstado(viaje, e)
+    }
 
     private val hilo = Executors.newSingleThreadExecutor { r -> Thread(r, "sincronizacion").apply { isDaemon = true } }
 
@@ -63,12 +83,12 @@ class Sincronizacion(
     private fun delViaje(viaje: String): DelViaje? = synchronized(porViaje) {
         porViaje[viaje]?.let { return it }
         if (AlmacenSqlite(base, viaje).viajeLocal()?.revocado == true) {
-            alCambiarEstado(viaje, EstadoDeSincronizacion.Revocado)
+            avisar(viaje, EstadoDeSincronizacion.Revocado)
             return null
         }
         val token = tokens.leer(viaje)
         if (token == null) {
-            alCambiarEstado(viaje, EstadoDeSincronizacion.Revocado)
+            avisar(viaje, EstadoDeSincronizacion.Revocado)
             return null
         }
         val almacen = AlmacenSqlite(base, viaje)
@@ -83,7 +103,7 @@ class Sincronizacion(
             canal = CanalEnHilo { CanalEnVivo(servidor, viaje, { token }, versionDeLaApp) },
             planificador = planificador,
             ultimoSeq = { almacen.viajeLocal()?.ultimoSeq ?: 0 },
-            alCambiarEstado = { alCambiarEstado(viaje, it) },
+            alCambiarEstado = { avisar(viaje, it) },
             tiempos = tiempos,
         )
         DelViaje(almacen, sinc, ciclo, coordinador, planificador).also { porViaje[viaje] = it }
@@ -139,9 +159,16 @@ class Sincronizacion(
     fun registrar(viaje: String, op: (Sincronizador) -> Operacion): Resultado {
         val d = delViaje(viaje) ?: error("el viaje está revocado o sin token: hay que volver a vincular")
         val r = d.sinc.registrar(op(d.sinc))
+        _cambios.update { it + 1 }
         alCambioLocal(viaje)
         return r
     }
+
+    /** Lo que muestran las pantallas del viaje. Bloquea: fuera del hilo principal. */
+    fun lector(viaje: String): LectorDelViaje = LectorDelViaje(AlmacenSqlite(base, viaje))
+
+    /** Cuántas operaciones propias esperan subir (pendientes o enviándose). Bloquea. */
+    fun pendientes(viaje: String): Int = AlmacenSqlite(base, viaje).let { it.enEstado(EstadoOp.PENDIENTE).size + it.enEstado(EstadoOp.ENVIANDO).size }
 
     /** Un resumen del viaje para revisar a mano (sin el token). Bloquea. */
     fun resumen(viaje: String): String {
