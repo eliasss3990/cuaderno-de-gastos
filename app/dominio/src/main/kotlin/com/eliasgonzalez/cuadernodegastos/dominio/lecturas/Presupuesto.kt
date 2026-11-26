@@ -5,7 +5,7 @@
 //   promedio diario sugerido = (tope − fijos − preparación) ÷ días del viaje, hacia abajo a la unidad menor; solo con tope
 //   y las dos fechas
 //   ritmo = variable ÷ días transcurridos × días del viaje + fijos + preparación; desde el segundo día, con tope y fechas
-// Los días del viaje van del inicio al fin; un gasto con día imputado posterior al fin alarga el viaje hasta ese día. Los
+// Los días del viaje van del inicio al fin (un gasto después del fin no los alarga: esa carga se va a bloquear). Los
 // gastos en la papelera no cuentan. Los montos están acotados por la validación: las sumas de un viaje real entran en Long.
 package com.eliasgonzalez.cuadernodegastos.dominio.lecturas
 
@@ -62,18 +62,8 @@ data class PresupuestoDeMoneda(
 }
 
 object Presupuesto {
-    /** El último día del viaje: el fin, o el último día con gastos si alguno quedó después; null sin fin. */
-    fun ultimoDia(v: Viaje, gastos: List<Gasto>): String? {
-        val fin = v.fechaFin ?: return null
-        val ultimoGasto = gastos.filter { !it.eliminado }.maxOfOrNull { it.diaImputado }
-        return if (ultimoGasto != null && ultimoGasto > fin) ultimoGasto else fin
-    }
-
-    /** Días del viaje (del inicio al último día, ambos incluidos), o null si falta alguna fecha. */
-    fun diasDelViaje(v: Viaje, gastos: List<Gasto>): Long? {
-        val inicio = v.fechaInicio ?: return null
-        return EstadoDelViaje.diasContandoAmbos(inicio, ultimoDia(v, gastos) ?: return null)
-    }
+    /** Días del viaje (inicio y fin incluidos), o null si falta alguna fecha. */
+    fun diasDelViaje(v: Viaje): Long? = if (v.fechaInicio != null && v.fechaFin != null) EstadoDelViaje.diasContandoAmbos(v.fechaInicio, v.fechaFin) else null
 
     fun calcular(v: Viaje, moneda: MonedaDelPlan, gastos: List<Gasto>, fijos: List<GastoFijo>, hoy: String): PresupuestoDeMoneda {
         val codigo = moneda.moneda.codigo
@@ -82,8 +72,7 @@ object Presupuesto {
         val preparacion = if (inicio == null) 0 else vivos.filter { it.diaImputado < inicio }.sumOf { it.montoMinor }
         val variable = vivos.sumOf { it.montoMinor } - preparacion
         val totalFijos = fijos.filter { it.moneda == codigo }.sumOf { it.totalMinor }
-        // los días cuentan los gastos de todas las monedas: el viaje es uno solo
-        val dias = diasDelViaje(v, gastos)
+        val dias = diasDelViaje(v)
         val tope = moneda.topeMinor
         val promedio = if (tope != null && dias != null && dias > 0) {
             val disponible = tope - totalFijos - preparacion

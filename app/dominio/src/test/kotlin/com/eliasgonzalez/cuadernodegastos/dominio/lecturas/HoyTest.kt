@@ -91,7 +91,7 @@ class HoyTest {
     }
 
     @Test
-    fun unGastoDespuesDelFinAlargaElViajeYSigueElNumeroDeDia() {
+    fun pasadoElFinNoHayNumeroDeDiaAunqueHayaGastos() {
         val a = viaje()
         a.crearEntidad("expense", "e9")
         for ((k, v) in mapOf("monto_minor" to JsonPrimitive(10), "moneda" to JsonPrimitive("PYG"), "categoria_id" to JsonPrimitive("otro"), "cuando_ocurrio" to JsonPrimitive(3), "dia_imputado" to JsonPrimitive("2027-01-12"))) {
@@ -99,9 +99,10 @@ class HoyTest {
         }
         val doce = cinco + 7L * 86_400_000
         val r = Hoy.resumen(LectorDelViaje(a), doce)!!
-        assertEquals(12L to 12L, r.diaDelViaje to r.diasDelViaje)
-        // sin ese gasto, el 12 queda fuera del viaje
-        assertNull(Hoy.resumen(LectorDelViaje(viaje()), doce)!!.diaDelViaje)
+        assertNull(r.diaDelViaje)
+        assertEquals(10L, r.diasDelViaje)
+        // lo de ese día igual se ve
+        assertEquals(10L, r.totales.single().gastadoMinor)
     }
 
     @Test
@@ -109,7 +110,10 @@ class HoyTest {
         val a = viaje()
         a.escribirCampo("trip", "t1", "estado_manual", JsonPrimitive("EN_CURSO"), marca)
         val quince = cinco + 10L * 86_400_000
-        assertEquals(15L, Hoy.resumen(LectorDelViaje(a), quince)!!.diaDelViaje)
+        val r = Hoy.resumen(LectorDelViaje(a), quince)!!
+        assertEquals(15L, r.diaDelViaje)
+        // sigue abierto: lo de hoy se sigue comparando con el promedio diario
+        assertEquals(ContraLimite(0, 100), r.totales.single().previsto)
     }
 
     @Test

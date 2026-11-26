@@ -50,17 +50,16 @@ class PresupuestoTest {
     }
 
     @Test
-    fun unGastoDespuesDelFinCuentaComoUnDiaMasDelViaje() {
-        // del 1 al 10, más un gasto imputado el 12: 12 días
+    fun unGastoDespuesDelFinNoAlargaElViaje() {
+        // del 1 al 10; un gasto imputado el 12 (no debería poder cargarse: esa carga se va a bloquear) no suma días
         val g = listOf(gasto("a", 100, "2027-01-02"), gasto("b", 20, "2027-01-12"))
-        assertEquals(12L, Presupuesto.diasDelViaje(base, g))
+        assertEquals(10L, Presupuesto.diasDelViaje(base))
         val p = Presupuesto.calcular(base, moneda(1200), g, emptyList(), "2027-01-12")
-        assertEquals(100L, p.promedioDiarioMinor)
+        assertEquals(120L, p.promedioDiarioMinor)
+        // el gasto igual cuenta como gastado; el ritmo no proyecta más allá de los 10 días
+        assertEquals(120L, p.variableMinor)
         assertEquals(120L, p.ritmoMinor)
-        // uno en la papelera no alarga
-        assertEquals(10L, Presupuesto.diasDelViaje(base, listOf(gasto("x", 1, "2027-01-20", eliminado = true))))
-        // sin fin no hay días
-        assertNull(Presupuesto.diasDelViaje(base.copy(fechaFin = null), g))
+        assertNull(Presupuesto.diasDelViaje(base.copy(fechaFin = null)))
     }
 
     private val base = Viaje("t", "V", "UTC", "2027-01-01", "2027-01-10", null, null)

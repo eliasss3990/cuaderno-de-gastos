@@ -20,8 +20,8 @@ data class ResumenDeHoy(
     /** El día de hoy en la zona del viaje (AAAA-MM-DD). */
     val hoy: String,
     /**
-     * El número de día del viaje (1 el día de inicio) y cuántos tiene; null antes del inicio, sin inicio, o pasado el último
-     * día si el viaje ya no sigue (si alguien lo abrió a mano, se sigue contando).
+     * El número de día del viaje (1 el día de inicio) y cuántos tiene; null antes del inicio, sin inicio, o pasado el fin
+     * (salvo que alguien lo haya abierto a mano: entonces se sigue contando).
      */
     val diaDelViaje: Long?,
     val diasDelViaje: Long?,
@@ -47,7 +47,7 @@ object Hoy {
             val previsto = if (antesDelInicio) null else p.promedioDiarioMinor?.takeIf { it > 0 }?.let { ContraLimite(gastado, it) }
             TotalDeHoy(m.moneda, gastado, previsto)
         }
-        val dias = Presupuesto.diasDelViaje(viaje, gastos)
+        val dias = Presupuesto.diasDelViaje(viaje)
         val abiertoAMano = viaje.estadoManual == EstadoViaje.EN_CURSO
         val dia = viaje.fechaInicio?.let { EstadoDelViaje.diasContandoAmbos(it, hoy) }?.takeIf { it >= 1 && (dias == null || it <= dias || abiertoAMano) }
         val categorias = lector.categorias().associateBy { it.id }
