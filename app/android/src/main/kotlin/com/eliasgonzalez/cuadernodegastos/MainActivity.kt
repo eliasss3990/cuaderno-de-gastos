@@ -1,26 +1,19 @@
+// La única actividad: arranca la interfaz y nada más (pantallas, navegación y tema viven en `ui/` y `pantallas/`).
 package com.eliasgonzalez.cuadernodegastos
 
 import android.os.Bundle
+import android.graphics.Color
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.activity.enableEdgeToEdge
+import com.eliasgonzalez.cuadernodegastos.ui.CuadernoDeGastos
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { Pantalla() }
-    }
-}
-
-@Composable
-private fun Pantalla() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = stringResource(R.string.app_name))
+        val claras = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+        enableEdgeToEdge(statusBarStyle = claras, navigationBarStyle = claras)
+        setContent { CuadernoDeGastos() }
     }
 }
