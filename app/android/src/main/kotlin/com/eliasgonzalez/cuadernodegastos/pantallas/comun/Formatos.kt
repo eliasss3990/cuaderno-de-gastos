@@ -24,15 +24,6 @@ object Formatos {
     /** La ciudad de la zona, para leer: "America/Asuncion" → "Asunción". */
     fun ciudad(zona: String): String = zona.substringAfterLast('/').let { ciudades[it] ?: it.replace('_', ' ') }
 
-    /** "America/Asuncion" → "América/Asunción · UTC−3" (la diferencia de hoy). */
-    fun zona(zona: String, hoyMs: Long = System.currentTimeMillis()): String {
-        val region = zona.substringBefore('/', "").let { if (it == "America") "América" else it }
-        val desfase = ZoneId.of(zona).rules.getOffset(java.time.Instant.ofEpochMilli(hoyMs)).totalSeconds / 3600
-        val signo = if (desfase < 0) "−" else "+"
-        val nombre = if (region.isEmpty()) ciudad(zona) else "$region/${ciudad(zona)}"
-        return "$nombre · UTC$signo${kotlin.math.abs(desfase)}"
-    }
-
     /** El nombre de la moneda en español, para los chips ("Guaraní"); si no se conoce, el del sistema. */
     fun nombreDeMoneda(codigo: String): String = when (codigo) {
         "PYG" -> "Guaraní"

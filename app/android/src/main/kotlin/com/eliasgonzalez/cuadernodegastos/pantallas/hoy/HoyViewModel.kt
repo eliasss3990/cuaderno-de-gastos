@@ -32,7 +32,8 @@ class HoyViewModel(
     },
 ) : ViewModel() {
     val estado: StateFlow<HoyEstado> = combine(cambios, estado, reloj) { _, e, _ -> e }
-        .map { e -> resumen()?.let { ArmadoDeHoy.armar(it, e, pendientes()) } ?: HoyEstado() }
+        // si leer la base falla (bloqueada, migración a medias) no se cae la app: queda como cargando y se reintenta con el próximo aviso
+        .map { e -> runCatching { resumen()?.let { ArmadoDeHoy.armar(it, e, pendientes()) } }.getOrNull() ?: HoyEstado() }
         .flowOn(hilo)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HoyEstado())
 

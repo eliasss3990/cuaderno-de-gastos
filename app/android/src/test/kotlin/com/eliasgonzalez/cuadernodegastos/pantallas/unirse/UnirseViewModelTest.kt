@@ -103,4 +103,10 @@ class UnirseViewModelTest {
         hiloLento.scheduler.advanceUntilIdle()
         assertEquals(1, pedidos.size)
     }
+
+    @Test
+    fun elCodigoPegadoConEspaciosQuedaLimpio() {
+        vm.alCambiarCodigo(" k7m4 9xq2\n")
+        assertEquals("K7M49XQ2", vm.estado.value.codigo)
+    }
 }

@@ -25,7 +25,7 @@ class UnirseViewModel(
     val estado: StateFlow<UnirseEstado> = _estado
 
     // el código se muestra en mayúsculas (el servidor también acepta minúsculas y sin guion)
-    fun alCambiarCodigo(c: String) = _estado.update { it.copy(codigo = c.uppercase(), errores = it.errores - "codigo", mensaje = null) }
+    fun alCambiarCodigo(c: String) = _estado.update { it.copy(codigo = c.uppercase().filterNot { it.isWhitespace() }, errores = it.errores - "codigo", mensaje = null) }
 
     fun alCambiarApodo(a: String) = _estado.update { it.copy(apodo = a, errores = it.errores - "apodo", mensaje = null) }
 

@@ -77,5 +77,5 @@ fun Navegacion(viajeInicial: String?) {
 
 /** Entrar a un viaje: Hoy queda como la primera pantalla (atrás no vuelve a crear ni a unirse). */
 private fun entrar(nav: NavHostController, viaje: String) {
-    nav.navigate(Rutas.hoy(viaje)) { popUpTo(0) { inclusive = true } }
+    nav.navigate(Rutas.hoy(viaje)) { popUpTo(nav.graph.id) { inclusive = true } }
 }
