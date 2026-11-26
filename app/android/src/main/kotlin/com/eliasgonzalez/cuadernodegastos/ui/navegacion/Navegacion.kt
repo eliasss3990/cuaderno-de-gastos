@@ -2,6 +2,7 @@
 package com.eliasgonzalez.cuadernodegastos.ui.navegacion
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
@@ -35,8 +36,9 @@ fun Navegacion(viajeInicial: String?) {
             BienvenidaPantalla(alCrearViaje = { nav.navigate(Rutas.NUEVO_VIAJE) }, alTenerCodigo = { nav.navigate(Rutas.UNIRSE) })
         }
         composable(Rutas.NUEVO_VIAJE) {
-            val vm = viewModel { NuevoViajeViewModel(app.viajes::crear, celular, java.time.ZoneId.systemDefault().id, { entrar(nav, it) }) }
+            val vm = viewModel { NuevoViajeViewModel(app.viajes::crear, celular, java.time.ZoneId.systemDefault().id) }
             val e by vm.estado.collectAsState()
+            LaunchedEffect(e.entrarA) { e.entrarA?.let { entrar(nav, it) } }
             NuevoViajePantalla(
                 e,
                 AccionesDeNuevoViaje(
@@ -58,8 +60,9 @@ fun Navegacion(viajeInicial: String?) {
             )
         }
         composable(Rutas.UNIRSE) {
-            val vm = viewModel { UnirseViewModel(app.viajes::unirse, celular, { entrar(nav, it) }) }
+            val vm = viewModel { UnirseViewModel(app.viajes::unirse, celular) }
             val e by vm.estado.collectAsState()
+            LaunchedEffect(e.entrarA) { e.entrarA?.let { entrar(nav, it) } }
             UnirsePantalla(e, AccionesDeUnirse(vm::alCambiarCodigo, vm::alCambiarApodo, vm::alElegirEmoji, vm::alUnirse, alVolver = { nav.popBackStack() }))
         }
         composable(Rutas.HOY) { entrada ->

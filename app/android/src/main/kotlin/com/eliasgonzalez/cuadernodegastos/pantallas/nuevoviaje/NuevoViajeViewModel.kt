@@ -32,7 +32,6 @@ class NuevoViajeViewModel(
     private val crear: (PlanNuevo, Perfil) -> AltaDeViaje,
     private val nombreDelCelular: String,
     zonaDelCelular: String,
-    private val alEntrar: (String) -> Unit,
     private val hilo: CoroutineDispatcher = Dispatchers.IO,
     private val ahoraMs: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
@@ -85,7 +84,7 @@ class NuevoViajeViewModel(
         // todos los que faltan a la vez, cada uno en su campo (no de a uno)
         val errores = buildMap {
             if (e.nombre.isBlank()) put("nombre", R.string.nuevo_falta_nombre)
-            if (e.fechaInicio != null && e.fechaFin != null && !e.sinFechaFin && e.fechaFin < e.fechaInicio) put("fecha_fin", R.string.nuevo_fechas_al_reves)
+            if (e.fechaInicio != null && e.fechaFin != null && e.fechaFin < e.fechaInicio) put("fecha_fin", R.string.nuevo_fechas_al_reves)
             if (e.monedas.none { it.elegida }) put("monedas", R.string.nuevo_falta_moneda)
             if (e.apodo.isBlank()) put("apodo", R.string.nuevo_falta_apodo)
         }
@@ -113,7 +112,7 @@ class NuevoViajeViewModel(
             zonaHoraria = e.zona,
             monedas = elegidas.map { MonedaNueva(it.codigo, it.decimales, it.simbolo) },
             fechaInicio = e.fechaInicio,
-            fechaFin = if (e.sinFechaFin) null else e.fechaFin,
+            fechaFin = e.fechaFin,
             topes = montos(e.topes, e),
             efectivoInicial = montos(e.efectivo, e),
             objetivos = e.objetivos.trim().ifEmpty { null },
@@ -124,17 +123,22 @@ class NuevoViajeViewModel(
         viewModelScope.launch {
             val r = withContext(hilo) { crear(plan, perfil) }
             when (r) {
-                is AltaDeViaje.Lista -> alEntrar(r.viaje)
+                is AltaDeViaje.Lista -> entrar(r.viaje)
                 // el viaje existe: se entra igual y el plan se completa desde el viaje
                 is AltaDeViaje.SinPlan -> {
                     _estado.value = _estado.value.copy(enviando = false, mensaje = R.string.nuevo_sin_plan)
-                    alEntrar(r.viaje)
+                    entrar(r.viaje)
                 }
                 is AltaDeViaje.PlanInvalido -> _estado.value = _estado.value.copy(enviando = false, problema = r.mensaje)
                 is AltaDeViaje.Fallo -> _estado.value = _estado.value.copy(enviando = false, mensaje = mensajeDeFalla(r.motivo))
-                is AltaDeViaje.YaEstaba -> alEntrar(r.viaje)
+                is AltaDeViaje.YaEstaba -> entrar(r.viaje)
             }
         }
+    }
+
+    // la pantalla navega al ver `entrarA` (el ViewModel no guarda nada de la navegación: sobrevive a las rotaciones)
+    private fun entrar(viaje: String) {
+        _estado.value = _estado.value.copy(entrarA = viaje)
     }
 
     /** Lo que se deriva de lo cargado: cuándo arranca, la ciudad del horario, los días y el promedio sugerido. */
@@ -146,7 +150,7 @@ class NuevoViajeViewModel(
             e.fechaInicio == hoy -> Arranque.HOY
             else -> Arranque.YA_ARRANCO
         }
-        val fin = if (e.sinFechaFin) null else e.fechaFin
+        val fin = e.fechaFin
         val viaje = Viaje("nuevo", e.nombre, e.zona, e.fechaInicio, fin, null, null)
         val dias = Presupuesto.diasDelViaje(viaje)?.takeIf { it > 0 }
         val topes = montos(e.topes, e)

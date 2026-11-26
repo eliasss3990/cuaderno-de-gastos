@@ -29,6 +29,8 @@ data class NuevoViajeEstado(
     val objetivos: String = "",
     // lo que se calcula para mostrar
     val arranque: Arranque = Arranque.SIN_SALIDA,
+    /** El viaje al que entrar cuando quedó listo (la pantalla navega). */
+    val entrarA: String? = null,
     /** La fecha de salida para leer ("15 de febrero"), o vacía. */
     val salidaParaLeer: String = "",
     /** La ciudad de la zona horaria ("Asunción"). */

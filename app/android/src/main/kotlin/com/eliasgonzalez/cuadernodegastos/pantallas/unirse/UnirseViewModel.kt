@@ -19,8 +19,6 @@ import kotlinx.coroutines.withContext
 class UnirseViewModel(
     private val unirse: (String, Perfil) -> AltaDeViaje,
     private val nombreDelCelular: String,
-    /** Cuando ya está en el viaje: la app pasa a Hoy. */
-    private val alEntrar: (String) -> Unit,
     private val hilo: CoroutineDispatcher = Dispatchers.IO,
 ) : ViewModel() {
     private val _estado = MutableStateFlow(UnirseEstado())
@@ -48,9 +46,9 @@ class UnirseViewModel(
         viewModelScope.launch {
             val r = withContext(hilo) { unirse(e.codigo, perfil) }
             when (r) {
-                is AltaDeViaje.Lista -> alEntrar(r.viaje)
+                is AltaDeViaje.Lista -> _estado.update { it.copy(entrarA = r.viaje) }
                 // ya estaba en el celular: se entra sin más (un aviso acá no se llegaría a leer)
-                is AltaDeViaje.YaEstaba -> alEntrar(r.viaje)
+                is AltaDeViaje.YaEstaba -> _estado.update { it.copy(entrarA = r.viaje) }
                 is AltaDeViaje.Fallo -> {
                     val m = mensajeDeFalla(r.motivo)
                     // el código que no sirve se marca en su campo; lo demás es un aviso general

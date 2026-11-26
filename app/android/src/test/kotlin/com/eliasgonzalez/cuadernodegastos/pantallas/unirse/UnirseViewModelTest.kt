@@ -22,13 +22,15 @@ class UnirseViewModelTest {
     private val hilo = UnconfinedTestDispatcher()
     private var respuesta: AltaDeViaje = AltaDeViaje.Lista("v1")
     private val pedidos = mutableListOf<Pair<String, Perfil>>()
-    private val entradas = mutableListOf<String>()
     private lateinit var vm: UnirseViewModel
+
+    /** A qué viaje pidió entrar (la pantalla navega con eso). */
+    private val entradas get() = listOfNotNull(vm.estado.value.entrarA)
 
     @Before
     fun antes() {
         Dispatchers.setMain(hilo)
-        vm = UnirseViewModel({ c, p -> pedidos += c to p; respuesta }, "Pixel 9", { entradas += it }, hilo)
+        vm = UnirseViewModel({ c, p -> pedidos += c to p; respuesta }, "Pixel 9", hilo)
     }
 
     @After
@@ -89,12 +91,16 @@ class UnirseViewModelTest {
 
     @Test
     fun mientrasEnviaNoManda2Veces() {
-        val lento = UnirseViewModel({ c, p -> pedidos += c to p; respuesta }, "Pixel", {}, kotlinx.coroutines.test.StandardTestDispatcher())
+        val hiloLento = kotlinx.coroutines.test.StandardTestDispatcher()
+        val lento = UnirseViewModel({ c, p -> pedidos += c to p; respuesta }, "Pixel", hiloLento)
         lento.alCambiarCodigo("X")
         lento.alCambiarApodo("Lu")
         lento.alUnirse()
         lento.alUnirse()
         assertEquals(true, lento.estado.value.enviando)
         assertEquals(emptyList<Any>(), pedidos)
+        // al terminar, una sola llamada aunque se haya tocado dos veces
+        hiloLento.scheduler.advanceUntilIdle()
+        assertEquals(1, pedidos.size)
     }
 }

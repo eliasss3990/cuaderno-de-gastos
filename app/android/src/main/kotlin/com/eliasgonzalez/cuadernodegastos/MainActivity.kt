@@ -14,8 +14,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val claras = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
         enableEdgeToEdge(statusBarStyle = claras, navigationBarStyle = claras)
-        // el viaje con el que abrir: leerlo toca la base, que no se abre en el hilo principal
-        val viaje = java.util.concurrent.Executors.newSingleThreadExecutor().submit<String?> { (application as CuadernoApp).sincronizacion.viajes().lastOrNull() }.get()
-        setContent { CuadernoDeGastos(viaje) }
+        setContent { CuadernoDeGastos() }
     }
 }

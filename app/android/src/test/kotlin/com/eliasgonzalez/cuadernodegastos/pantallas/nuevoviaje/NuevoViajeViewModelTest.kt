@@ -24,13 +24,15 @@ class NuevoViajeViewModelTest {
     private val hilo = UnconfinedTestDispatcher()
     private var respuesta: AltaDeViaje = AltaDeViaje.Lista("v1")
     private val creados = mutableListOf<Pair<PlanNuevo, Perfil>>()
-    private val entradas = mutableListOf<String>()
     private lateinit var vm: NuevoViajeViewModel
+
+    /** A qué viaje pidió entrar (la pantalla navega con eso). */
+    private val entradas get() = listOfNotNull(vm.estado.value.entrarA)
 
     @Before
     fun antes() {
         Dispatchers.setMain(hilo)
-        vm = NuevoViajeViewModel({ p, q -> creados += p to q; respuesta }, "Pixel 9", "America/Asuncion", { entradas += it }, hilo, { 1_802_971_920_000 })
+        vm = NuevoViajeViewModel({ p, q -> creados += p to q; respuesta }, "Pixel 9", "America/Asuncion", hilo, { 1_802_971_920_000 })
     }
 
     @After
@@ -155,5 +157,28 @@ class NuevoViajeViewModelTest {
         respuesta = AltaDeViaje.Lista("v3")
         vm.alGuardar()
         assertNull(creados.last().first.fechaFin)
+    }
+
+    @Test
+    fun marcarSinRegresoBorraLaFechaYElegirUnaLaDesmarca() {
+        paso1()
+        vm.alCambiarSinFin()
+        assertEquals(true to null, vm.estado.value.sinFechaFin to vm.estado.value.fechaFin)
+        vm.alElegirFin("2027-03-01")
+        assertEquals(false to "2027-03-01", vm.estado.value.sinFechaFin to vm.estado.value.fechaFin)
+    }
+
+    @Test
+    fun mientrasCreaNoMandaDosVeces() {
+        val lento = kotlinx.coroutines.test.StandardTestDispatcher()
+        val vm2 = NuevoViajeViewModel({ p, q -> creados += p to q; respuesta }, "Pixel 9", "America/Asuncion", lento, { 1_802_971_920_000 })
+        vm2.alCambiarNombre("V")
+        vm2.alCambiarApodo("Eli")
+        vm2.alSeguir()
+        vm2.alGuardar()
+        vm2.alGuardar()
+        lento.scheduler.advanceUntilIdle()
+        assertEquals(1, creados.size)
+        assertEquals("v1", vm2.estado.value.entrarA)
     }
 }

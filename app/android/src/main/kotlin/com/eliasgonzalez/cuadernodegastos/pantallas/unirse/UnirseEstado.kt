@@ -10,6 +10,8 @@ data class UnirseEstado(
     val errores: Map<String, Int> = emptyMap(),
     /** Un aviso general (sin conexión, viaje completo…), o null. */
     val mensaje: Int? = null,
+    /** El viaje al que entrar cuando quedó listo (la pantalla navega). */
+    val entrarA: String? = null,
 ) {
     /** Si ya cargó algo que se perdería al salir. */
     val cargoAlgo: Boolean get() = codigo.isNotBlank() || apodo.isNotBlank()
