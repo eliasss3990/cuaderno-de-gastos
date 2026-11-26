@@ -62,6 +62,12 @@ interface Cola : Almacen {
     /** Quién creó la entidad: el autor de su primera operación, o null si no se sabe (bajó sin autor). */
     fun autorDe(tipo: String, id: String): String? = opsDeEntidad(tipo, id).firstOrNull()?.autor
 
+    /** Lo mismo para todas las entidades de un tipo de una vez (para las listas): id → autor, solo las que lo tienen. */
+    fun autoresDe(tipo: String): Map<String, String>
+
+    /** Las entidades (tipo, id) con alguna operación propia que el servidor todavía no confirmó (pendiente o enviándose). */
+    fun sinConfirmar(): Set<Pair<String, String>>
+
     fun buscarEnCola(opId: String): OpEnCola?
 
     /** Las operaciones en ese estado (CONFIRMADA incluye las bajadas), en el orden en que se aplicaron, hasta `limite`. */

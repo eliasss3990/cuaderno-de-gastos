@@ -2,6 +2,7 @@ package com.eliasgonzalez.cuadernodegastos.dominio.operaciones
 
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -51,6 +52,29 @@ abstract class ContratoAlmacen {
             return
         }
         throw AssertionError("no falló")
+    }
+
+    @Test
+    fun entidadesDeTraeLasVivasDeEseTipoConTodosSusCampos() {
+        val a = crear()
+        a.crearEntidad("expense", "e1")
+        a.escribirCampo("expense", "e1", "nota", s("a"), marca1)
+        a.escribirCampo("expense", "e1", "monto_minor", JsonPrimitive(1500), marca1)
+        a.escribirCampo("expense", "e1", "concepto", JsonNull, marca1)
+        // sin campos escritos también aparece
+        a.crearEntidad("expense", "e2")
+        a.crearEntidad("category", "c1")
+        a.escribirCampo("category", "c1", "nombre", s("Comida"), marca1)
+        // terminada: no aparece
+        a.crearEntidad("expense", "e3")
+        a.escribirCampo("expense", "e3", "nota", s("b"), marca1)
+        a.terminar("expense", "e3")
+        assertEquals(
+            mapOf("e1" to mapOf("nota" to s("a"), "monto_minor" to JsonPrimitive(1500), "concepto" to JsonNull), "e2" to emptyMap<String, JsonElement>()),
+            a.entidadesDe("expense"),
+        )
+        assertEquals(mapOf("c1" to mapOf("nombre" to s("Comida"))), a.entidadesDe("category"))
+        assertEquals(emptyMap<String, Map<String, JsonElement>>(), a.entidadesDe("member"))
     }
 
     @Test

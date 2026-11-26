@@ -44,8 +44,8 @@ object Validacion {
     /** -0 (o -0.0, -0e5): JavaScript lo distingue del 0 y las reglas lo rechazan. */
     private fun esMenosCero(v: JsonElement, n: Double) = n == 0.0 && (1.0 / n < 0 || (v as JsonPrimitive).content.startsWith("-"))
 
-    /** El valor como entero seguro de JavaScript (`Number.isSafeInteger` y no -0), o null. */
-    private fun enteroSeguro(v: JsonElement): Long? {
+    /** El valor como entero seguro de JavaScript (`Number.isSafeInteger` y no -0), o null. También lo usa el lector. */
+    internal fun enteroSeguro(v: JsonElement): Long? {
         val n = numero(v) ?: return null
         if (n.isNaN() || n != Math.floor(n) || kotlin.math.abs(n) > MAX_ENTERO_SEGURO || esMenosCero(v, n)) return null
         return n.toLong()
