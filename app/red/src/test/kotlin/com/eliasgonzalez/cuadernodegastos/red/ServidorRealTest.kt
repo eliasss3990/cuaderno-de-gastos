@@ -2,6 +2,7 @@ package com.eliasgonzalez.cuadernodegastos.red
 
 import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.AlmacenMemoria
 import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Operacion
+import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Resultado as ResultadoDelMotor
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Ciclo
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoOp
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.FinDelCanal
@@ -41,7 +42,7 @@ class ServidorRealTest {
             val id = uuid7()
             val r = sinc.registrar(Operacion(uuid7(), "expense.create", "expense", id, sinc.nuevaMarca(), json("""{"monto_minor":$monto,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":${System.currentTimeMillis()},"dia_imputado":"2027-02-18","nota":"$nota"}"""), 1))
             // que se guarde de verdad (antes de bajar el viaje se rechazaría: no conoce la moneda)
-            check(r is com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Resultado.Aceptada) { "gasto rechazado: $r" }
+            check(r is ResultadoDelMotor.Aceptada) { "gasto rechazado: $r" }
             return id
         }
     }

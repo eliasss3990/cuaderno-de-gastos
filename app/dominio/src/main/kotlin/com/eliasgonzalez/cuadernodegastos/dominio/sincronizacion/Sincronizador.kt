@@ -164,6 +164,8 @@ class Sincronizador(private val cola: Cola, private val horaDelCelular: () -> Lo
             cola.borrarOp(opId)
             terminar(o.op.entidadTipo, o.op.entidadId)
             cola.guardarOp(o.op.copy(hlc = hlcFinal, payload = null, redactada = true))
+            // vuelta a guardar: conserva su autor
+            o.autor?.let { cola.fijarAutor(opId, it) }
         } else if (o.op.hlc != hlcFinal) {
             cola.cambiarMarca(opId, hlcFinal)
             recalcularEntidad(o.op.entidadTipo, o.op.entidadId)

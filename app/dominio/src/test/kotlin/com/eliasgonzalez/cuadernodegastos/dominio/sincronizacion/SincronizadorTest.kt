@@ -385,6 +385,8 @@ class SincronizadorTest {
         assertTrue(c.entidadTerminada("expense", gasto))
         assertNull(c.buscarEnCola(a.opId)!!.op.payload)
         assertEquals(EstadoOp.CONFIRMADA to seq, c.buscarEnCola(p.opId)!!.let { it.estado to it.serverSeq })
+        // vuelta a guardar al confirmarse, conserva su autor
+        assertEquals("m1", c.buscarEnCola(p.opId)!!.autor)
     }
 
     @Test
