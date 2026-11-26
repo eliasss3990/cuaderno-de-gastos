@@ -223,6 +223,18 @@ class AlmacenMemoria : Cola, AlmacenDelServidor {
 
     override fun contarEntidades(tipo: String): Int = entidades.values.count { it.tipo == tipo }
 
+    override fun entidadesDe(tipo: String): Map<String, Map<String, JsonElement>> =
+        entidades.values.filter { it.tipo == tipo }.associate { it.id to it.campos.toMap() }
+
+    override fun autoresDe(tipo: String): Map<String, String> {
+        val primera = HashMap<String, OpEnCola>()
+        for (o in cola.values) if (o.op.entidadTipo == tipo) primera.merge(o.op.entidadId, o) { a, b -> if (b.orden < a.orden) b else a }
+        return primera.mapNotNull { (id, o) -> o.autor?.let { id to it } }.toMap()
+    }
+
+    override fun sinConfirmar(): Set<Pair<String, String>> =
+        cola.values.filter { it.estado == EstadoOp.PENDIENTE || it.estado == EstadoOp.ENVIANDO }.map { it.op.entidadTipo to it.op.entidadId }.toSet()
+
     private var intervalos: List<IntervaloCierre> = emptyList()
 
     override fun intervalosDeCierre(): List<IntervaloCierre> = intervalos

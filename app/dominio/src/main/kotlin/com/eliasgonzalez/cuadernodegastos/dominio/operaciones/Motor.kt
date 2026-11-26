@@ -91,6 +91,9 @@ interface Almacen {
     /** Cuántas entidades de ese tipo existen (las terminadas ya no están). */
     fun contarEntidades(tipo: String): Int
 
+    /** Las entidades vivas de un tipo con todos sus campos escritos (id → campo → valor), para leerlas de una vez. */
+    fun entidadesDe(tipo: String): Map<String, Map<String, JsonElement>>
+
     /** Períodos en que el viaje estuvo cerrado, por inicio ascendente; a lo sumo el último está abierto. */
     fun intervalosDeCierre(): List<IntervaloCierre>
 

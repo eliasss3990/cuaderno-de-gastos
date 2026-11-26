@@ -1,8 +1,7 @@
 package com.eliasgonzalez.cuadernodegastos.dominio.operaciones
 
 import com.eliasgonzalez.cuadernodegastos.ayudas.Vectores
-import com.eliasgonzalez.cuadernodegastos.dominio.base.Hlc
-import com.eliasgonzalez.cuadernodegastos.dominio.base.Reloj
+import com.eliasgonzalez.cuadernodegastos.ayudas.ViajeDeEjemplo
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -26,27 +25,7 @@ class ViajeDeEjemploTest {
 
     private fun texto(e: JsonElement?) = (e as? JsonPrimitive)?.takeIf { it.isString }?.content
 
-    /** Carga el viaje con la ingesta, cada operación desde el dispositivo de quien la registra. Devuelve el almacén. */
-    private fun cargar(): AlmacenMemoria {
-        val almacen = AlmacenMemoria()
-        val hoy = 1802971920000L // 2027-02-18 14:32 en Asunción
-        val ingesta = Ingesta(almacen) { hoy }
-        val dispositivos = v["integrantes"]!!.jsonObject.keys.withIndex().associate { (i, k) -> k to "018f3a6e-0000-7000-8000-${(i + 1).toString().padStart(12, '0')}" }
-        var n = 0
-        fun aplicar(quien: String, tipo: String, entidad: String, id: String, payload: JsonObject) {
-            n++
-            val op = Operacion("018f3a6e-9000-7000-8000-${n.toString().padStart(12, '0')}", tipo, entidad, id, Reloj.formatear(Hlc(hoy - 100_000 + n, 0, dispositivos.getValue(quien))), payload, 1)
-            assertEquals("$tipo $id $payload", Resultado.Aceptada(n.toLong()), ingesta.procesar(op))
-        }
-        aplicar("papa", "trip.create", "trip", viaje, v["viaje"]!!.jsonObject)
-        val papa = v["integrantes"]!!.jsonObject["papa"]!!.jsonObject
-        aplicar("papa", "member.join", "member", texto(papa["member_id"])!!, JsonObject(papa.filterKeys { it in setOf("apodo", "emoji", "color") } + ("es_organizador" to JsonPrimitive(1))))
-        for (o in v["ops"]!!.jsonArray.map { it.jsonObject }) {
-            val id = texto(o["entity_id"])!!.let { if (it == "\$viaje") viaje else it }
-            aplicar(texto(o["integrante"])!!, texto(o["type"])!!, texto(o["entity_type"])!!, id, o["payload"]!!.jsonObject)
-        }
-        return almacen
-    }
+    private fun cargar(): AlmacenMemoria = ViajeDeEjemplo.cargar().almacen
 
     private class Gasto(val campos: JsonObject, val quien: String) {
         fun t(c: String) = (campos[c] as? JsonPrimitive)?.takeIf { it.isString }?.content

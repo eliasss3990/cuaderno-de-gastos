@@ -91,6 +91,34 @@ class AlmacenSqlite(private val base: BaseSql, private val tripId: String) : Col
 
     override fun contarEntidades(tipo: String): Int = (base.consultar("SELECT COUNT(*) FROM entity WHERE trip_id = ? AND tipo = ?", tripId, tipo).single()[0] as Long).toInt()
 
+    override fun entidadesDe(tipo: String): Map<String, Map<String, JsonElement>> {
+        val r = LinkedHashMap<String, MutableMap<String, JsonElement>>()
+        // una sola consulta; una entidad sin campos escritos también aparece (LEFT JOIN)
+        for (f in base.consultar(
+            "SELECT e.id, f.campo, f.valor FROM entity e LEFT JOIN entity_field f ON f.trip_id = e.trip_id AND f.tipo = e.tipo AND f.id = e.id WHERE e.trip_id = ? AND e.tipo = ? ORDER BY e.id",
+            tripId, tipo,
+        )) {
+            val campos = r.getOrPut(texto(f, 0)) { HashMap() }
+            val campo = f[1] as String? ?: continue
+            campos[campo] = Json.parseToJsonElement(texto(f, 2))
+        }
+        return r
+    }
+
+    override fun autoresDe(tipo: String): Map<String, String> {
+        val r = LinkedHashMap<String, String?>()
+        // en orden: la primera operación de cada entidad decide
+        for (f in base.consultar("SELECT entity_id, member_id FROM op WHERE trip_id = ? AND entity_type = ? ORDER BY seq", tripId, tipo)) {
+            // no putIfAbsent: con un valor null lo reemplazaría, y la primera (aunque no tenga autor) es la que decide
+            if (!r.containsKey(texto(f, 0))) r[texto(f, 0)] = f[1] as String?
+        }
+        return r.mapNotNull { (id, a) -> a?.let { id to it } }.toMap()
+    }
+
+    override fun sinConfirmar(): Set<Pair<String, String>> =
+        base.consultar("SELECT DISTINCT entity_type, entity_id FROM op WHERE trip_id = ? AND estado IN ('PENDIENTE', 'ENVIANDO')", tripId)
+            .map { texto(it, 0) to texto(it, 1) }.toSet()
+
     override fun intervalosDeCierre(): List<IntervaloCierre> =
         base.consultar("SELECT desde_ms, hasta_ms, causa FROM trip_closed_interval WHERE trip_id = ? ORDER BY desde_ms", tripId)
             .map { IntervaloCierre(it[0] as Long, it[1] as Long?, IntervaloCierre.Causa.valueOf(texto(it, 2))) }

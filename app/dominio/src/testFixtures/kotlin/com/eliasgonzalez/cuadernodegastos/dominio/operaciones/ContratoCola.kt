@@ -246,4 +246,35 @@ abstract class ContratoCola {
         }
         assertEquals(null, c.buscarEnCola("o3")!!.autor)
     }
+
+    @Test
+    fun losAutoresDeUnTipoYLasEntidadesSinConfirmar() {
+        val c = crear()
+        c.transaccion {
+            c.guardarOp(op(1, "e1"))
+            c.guardarOp(op(2, "e1"))
+            c.guardarOp(op(3, "e2"))
+            c.guardarOp(op(4, "e3"))
+            c.guardarOp(op(5, "c1", "category"))
+            // e4: la primera sin autor y la segunda con autor: decide la primera (no hay autor)
+            c.guardarOp(op(6, "e4"))
+            c.guardarOp(op(7, "e4"))
+            c.fijarAutor("o7", "m-nico")
+            c.fijarAutor("o1", "m-papa")
+            c.fijarAutor("o2", "m-mama")
+            c.fijarAutor("o4", "m-lu")
+            c.fijarAutor("o5", "m-papa")
+            // e2 sin autor; o3 sin autor
+            c.fijarEstado("o2", EstadoOp.PENDIENTE)
+            c.fijarEstado("o4", EstadoOp.ENVIANDO)
+            c.fijarEstado("o5", EstadoOp.CUARENTENA)
+        }
+        // el de la primera operación de cada entidad; las que no tienen autor no aparecen
+        assertEquals(mapOf("e1" to "m-papa", "e3" to "m-lu"), c.autoresDe("expense"))
+        assertEquals(mapOf("c1" to "m-papa"), c.autoresDe("category"))
+        // pendientes o enviándose (una en cuarentena no: esa se muestra como error)
+        assertEquals(setOf("expense" to "e1", "expense" to "e3"), c.sinConfirmar())
+        c.transaccion { c.fijarEstado("o2", EstadoOp.CONFIRMADA, serverSeq = 7) }
+        assertEquals(setOf("expense" to "e3"), c.sinConfirmar())
+    }
 }
