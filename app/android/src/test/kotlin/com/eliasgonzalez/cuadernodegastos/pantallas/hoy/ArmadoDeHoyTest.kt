@@ -1,5 +1,7 @@
 package com.eliasgonzalez.cuadernodegastos.pantallas.hoy
 
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.GastoEnPantalla
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.AvisoDeGastos
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Moneda
 import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.Categoria
 import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.ContraLimite
@@ -76,5 +78,32 @@ class ArmadoDeHoyTest {
         assertEquals(listOf("Efectivo", "Crédito", "Débito", "Pix", "Transferencia o QR", "Otro", "Vale"), listOf("EFECTIVO", "CREDITO", "DEBITO", "PIX", "TRANSFERENCIA", "OTRO", "VALE").map { ArmadoDeHoy.metodoDePago(it) })
         assertNull(ArmadoDeHoy.metodoDePago(null))
         assertEquals(listOf("Guaraníes", "Reales", "USD"), listOf("PYG", "BRL", "USD").map(ArmadoDeHoy::plural))
+    }
+
+    @Test
+    fun elTituloDiceQueFueYLaHoraSoloSiEsDelMismoDia() {
+        val otro = Categoria("otro", "Otro", "#EEE8D8", "📦", false)
+        val zona = java.time.ZoneId.of("America/Asuncion")
+        val m = mapOf("PYG" to pyg)
+        // sin concepto: el lugar, y abajo solo la forma de pago
+        val conLugar = ArmadoDeHoy.filaDe(GastoDeHoy(gasto("a", 1, "PYG", 1802969280000, null, "Farmacia", "EFECTIVO"), otro, papa), m, zona)
+        assertEquals("Farmacia" to "Efectivo", conLugar.titulo to conLugar.detalle)
+        // sin lugar ni concepto y categoría "Otro": la forma de pago no es un título (va abajo)
+        val soloPago = ArmadoDeHoy.filaDe(GastoDeHoy(gasto("b", 1, "PYG", 1802969280000, null, null, "EFECTIVO"), otro, papa), m, zona)
+        assertEquals("Gasto sin detalle" to "Efectivo", soloPago.titulo to soloPago.detalle)
+        assertEquals("Gasto sin detalle", ArmadoDeHoy.filaDe(GastoDeHoy(gasto("c", 1, "PYG", 1802969280000, null, null, null), otro, papa), m, zona).titulo)
+        // una categoría con nombre sí sirve de título
+        assertEquals("Comida", ArmadoDeHoy.filaDe(GastoDeHoy(gasto("d", 1, "PYG", 1802969280000, null, null, null), comida, papa), m, zona).titulo)
+        // anotado el 18 para el 17: sin hora
+        val otroDia = GastoDeHoy(gasto("e", 1, "PYG", 1802969280000, "Taxi", null, null).copy(diaImputado = "2027-02-17"), comida, papa)
+        assertEquals("🦁 Papá", ArmadoDeHoy.filaDe(otroDia, m, zona).quien)
+    }
+
+    @Test
+    fun sinConceptoLugarNiCategoriaElTituloEsLaNota() {
+        val otro = Categoria("otro", "Otro", "#EEE8D8", "📦", false)
+        val conNota = gasto("n", 1, "PYG", 1802969280000, null, null, null).copy(nota = "Regalo para la tía Marta, comprado en la feria del centro")
+        val f = ArmadoDeHoy.filaDe(GastoDeHoy(conNota, otro, papa), mapOf("PYG" to pyg), java.time.ZoneId.of("America/Asuncion"))
+        assertEquals("Regalo para la tía Marta, comprado en l…", f.titulo)
     }
 }

@@ -94,9 +94,26 @@ object CargaDeGastos {
                 antes.concepto, antes.lugar, antes.metodoPago, antes.aliasTarjeta, antes.nota,
             ),
         )
-        val cambios = campos(b.copy(cuandoOcurrio = antes.cuandoOcurrio)).filter { (campo, valor) -> valor != previos[campo] }.mapValues { it.value ?: JsonNull }
+        val nuevos = campos(b.copy(cuandoOcurrio = antes.cuandoOcurrio))
+        val distintos = nuevos.filter { (campo, valor) -> valor != previos[campo] }.keys
+        // monto y moneda son un solo dato: si cambia uno viajan los dos (si no, con otro celular podrían quedar mezclados)
+        val juntos = if (distintos.any { it == "monto_minor" || it == "moneda" }) distintos + setOf("monto_minor", "moneda") else distintos
+        val cambios = nuevos.filterKeys { it in juntos }.mapValues { it.value ?: JsonNull }
         return if (cambios.isEmpty()) null else Operacion(opId, "expense.update", "expense", antes.id, marca, JsonObject(cambios), 1)
     }
+
+    /** [g] con los [campos] (los nombres que arma [edicion]) tomados de [b]: cómo queda un gasto tras aplicar una edición. */
+    fun conCampos(g: Gasto, b: BorradorDeGasto, campos: Set<String>): Gasto = g.copy(
+        montoMinor = if ("monto_minor" in campos) b.montoMinor else g.montoMinor,
+        moneda = if ("moneda" in campos) b.moneda else g.moneda,
+        categoriaId = if ("categoria_id" in campos) b.categoriaId else g.categoriaId,
+        diaImputado = if ("dia_imputado" in campos) b.diaImputado else g.diaImputado,
+        concepto = if ("concepto" in campos) limpio(b.concepto) else g.concepto,
+        lugar = if ("lugar" in campos) limpio(b.lugar) else g.lugar,
+        metodoPago = if ("metodo_pago" in campos) b.metodoPago else g.metodoPago,
+        aliasTarjeta = if ("alias_tarjeta" in campos) alias(b) else g.aliasTarjeta,
+        nota = if ("nota" in campos) limpio(b.nota) else g.nota,
+    )
 
     /** Lo gastado en todo el viaje por moneda (sin la papelera), para comparar con el tope. */
     fun gastadoPorMoneda(gastos: List<Gasto>): Map<String, Long> =
@@ -112,6 +129,14 @@ object CargaDeGastos {
         gastadoMinor + montoMinor > topeMinor -> AvisoDelTope.PASA_CON_ESTE
         else -> AvisoDelTope.NINGUNO
     }
+
+    /** Manda el gasto a la papelera (se puede restaurar). */
+    fun aLaPapelera(gastoId: String, opId: String, marca: String): Operacion =
+        Operacion(opId, "expense.delete", "expense", gastoId, marca, JsonObject(mapOf("eliminado" to JsonPrimitive(1))), 1)
+
+    /** Lo saca de la papelera. */
+    fun restaurar(gastoId: String, opId: String, marca: String): Operacion =
+        Operacion(opId, "expense.restore", "expense", gastoId, marca, JsonObject(mapOf("eliminado" to JsonPrimitive(0))), 1)
 
     /** Deshacer un alta recién hecha: el gasto se elimina del todo (no va a la papelera, que es para lo que se borra a mano). */
     fun deshacerAlta(gastoId: String, opId: String, marca: String): Operacion =

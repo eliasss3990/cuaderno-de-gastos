@@ -1,6 +1,10 @@
 // Arma lo que muestra Hoy a partir del resumen del día (textos, montos con formato, colores): todo probado aparte.
 package com.eliasgonzalez.cuadernodegastos.pantallas.hoy
 
+import com.eliasgonzalez.cuadernodegastos.dominio.gastos.CargaDeGastos
+import com.eliasgonzalez.cuadernodegastos.dominio.base.Moneda
+import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.GastoDeHoy
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.GastoEnPantalla
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Dinero
 import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.ResumenDeHoy
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoDeSincronizacion
@@ -52,23 +56,36 @@ object ArmadoDeHoy {
                     nivel = t.previsto?.nivel,
                 )
             },
-            gastos = r.ultimos.map { g ->
-                val hora = Instant.ofEpochMilli(g.gasto.cuandoOcurrio).atZone(zona).toLocalTime()
-                val moneda = monedas[g.gasto.moneda]?.moneda
-                GastoEnPantalla(
-                    id = g.gasto.id,
-                    emoji = g.categoria?.emoji ?: "📦",
-                    fondo = g.categoria?.color ?: "#EEE8D8",
-                    titulo = g.gasto.concepto ?: g.categoria?.nombre ?: "Gasto",
-                    detalle = listOfNotNull(g.gasto.lugar, metodoDePago(g.gasto.metodoPago)).joinToString(" · ").ifEmpty { null },
-                    quien = listOfNotNull(g.autor?.let { "${it.emoji} ${it.apodo}" }, "%02d:%02d".format(hora.hour, hora.minute)).joinToString(" · "),
-                    monto = moneda?.let { Dinero.formatear(g.gasto.montoMinor, it) } ?: "${g.gasto.moneda} ${g.gasto.montoMinor}",
-                    codigo = g.gasto.moneda,
-                    pendiente = g.gasto.sinConfirmar,
-                )
-            },
+            gastos = r.ultimos.map { filaDe(it, monedas.mapValues { m -> m.value.moneda }, zona) },
             sincronizacion = texto,
             tono = tono,
+        )
+    }
+
+    /** El nombre de un gasto (igual en la fila, el detalle y los avisos): concepto, lugar, categoría salvo "Otro". */
+    fun titulo(g: GastoDeHoy): String =
+        g.gasto.concepto ?: g.gasto.lugar ?: g.categoria?.takeIf { it.id != CargaDeGastos.OTRO }?.nombre
+            ?: g.gasto.nota?.let { if (it.length > 40) it.take(39).trimEnd() + "…" else it } ?: "Gasto sin detalle"
+
+    /** Una fila de gasto (Hoy y la lista): qué fue, dónde y cómo, quién y a qué hora, y el monto. */
+    fun filaDe(g: GastoDeHoy, monedas: Map<String, Moneda>, zona: ZoneId): GastoEnPantalla {
+        val cuando = Instant.ofEpochMilli(g.gasto.cuandoOcurrio).atZone(zona)
+        // la hora solo si es del mismo día al que cuenta (si no, parecería que pasó ese día a esa hora)
+        val hora = cuando.takeIf { it.toLocalDate().toString() == g.gasto.diaImputado }?.let { "%02d:%02d".format(it.hour, it.minute) }
+        val moneda = monedas[g.gasto.moneda]
+        val pago = metodoDePago(g.gasto.metodoPago)
+        val titulo = titulo(g)
+        return GastoEnPantalla(
+            id = g.gasto.id,
+            emoji = g.categoria?.emoji ?: "📦",
+            fondo = g.categoria?.color ?: "#EEE8D8",
+            titulo = titulo,
+            // el lugar (lo que identifica) y después cómo se pagó; la fila le da dos renglones para que no se pierda el pago
+            detalle = listOfNotNull(g.gasto.lugar, pago).filter { it != titulo }.joinToString(" · ").ifEmpty { null },
+            quien = listOfNotNull(g.autor?.let { "${it.emoji} ${it.apodo}" }, hora).joinToString(" · "),
+            monto = moneda?.let { Dinero.formatear(g.gasto.montoMinor, it) } ?: "${g.gasto.moneda} ${g.gasto.montoMinor}",
+            codigo = g.gasto.moneda,
+            pendiente = g.gasto.sinConfirmar,
         )
     }
 

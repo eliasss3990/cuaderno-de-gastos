@@ -2,6 +2,10 @@
 // Las partes viven en `partes/`.
 package com.eliasgonzalez.cuadernodegastos.pantallas.cargargasto
 
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.expandVertically
@@ -58,7 +62,6 @@ import androidx.compose.ui.Modifier
 import com.eliasgonzalez.cuadernodegastos.ui.componentes.estado.AccionDeTexto
 import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -124,7 +127,9 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
     LaunchedEffect(estado.listo) { if (estado.listo) estado.guardado?.let { acciones.alGuardado(it) } ?: acciones.alCerrar() }
     if (preguntarSiSale) {
         DialogoDeConfirmar(
-            stringResource(R.string.gasto_salir_titulo), stringResource(R.string.nuevo_salir_texto), stringResource(R.string.nuevo_seguir_cargando), stringResource(R.string.nuevo_salir),
+            stringResource(if (estado.editando) R.string.gasto_salir_editar else R.string.gasto_salir_titulo), stringResource(if (estado.editando) R.string.gasto_salir_editar_texto else R.string.nuevo_salir_texto),
+            stringResource(if (estado.editando) R.string.gasto_seguir_editando else R.string.nuevo_seguir_cargando),
+            stringResource(if (estado.editando) R.string.gasto_salir_sin_guardar else R.string.nuevo_salir),
             alSeguir = { preguntarSiSale = false }, alSalir = { preguntarSiSale = false; acciones.alCerrar() },
         )
     }
@@ -135,7 +140,8 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
     var todosLosPagos by rememberSaveable { mutableStateOf(false) }
     // el teclado del monto se ve solo mientras se edita el monto: al abrir "Más datos" o escribir en otro campo se guarda,
     // y se vuelve a abrir tocando el monto
-    var montoActivo by rememberSaveable { mutableStateOf(true) }
+    // editando, el teclado arranca cerrado: se ve todo el gasto y se toca lo que se quiere cambiar
+    var montoActivo by rememberSaveable { mutableStateOf(!estado.editando) }
     // dónde termina el monto en lo que se desplaza: el resumen fijo aparece solo si el monto salió de la vista
     var finDelMonto by remember { mutableStateOf(0) }
     // volver: primero cierra el teclado del monto (como el del sistema); recién con el teclado cerrado sale de la pantalla
@@ -156,7 +162,9 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
         }
     }
     Column(Modifier.fillMaxSize().background(Tema.colores.fondo).systemBarsPadding().imePadding()) {
-        BarraSuperior(stringResource(R.string.gasto_titulo), icono = IconoDeBarra.CERRAR, alTocarIcono = cerrar)
+        BarraSuperior(stringResource(if (estado.editando) R.string.gasto_titulo_editar else R.string.gasto_titulo), icono = IconoDeBarra.CERRAR, alTocarIcono = cerrar)
+        // mientras carga, solo la barra: nunca un formulario con valores falsos ("0", sin moneda) que después salta
+        if (estado.cargando) return@Column
         // con el teclado del sistema abierto el monto sale de la vista: un resumen fijo para no guardar a ciegas
         if (tecladoDelSistema && estado.montoTexto.isNotEmpty() && desplazamiento.value > finDelMonto) {
             // la categoría solo si su sección se ve (no nombrar lo que la persona no vio)
@@ -169,7 +177,8 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
             )
         }
         Column(
-            Modifier.fillMaxWidth().weight(1f).verticalScroll(desplazamiento).padding(horizontal = Tema.espacios.l),
+            // en horizontal o tablet, el mismo ancho de lectura que la lista y el detalle
+            Modifier.fillMaxWidth().weight(1f).verticalScroll(desplazamiento).wrapContentWidth().widthIn(max = 600.dp).padding(horizontal = Tema.espacios.l),
             verticalArrangement = Arrangement.spacedBy(separacionDeCampos),
         ) {
             if (estado.monedas.size > 1) {
@@ -217,8 +226,9 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
                 val rotulo = when {
                     estado.mostrarMas -> stringResource(R.string.gasto_menos_datos)
                     // con otro día elegido, se ve aunque la sección esté cerrada
-                    estado.concepto.isNotBlank() -> stringResource(R.string.gasto_mas_datos_con, estado.concepto.trim())
+                    // el día manda (si no es hoy y no se ve, el gasto parece de hoy); después lo escrito
                     estado.diaImputado != estado.diaPropuesto -> stringResource(R.string.gasto_mas_datos_dia, Formatos.fechaLarga(estado.diaImputado))
+                    estado.concepto.isNotBlank() -> stringResource(R.string.gasto_mas_datos_con, estado.concepto.trim())
                     estado.conTarjeta -> stringResource(R.string.gasto_mas_datos_tarjeta)
                     else -> stringResource(R.string.gasto_mas_datos)
                 }
@@ -232,11 +242,16 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
             estado.mensaje?.let {
                 Text(stringResource(it), style = Tema.texto.aviso, color = Tema.colores.error, modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite })
             }
-            BotonPrincipal(stringResource(if (estado.enviando) R.string.gasto_guardando else R.string.gasto_guardar), { teclado?.hide(); foco.clearFocus(); acciones.alGuardar() }, habilitado = !estado.enviando, cargando = estado.enviando)
+            // ya guardado sigue "Guardando…" hasta que la pantalla se va (si no, el botón vuelve a su estado normal un instante)
+            val guardando = estado.enviando || (estado.listo && estado.guardado != null)
+            BotonPrincipal(stringResource(if (guardando) R.string.gasto_guardando else if (estado.editando) R.string.gasto_guardar_cambios else R.string.gasto_guardar), { teclado?.hide(); foco.clearFocus(); acciones.alGuardar() },
+                // editando sin cambios queda apagado (no hay nada que guardar)
+                habilitado = !guardando && (!estado.editando || estado.hayCambios), cargando = guardando)
         }
         // con el teclado del sistema abierto (lugar, nota) el del monto se esconde
         // entra y sale deslizándose (lo de arriba no salta de golpe)
-        androidx.compose.animation.AnimatedVisibility(montoActivo && !tecladoDelSistema, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
+        // mientras carga no se muestra (editando arranca cerrado: no aparece y se va)
+        androidx.compose.animation.AnimatedVisibility(montoActivo && !tecladoDelSistema && !estado.cargando, enter = expandVertically(tween(200)), exit = shrinkVertically(tween(200))) {
             TecladoDelMonto(conComa = (moneda?.decimales ?: 0) > 0, acciones.alTocarTecla, acciones.alBorrar, acciones.alBorrarTodo, alCerrar = { montoActivo = false })
         }
     }
@@ -274,15 +289,19 @@ private fun Monto(estado: CargarGastoEstado, moneda: Moneda?, activo: Boolean, m
         if (avisos.isNotEmpty()) Box(Modifier.size(0.dp).semantics { contentDescription = avisos; liveRegion = LiveRegionMode.Polite })
         // el número y su raya con el mismo ancho, en un renglón de alto fijo: achicar la letra no mueve lo de abajo;
         // vacío, la raya marca dónde va el número (sin un "0" que parezca un dato)
-        Column(Modifier.heightIn(min = altoDelMonto).width(IntrinsicSize.Max), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
+        // el número usa todo el ancho (la letra que se ajusta no informa su ancho intrínseco: medirlo así lo dejaba en 0)
+        val densidad = LocalDensity.current
+        var anchoDelNumero by remember { mutableStateOf(0.dp) }
+        Column(Modifier.fillMaxWidth().heightIn(min = altoDelMonto), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
             // un monto largo achica la letra solo lo que hace falta para entrar en el ancho
             BasicText(
-                texto, maxLines = 1,
+                texto, maxLines = 1, softWrap = false, modifier = Modifier.fillMaxWidth(),
                 style = TextStyle(fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, color = if (vacio) Tema.colores.ayuda else Tema.colores.tinta),
                 autoSize = TextAutoSize.StepBased(minFontSize = 24.sp, maxFontSize = tamanoDelMonto),
+                onTextLayout = { r -> anchoDelNumero = with(densidad) { (r.getLineRight(0) - r.getLineLeft(0)).toDp() } },
             )
-            // la raya dice dónde escribe el teclado: se ve mientras está abierto (roja con error)
-            Box(Modifier.fillMaxWidth().widthIn(min = 72.dp).height(3.dp).background(if (error != null) Tema.colores.error else if (activo) Tema.colores.acento else Color.Transparent))
+            // la raya dice dónde escribe el teclado (del ancho del número): se ve mientras está abierto (roja con error)
+            Box(Modifier.width(maxOf(anchoDelNumero, 72.dp)).height(3.dp).testTag("raya-del-monto").background(if (error != null) Tema.colores.error else if (activo) Tema.colores.acento else Color.Transparent))
         }
         // un solo texto debajo: el error, la ayuda para empezar o cómo volver a editar
         // un renglón de dos líneas reservado para el aviso: que aparezca o se vaya no mueve lo de abajo

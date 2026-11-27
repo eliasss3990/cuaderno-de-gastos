@@ -1,5 +1,10 @@
 package com.eliasgonzalez.cuadernodegastos.pantallas.cargargasto
 
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -171,5 +176,54 @@ class CargarGastoPantallaTest {
         chip.assert(androidx.compose.ui.test.SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.ToggleableState, androidx.compose.ui.state.ToggleableState.On))
         chip.performScrollTo().performClick()
         assertEquals("EFECTIVO", tocado)
+    }
+
+    @Test
+    fun unMontoLargoSeVeEnteroConElTecladoAbiertoYCerrado() {
+        compose.setContent { TemaCuaderno { CargarGastoPantalla(base.copy(moneda = "PYG", montoTexto = "1.250.000"), AccionesDeCargarGasto()) } }
+        // lo dibujado tiene ancho de verdad: la raya mide el renglón del número (con la letra que se ajusta llegó a quedar en 0)
+        compose.onNodeWithTag("raya-del-monto", useUnmergedTree = true).assertWidthIsAtLeast(150.dp)
+        compose.onRoot().captureRoboImage("build/capturas/cargar-gasto-monto-largo.png")
+        compose.onNodeWithContentDescription("Cerrar el teclado").performClick()
+        compose.onRoot().captureRoboImage("build/capturas/cargar-gasto-monto-largo-sin-teclado.png")
+        compose.onNodeWithTag("raya-del-monto", useUnmergedTree = true).assertWidthIsAtLeast(150.dp)
+    }
+
+    @Test
+    fun editandoTituloBotonApagadoSinCambiosYTecladoCerrado() {
+        var guardar = 0
+        val editando = base.copy(montoTexto = "137,50", inicial = listOf(1), hayCambios = false)
+        compose.setContent { TemaCuaderno { CargarGastoPantalla(editando, AccionesDeCargarGasto(alGuardar = { guardar++ })) } }
+        compose.onNodeWithText("Editar gasto").assertExists()
+        compose.onNodeWithText("7").assertDoesNotExist()
+        compose.onNodeWithText("Guardar cambios").assertIsNotEnabled()
+        compose.onRoot().captureRoboImage("build/capturas/editar-gasto.png")
+    }
+
+    @Test
+    fun editandoConCambiosSePuedeGuardarYAlSalirPreguntaConLosTextosDeEditar() {
+        var guardar = 0
+        val editando = base.copy(montoTexto = "137,50", inicial = listOf(1), hayCambios = true)
+        compose.setContent { TemaCuaderno { CargarGastoPantalla(editando, AccionesDeCargarGasto(alGuardar = { guardar++ })) } }
+        compose.onNodeWithText("Guardar cambios").assertIsEnabled().performClick()
+        assertEquals(1, guardar)
+        compose.onNodeWithContentDescription("Cerrar").performClick()
+        compose.onNodeWithText("¿Salir sin guardar los cambios?").assertExists()
+        compose.onNodeWithText("Seguir editando").assertExists()
+    }
+
+    @Test
+    fun mientrasCargaSoloSeVeLaBarra() {
+        compose.setContent { TemaCuaderno { CargarGastoPantalla(base.copy(cargando = true, inicial = emptyList()), AccionesDeCargarGasto()) } }
+        compose.onNodeWithText("Editar gasto").assertExists()
+        compose.onNodeWithText("Monto").assertDoesNotExist()
+    }
+
+    @Test
+    fun yaGuardadoSigueGuardandoHastaIrse() {
+        compose.setContent { TemaCuaderno { CargarGastoPantalla(base.copy(montoTexto = "5", listo = true, guardado = GastoGuardado("g", "R$ 5,00")), AccionesDeCargarGasto()) } }
+        // el botón no vuelve a "Guardar gasto" mientras la pantalla se va (sería un parpadeo)
+        compose.onNodeWithText("Guardando…").assertExists()
+        compose.onNodeWithText("Guardar gasto").assertDoesNotExist()
     }
 }

@@ -1,6 +1,9 @@
 // Los diálogos de la app, con sus colores (no los de Material por defecto).
 package com.eliasgonzalez.cuadernodegastos.ui.componentes.dialogos
 
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.ui.Modifier
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -12,6 +15,8 @@ import com.eliasgonzalez.cuadernodegastos.ui.tema.Tema
 fun DialogoDeConfirmar(titulo: String, texto: String, seguir: String, salir: String, alSeguir: () -> Unit, alSalir: () -> Unit) {
     AlertDialog(
         onDismissRequest = alSeguir,
+        // el mínimo de ancho de un diálogo (si no, con títulos cortos queda angosto)
+        modifier = Modifier.widthIn(min = 280.dp),
         title = { Text(titulo) },
         text = { Text(texto) },
         confirmButton = { TextButton(onClick = alSeguir) { Text(seguir, color = Tema.colores.principal) } },

@@ -40,7 +40,7 @@ class CargarGastoViewModelTest {
         assertTrue(Ingesta(almacen) { ahora }.procesar(op) is Resultado.Aceptada)
     }
 
-    private fun vm() = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _ -> registrados += b; respuesta }, hilo = hilo, nuevoId = { "018f3a6e-2000-7000-8000-0000000000aa" }, ahoraMs = { ahora })
+    private fun vm() = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _, _ -> registrados += b; respuesta }, hilo = hilo, nuevoId = { "018f3a6e-2000-7000-8000-0000000000aa" }, ahoraMs = { ahora })
 
     @Before
     fun antes() {
@@ -143,7 +143,7 @@ class CargarGastoViewModelTest {
 
     @Test
     fun siElViajeYaNoEstaVinculadoLoDice() {
-        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _ -> throw com.eliasgonzalez.cuadernodegastos.sincronizacion.ViajeNoVinculado() }, hilo = hilo, ahoraMs = { ahora })
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ -> throw com.eliasgonzalez.cuadernodegastos.sincronizacion.ViajeNoVinculado() }, hilo = hilo, ahoraMs = { ahora })
         v.alTocarTecla('5')
         v.alGuardar()
         assertEquals(R.string.gasto_sin_viaje, v.estado.value.mensaje)
@@ -166,7 +166,7 @@ class CargarGastoViewModelTest {
 
     @Test
     fun unaFallaDeLaBaseNoCierraLaAppYSePuedeReintentar() {
-        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _ -> throw java.io.IOException("disco") }, hilo = hilo, ahoraMs = { ahora })
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ -> throw java.io.IOException("disco") }, hilo = hilo, ahoraMs = { ahora })
         v.alTocarTecla('5')
         v.alGuardar()
         assertEquals(R.string.gasto_no_se_pudo to false, v.estado.value.mensaje to v.estado.value.enviando)
@@ -202,13 +202,13 @@ class CargarGastoViewModelTest {
         val ids = mutableListOf<String>()
         respuesta = Resultado.Rechazada(Razon.FUERA_DEL_VIAJE)
         var n = 0
-        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, id, op -> ids += "$id/$op"; respuesta }, hilo = hilo, nuevoId = { "id-${n++}" }, ahoraMs = { ahora })
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, id, op, _ -> ids += "$id/$op"; respuesta }, hilo = hilo, nuevoId = { "id-${n++}" }, ahoraMs = { ahora })
         v.alTocarTecla('5')
         v.alGuardar()
         respuesta = Resultado.Aceptada(9)
         v.alGuardar()
         // mismo gasto y misma operación: si el primero se hubiera registrado, el segundo queda como duplicado
-        assertEquals(listOf("id-0/id-1", "id-0/id-1"), ids)
+        assertEquals(listOf("id-1/id-0", "id-1/id-0"), ids)
     }
 
     @Test
@@ -252,14 +252,14 @@ class CargarGastoViewModelTest {
 
     @Test
     fun pasadoElFinElDiaPropuestoEsElUltimoYHoySigueSiendoHoy() {
-        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora + 15L * 86_400_000 })
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora + 15L * 86_400_000 })
         // el viaje termina el 28 de febrero; hoy es 5 de marzo
         assertEquals("2027-02-28" to "2027-03-05", v.estado.value.diaImputado to v.estado.value.hoy)
     }
 
     @Test
     fun pasadoElFinAbrirYSalirSinTocarNadaNoPreguntaYBorrarQuitaElAvisoDeCentavos() {
-        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora + 15L * 86_400_000 })
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora + 15L * 86_400_000 })
         assertEquals(false, v.estado.value.cargoAlgo)
         v.alElegirMoneda("BRL")
         for (c in "5,3") v.alTocarTecla(c)
@@ -287,5 +287,229 @@ class CargarGastoViewModelTest {
         aplicar("currency.disable", "trip_currency", "BRL", """{"habilitada":0}""")
         v.alGuardar()
         assertEquals(Triple("PYG", "12", ",5"), Triple(v.estado.value.moneda, v.estado.value.montoTexto, v.estado.value.centavosQuitados))
+    }
+
+    @Test
+    fun editarArrancaConElGastoYSinCambiosNoRegistraNada() {
+        aplicar("expense.create", "expense", "018f3a6e-2000-7000-8000-0000000000e1", """{"monto_minor":13750,"moneda":"BRL","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-17","lugar":"Do Porto","metodo_pago":"CREDITO","alias_tarjeta":"Visa"}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = "018f3a6e-2000-7000-8000-0000000000e1")
+        val e = v.estado.value
+        assertEquals(listOf("BRL", "137,50", "018f3a6e-4000-7000-8000-000000000001", "CREDITO", "Do Porto", "Visa", "2027-02-17"), listOf(e.moneda, e.montoTexto, e.categoria, e.metodo, e.lugar, e.alias, e.diaImputado))
+        assertEquals(true to false, e.editando to e.cargoAlgo)
+        // lo gastado no cuenta este mismo gasto (si no, el aviso del tope lo sumaría dos veces)
+        assertEquals(0L, e.gastado["BRL"] ?: 0L)
+        v.alGuardar()
+        assertEquals(true, v.estado.value.listo)
+        assertTrue(registrados.isEmpty())
+    }
+
+    @Test
+    fun editarConUnCambioLoRegistraConElMismoGasto() {
+        aplicar("expense.create", "expense", "018f3a6e-2000-7000-8000-0000000000e1", """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val ids = mutableListOf<String>()
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, id, _, _ -> registrados += b; ids += id; respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = "018f3a6e-2000-7000-8000-0000000000e1")
+        assertEquals("500", v.estado.value.montoTexto)
+        v.alTocarTecla('0')
+        assertEquals(true, v.estado.value.cargoAlgo)
+        v.alGuardar()
+        assertEquals(listOf("018f3a6e-2000-7000-8000-0000000000e1"), ids)
+        assertEquals(5_000L, registrados.single().montoMinor)
+    }
+
+    @Test
+    fun editarUnGastoQueYaNoEstaCierraLaPantalla() {
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = "018f3a6e-2000-7000-8000-0000000000ff")
+        assertEquals(true, v.estado.value.listo)
+    }
+
+    @Test
+    fun editarConElMismoValorEscritoDistintoNoRegistraNada() {
+        aplicar("expense.create", "expense", "018f3a6e-2000-7000-8000-0000000000e1", """{"monto_minor":13750,"moneda":"BRL","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { b, _, _, _ -> registrados += b; respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = "018f3a6e-2000-7000-8000-0000000000e1")
+        // "137,50" → "137,5": otro texto, el mismo monto
+        v.alBorrar()
+        assertEquals("137,5" to false, v.estado.value.montoTexto to v.estado.value.cargoAlgo)
+        v.alGuardar()
+        assertEquals(true, v.estado.value.listo)
+        assertTrue(registrados.isEmpty())
+    }
+
+    @Test
+    fun editarMandaSoloLoQueCambioContraLoQueSeVioAunqueOtroCambieOtroCampo() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":5,"moneda":"BRL","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18","nota":"vieja"}""")
+        val mandadas = mutableListOf<Operacion>()
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, op -> mandadas += op("marca"); respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        // 5 centavos se ven como "0,05"
+        assertEquals("0,05", v.estado.value.montoTexto)
+        // otro celular cambia la nota mientras se edita
+        aplicar("expense.update", "expense", id, """{"nota":"nueva"}""")
+        v.alBorrarTodo()
+        v.alTocarTecla('7')
+        v.alGuardar()
+        assertEquals(listOf("monto_minor", "moneda"), mandadas.single().payload.keys.toList())
+    }
+
+    @Test
+    fun editarUnGastoQueOtroMandoALaPapeleraLoDiceSinMandarNada() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        var llamadas = 0
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ -> llamadas++; respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        aplicar("expense.delete", "expense", id, """{"eliminado":1}""")
+        v.alTocarTecla('0')
+        v.alGuardar()
+        assertEquals(0, llamadas)
+        assertEquals(R.string.gasto_ya_no_esta, v.estado.value.mensaje)
+    }
+
+    @Test
+    fun editarConSuCategoriaArchivadaLaMuestra() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        aplicar("category.archive", "category", "018f3a6e-4000-7000-8000-000000000001", """{"archivada":1}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ -> respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        assertTrue(v.estado.value.categorias.any { it.id == "018f3a6e-4000-7000-8000-000000000001" })
+        // al cargar uno nuevo, la archivada no se ofrece
+        assertTrue(vm().estado.value.categorias.none { it.id == "018f3a6e-4000-7000-8000-000000000001" })
+    }
+
+    @Test
+    fun siElGastoSeBorraJustoAlRegistrarLaEdicionDiceQueYaNoEsta() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ ->
+            aplicar("expense.delete", "expense", id, """{"eliminado":1}""")
+            Resultado.Rechazada(Razon.ENTIDAD_INEXISTENTE)
+        }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        v.alTocarTecla('0')
+        v.alGuardar()
+        assertEquals(R.string.gasto_ya_no_esta, v.estado.value.mensaje)
+    }
+
+    @Test
+    fun editarVaciandoUnCampoLoMandaComoNulo() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18","lugar":"Do Porto"}""")
+        val mandadas = mutableListOf<Operacion>()
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, op -> mandadas += op("marca"); respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        v.alCambiarLugar("")
+        v.alGuardar()
+        assertEquals("""{"lugar":null}""", mandadas.single().payload.toString())
+    }
+
+    @Test
+    fun siAlRecargarEditandoElGastoYaNoEstaLoDiceSinVaciarElFormulario() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ ->
+            aplicar("currency.disable", "trip_currency", "BRL", """{"habilitada":0}""")
+            Resultado.Rechazada(Razon.MONEDA_NO_HABILITADA)
+        }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        // entre el registro y la recarga, otro celular lo manda a la papelera
+        v.alTocarTecla('0')
+        aplicar("expense.delete", "expense", id, """{"eliminado":1}""")
+        v.alGuardar()
+        assertEquals(R.string.gasto_ya_no_esta, v.estado.value.mensaje)
+        assertTrue(v.estado.value.monedas.isNotEmpty())
+    }
+
+    @Test
+    fun reintentarUnaEdicionConOtroCambioEsOtraOperacion() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val ops = mutableListOf<String>()
+        var n = 0
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, op, _ -> ops += op; if (ops.size <= 2) throw java.io.IOException("disco") else respuesta }, hilo = hilo, nuevoId = { "op-${n++}" }, ahoraMs = { ahora }, editar = id)
+        v.alTocarTecla('0')
+        v.alGuardar()
+        // mismo contenido: misma operación (si se había registrado, queda duplicada)
+        v.alGuardar()
+        v.alCambiarLugar("Do Porto")
+        v.alGuardar()
+        assertEquals(listOf("op-0", "op-0", "op-1"), ops)
+    }
+
+    @Test
+    fun editandoGuardarQuedaApagadoHastaQueCambieAlgoQueValga() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":13750,"moneda":"BRL","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ -> respuesta }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        assertEquals(false, v.estado.value.hayCambios)
+        // "137,5" vale lo mismo: sigue apagado
+        v.alBorrar()
+        assertEquals(false, v.estado.value.hayCambios)
+        v.alTocarTecla('1')
+        assertEquals(true, v.estado.value.hayCambios)
+        v.alBorrar()
+        assertEquals(false, v.estado.value.hayCambios)
+    }
+
+    @Test
+    fun unaEdicionQueSeGuardoYFallóDespuesCierraComoGuardada() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":100,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        var llamadas = 0
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ ->
+            llamadas++
+            aplicar("expense.update", "expense", id, """{"monto_minor":200,"moneda":"PYG"}""")
+            throw java.io.IOException("aviso")
+        }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        v.alBorrarTodo(); for (c in "200") v.alTocarTecla(c)
+        v.alGuardar()
+        // ya quedó guardado (aunque falló después): se cierra como guardado, sin un error falso ni otro envío
+        assertEquals(1, llamadas)
+        assertEquals(true to "₲ 200", v.estado.value.listo to v.estado.value.guardado?.monto)
+        assertNull(v.estado.value.mensaje)
+    }
+
+
+    @Test
+    fun unaEdicionGuardadaYFallidaConCambiosDeOtroCelularCierraSinPisarlos() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":100,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18","lugar":"Viejo"}""")
+        val mandadas = mutableListOf<Operacion>()
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, op ->
+            mandadas += op("marca")
+            aplicar("expense.update", "expense", id, """{"monto_minor":200,"moneda":"PYG"}""")
+            throw java.io.IOException("aviso")
+        }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        // mientras tanto, otro celular cambió el lugar
+        aplicar("expense.update", "expense", id, """{"lugar":"Nuevo"}""")
+        v.alBorrarTodo(); for (c in "200") v.alTocarTecla(c)
+        v.alGuardar()
+        // se cerró como guardado; lo único que viajó fue el monto (el lugar del otro no se tocó)
+        assertEquals(true to "₲ 200", v.estado.value.listo to v.estado.value.guardado?.monto)
+        assertEquals(setOf("monto_minor", "moneda"), mandadas.single().payload.keys)
+    }
+
+    @Test
+    fun siAlRecargarLaCategoriaVuelveALaOriginalElBotonSeApaga() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("category.create", "category", "018f3a6e-4000-7000-8000-000000000002", """{"nombre":"Nafta","color":"#FDE3D3","emoji":"⛽"}""")
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ ->
+            aplicar("category.archive", "category", "018f3a6e-4000-7000-8000-000000000002", """{"archivada":1}""")
+            Resultado.Rechazada(Razon.ENTIDAD_INEXISTENTE)
+        }, hilo = hilo, ahoraMs = { ahora }, editar = id)
+        v.alElegirCategoria("018f3a6e-4000-7000-8000-000000000002")
+        assertEquals(true, v.estado.value.hayCambios)
+        v.alGuardar()
+        // otro celular archivó "Nafta": vuelve a "Otro", que es lo que tenía; no queda nada que guardar
+        assertEquals("otro" to false, v.estado.value.categoria to v.estado.value.hayCambios)
+    }
+
+    @Test
+    fun editarNoPideLaHoraEnCadaTecla() {
+        val id = "018f3a6e-2000-7000-8000-0000000000e1"
+        aplicar("expense.create", "expense", id, """{"monto_minor":500,"moneda":"PYG","categoria_id":"018f3a6e-4000-7000-8000-000000000001","cuando_ocurrio":1802969280000,"dia_imputado":"2027-02-18"}""")
+        var pedidos = 0
+        val v = CargarGastoViewModel({ LectorDelViaje(almacen) }, { "yo" }, { _, _, _, _ -> respuesta }, hilo = hilo, ahoraMs = { pedidos++; ahora }, editar = id)
+        val alAbrir = pedidos
+        // la hora corregida lee la base: no se pide al tipear ni al guardar una edición
+        for (c in "123") v.alTocarTecla(c)
+        v.alCambiarLugar("Do Porto")
+        v.alGuardar()
+        assertEquals(alAbrir, pedidos)
     }
 }

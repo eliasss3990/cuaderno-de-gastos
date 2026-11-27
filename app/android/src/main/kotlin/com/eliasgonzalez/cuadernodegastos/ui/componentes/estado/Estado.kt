@@ -134,7 +134,9 @@ fun ChipDeOpcion(
                     else -> Box(Modifier.size(16.dp).border(1.5.dp, Tema.colores.bordeDeCampo, CircleShape))
                 }
             }
-            Text(texto, style = Tema.texto.cuerpo.copy(fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.Normal), color = if (elegido) Tema.colores.principal else Tema.colores.dato, maxLines = 1)
+            Text(texto, style = Tema.texto.cuerpo.copy(fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.Normal), color = if (elegido) Tema.colores.principal else Tema.colores.dato,
+                // llenando un ancho fijo, con letra grande pasa a dos renglones en vez de cortarse
+                maxLines = if (llenar) 2 else 1, textAlign = if (llenar) TextAlign.Center else null)
         }
     }
 }
@@ -170,6 +172,8 @@ enum class Tono { BIEN, PENDIENTE, MAL }
 
 @Composable
 fun IndicadorDeSincronizacion(texto: String, tono: Tono) {
+    // sin texto todavía (cargando) no se dibuja: una píldora con solo "●" no dice nada y después salta
+    if (texto.isEmpty()) return
     val (fondo, letra) = when (tono) {
         Tono.BIEN -> Tema.colores.bienSuave to Tema.colores.bien
         Tono.PENDIENTE -> Tema.colores.avisoSuave to Tema.colores.aviso

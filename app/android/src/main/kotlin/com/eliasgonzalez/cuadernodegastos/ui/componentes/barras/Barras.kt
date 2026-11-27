@@ -1,6 +1,10 @@
 // Las barras de arriba y de abajo, y la barra de progreso.
 package com.eliasgonzalez.cuadernodegastos.ui.componentes.barras
 
+import androidx.compose.material3.ripple
+import androidx.compose.foundation.indication
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -98,14 +102,16 @@ fun BarraInferior(pestanas: List<Pestana>) {
         Modifier.fillMaxWidth().heightIn(min = 68.dp).height(IntrinsicSize.Min).background(Tema.colores.superficie).border(1.dp, Tema.colores.linea).selectableGroup(),
     ) {
         for (p in pestanas) {
+            // se toca en toda la celda, pero el efecto del toque tiene la forma de la píldora del ícono
+            val fuente = remember { MutableInteractionSource() }
             Column(
-                Modifier.weight(1f).fillMaxHeight().selectable(selected = p.activa, role = Role.Tab, onClick = p.alTocar).padding(vertical = 6.dp),
+                Modifier.weight(1f).fillMaxHeight().selectable(selected = p.activa, role = Role.Tab, interactionSource = fuente, indication = null, onClick = p.alTocar).padding(vertical = 6.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
                 val fondo = if (p.activa) Modifier.background(Tema.colores.principalSuave, RoundedCornerShape(14.dp)) else Modifier
                 // el emoji no crece con la letra y el lector lo salta (lee el nombre de la pestaña)
-                Text(p.icono, fontSize = with(LocalDensity.current) { 22.dp.toSp() }, modifier = fondo.padding(horizontal = 18.dp, vertical = 2.dp).clearAndSetSemantics {})
+                Text(p.icono, fontSize = with(LocalDensity.current) { 22.dp.toSp() }, modifier = fondo.clip(RoundedCornerShape(14.dp)).indication(fuente, ripple(color = Tema.colores.tinta)).padding(horizontal = 18.dp, vertical = 2.dp).clearAndSetSemantics {})
                 Text(
                     p.texto,
                     style = Tema.texto.navegacion.copy(fontWeight = if (p.activa) FontWeight.Bold else FontWeight.Normal),

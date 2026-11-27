@@ -2,8 +2,10 @@
 // hilo principal; lo que decide qué viaja está en CargaDeGastos (dominio).
 package com.eliasgonzalez.cuadernodegastos.pantallas.cargargasto
 
+import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Operacion
 import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.Gasto
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Moneda
+import kotlin.math.pow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eliasgonzalez.cuadernodegastos.R
@@ -41,22 +43,34 @@ class CargarGastoViewModel(
     private val lector: () -> LectorDelViaje,
     /** Quién soy en el viaje, o null si no se sabe. */
     private val yo: () -> String?,
-    /** Registra el alta con el id del gasto y de la operación (bloquea); lanza ViajeNoVinculado si el viaje ya no está. */
-    private val registrar: (BorradorDeGasto, String, String) -> Resultado,
+    /**
+     * Registra la operación que arma la función que recibe al final, con la marca de la sincronización (bloquea); lanza
+     * ViajeNoVinculado si el viaje ya no está. También recibe el borrador y los ids, para quien solo quiera mirarlos.
+     */
+    private val registrar: (BorradorDeGasto, String, String, (String) -> Operacion) -> Resultado,
     private val nuevoId: () -> String = { Ids.nuevo() },
     private val hilo: CoroutineDispatcher = Dispatchers.IO,
     private val ahoraMs: () -> Long = System::currentTimeMillis,
+    /** El gasto a editar, o null para cargar uno nuevo. */
+    private val editar: String? = null,
 ) : ViewModel() {
-    private val _estado = MutableStateFlow(CargarGastoEstado())
+    // editando se sabe desde antes de cargar (el teclado del monto arranca cerrado, sin aparecer y irse)
+    private val _estado = MutableStateFlow(CargarGastoEstado(inicial = if (editar != null) emptyList() else null))
 
     /** Un id por gasto (no por toque): reintentar tras un rechazo no crea otro. */
-    private val idDelGasto by lazy { nuevoId() }
+    private val idDelGasto by lazy { editar ?: nuevoId() }
+
+    /** El gasto como estaba al abrir (editando). */
+    private var antes: Gasto? = null
 
     /**
      * Una operación por gasto: si guardar falla después de haberse registrado (al avisar a la sincronización), el
      * reintento es la misma operación y queda como duplicada, no como otro gasto.
      */
-    private val idDeLaOperacion by lazy { nuevoId() }
+    private var idDeLaOperacion = ""
+
+    /** Lo que se mandó en el último intento: editando, si cambió, es otra operación (si no, quedaría como duplicada y no viajaría). */
+    private var ultimoBorrador: BorradorDeGasto? = null
     val estado: StateFlow<CargarGastoEstado> = _estado
 
     init {
@@ -69,14 +83,20 @@ class CargarGastoViewModel(
     private fun armar(): CargarGastoEstado {
         val l = lector()
         val viaje = l.viaje() ?: return CargarGastoEstado(cargando = false)
-        val monedas = l.monedas().filter { it.habilitada }.map { it.moneda }
-        val categorias = l.categorias().filter { !it.archivada }
         val gastos = l.gastos()
+        val monedaDelEditado = editar?.let { id -> gastos.find { it.id == id }?.moneda }
+        val monedas = l.monedas().filter { it.habilitada || it.moneda.codigo == monedaDelEditado }.map { it.moneda }
+        val g = editar?.let { id -> gastos.find { it.id == id && !it.eliminado } }
+        // ya no está (o su moneda no se puede leer): no hay qué editar
+        if (editar != null && (g == null || monedas.none { it.codigo == g.moneda })) return CargarGastoEstado(cargando = false, listo = true)
+        if (antes == null) antes = g
+        // editando, su categoría va aunque esté archivada (si no, no se vería cuál tiene)
+        val categorias = l.categorias().filter { !it.archivada || it.id == g?.categoriaId }
         val d = CargaDeGastos.porDefecto(gastos, monedas.map { it.codigo }, categorias.map { it.id }.toSet(), yo(), viaje.zonaHoraria, ahoraMs(), viaje.fechaFin)
         // "Otro" va siempre, al final
         val opciones = categorias.filter { it.id != CargaDeGastos.OTRO }.map { OpcionDeCategoria(it.id, it.nombre, it.emoji) } +
             (categorias.firstOrNull { it.id == CargaDeGastos.OTRO }?.let { OpcionDeCategoria(it.id, it.nombre, it.emoji) } ?: OpcionDeCategoria(CargaDeGastos.OTRO, "Otro", "📦"))
-        return CargarGastoEstado(
+        val nuevo = CargarGastoEstado(
             cargando = false,
             monedas = monedas,
             nombresDeMoneda = monedas.associate { it.codigo to Formatos.nombreDeMoneda(it.codigo) },
@@ -94,9 +114,47 @@ class CargarGastoViewModel(
             topes = l.monedas().mapNotNull { m -> m.topeMinor?.let { m.moneda.codigo to it } }.toMap(),
             gastado = CargaDeGastos.gastadoPorMoneda(gastos),
         )
+        if (g == null) return nuevo
+        val m = monedas.first { it.codigo == g.moneda } // está: se comprobó arriba
+        val conDatos = nuevo.copy(
+            moneda = g.moneda, montoTexto = textoDelMonto(g.montoMinor, m), categoria = g.categoriaId, metodo = g.metodoPago,
+            lugar = g.lugar.orEmpty(), concepto = g.concepto.orEmpty(), alias = g.aliasTarjeta.orEmpty(), nota = g.nota.orEmpty(),
+            // diaPropuesto queda el de hoy: si el gasto es de otro día, el rótulo de "Más datos" lo nombra
+            diaImputado = g.diaImputado,
+            // lo gastado sin este gasto (si no, el aviso del tope lo contaría dos veces)
+            gastado = CargaDeGastos.gastadoPorMoneda(gastos.filter { it.id != g.id }),
+        )
+        return conDatos.copy(inicial = conDatos.campos, hayCambios = false)
     }
 
-    private fun cambiar(f: (CargarGastoEstado) -> CargarGastoEstado) = _estado.update { f(it).copy(mensaje = null) }
+    /** 13750 en reales → "137,50" (como si se hubiera tecleado). */
+    private fun textoDelMonto(minor: Long, m: Moneda): String {
+        if (m.decimales == 0) return Dinero.formatearEntrada(minor.toString(), m)
+        val base = 10.0.pow(m.decimales).toLong()
+        return Dinero.formatearEntrada("${minor / base},${(minor % base).toString().padStart(m.decimales, '0')}", m)
+    }
+
+    private fun cambiar(f: (CargarGastoEstado) -> CargarGastoEstado) = _estado.update { f(it).let { n -> n.copy(mensaje = null, hayCambios = hayCambios(n)) } }
+
+    /** Editando: si guardar mandaría algo (lo decide el dominio, igual que al guardar). Cargando uno nuevo: siempre. */
+    private fun hayCambios(e: CargarGastoEstado): Boolean {
+        val previo = antes ?: return true
+        val b = borrador(e) ?: return true
+        return CargaDeGastos.edicion(previo, b, "", "") != null
+    }
+
+    /**
+     * El borrador de lo escrito. [cuando] va solo al alta: para comparar no importa (la edición conserva la hora del
+     * gasto), y la hora corregida lee la base: no se pide en el hilo principal en cada tecla.
+     */
+    private fun borrador(e: CargarGastoEstado, cuando: Long = 0): BorradorDeGasto? {
+        val m = e.monedaElegida ?: return null
+        val monto = (Dinero.parsear(e.montoTexto, m) as? ResultadoParseo.Ok)?.minor?.takeIf { it > 0 } ?: return null
+        return BorradorDeGasto(
+            montoMinor = monto, moneda = e.moneda, categoriaId = e.categoria, cuandoOcurrio = cuando, diaImputado = e.diaImputado,
+            concepto = e.concepto, lugar = e.lugar, metodoPago = e.metodo, aliasTarjeta = e.alias, nota = e.nota,
+        )
+    }
 
     /** Una tecla del teclado del monto (dígito o coma): el texto se vuelve a formatear con la moneda. */
     fun alTocarTecla(t: Char) = cambiar { e ->
@@ -140,20 +198,38 @@ class CargarGastoViewModel(
         // ya guardado (un segundo toque mientras se cierra la pantalla): no se guarda otra vez
         if (e.enviando || e.cargando || e.listo) return
         val m = e.monedaElegida ?: return
-        val monto = (Dinero.parsear(e.montoTexto, m) as? ResultadoParseo.Ok)?.minor?.takeIf { it > 0 }
-            ?: return _estado.update { it.copy(errorDelMonto = R.string.gasto_monto_falta) }
+        val b = borrador(e) ?: return _estado.update { it.copy(errorDelMonto = R.string.gasto_monto_falta) }
+        val monto = b.montoMinor
+        // editando: "cambió algo" lo decide el dominio (lo que viajaría), no el texto ("137,5" vale lo mismo que "137,50")
+        val previo = antes
+        // editando sin nada que mandar: se cierra (un intento que quedó guardado y falló ya cerró como guardado)
+        if (previo != null && CargaDeGastos.edicion(previo, b, "", "") == null) return _estado.update { it.copy(listo = true) }
+        // el alta reintenta siempre con la misma operación (el gasto es uno); la edición, solo si no cambió lo que manda
+        val mismoContenido = ultimoBorrador?.copy(cuandoOcurrio = 0) == b.copy(cuandoOcurrio = 0)
+        if (idDeLaOperacion.isEmpty() || (previo != null && !mismoContenido)) idDeLaOperacion = nuevoId()
+        ultimoBorrador = b
         _estado.update { it.copy(enviando = true, mensaje = null) }
         val id = idDelGasto
         val leido = Dinero.formatear(monto, m)
         var guardadoAntes: Gasto? = null
+        // editando: el gasto se borró o fue a la papelera en otro celular mientras tanto
+        var yaNoEsta = false
         viewModelScope.launch {
             val r = withContext(hilo) {
-                val b = BorradorDeGasto(
-                    montoMinor = monto, moneda = e.moneda, categoriaId = e.categoria, cuandoOcurrio = ahoraMs(), diaImputado = e.diaImputado,
-                    concepto = e.concepto, lugar = e.lugar, metodoPago = e.metodo, aliasTarjeta = e.alias, nota = e.nota,
-                )
+                // la hora del alta, fuera del hilo principal (lee la base)
+                val b = if (previo == null) b.copy(cuandoOcurrio = ahoraMs()) else b
                 try {
-                    registrar(b, id, idDeLaOperacion).also { res ->
+                    // editando, lo que viaja es la diferencia con lo que la persona vio al abrir (no pisa lo que otro cambió en otro campo)
+                    val operacion: (String) -> Operacion = if (previo != null) {
+                        { marca -> CargaDeGastos.edicion(previo, b, idDeLaOperacion, marca)!! }
+                    } else {
+                        { marca -> CargaDeGastos.alta(b, idDeLaOperacion, id, marca) }
+                    }
+                    if (previo != null && lector().gastos().none { it.id == id && !it.eliminado }) {
+                        yaNoEsta = true
+                        return@withContext null
+                    }
+                    registrar(b, id, idDeLaOperacion, operacion).also { res ->
                         // ya estaba guardado (un intento anterior falló después de registrarse): el aviso dice lo que quedó
                         if (res == Resultado.Duplicada) guardadoAntes = lector().gastos().find { it.id == id }
                     }
@@ -161,7 +237,17 @@ class CargarGastoViewModel(
                     // el viaje ya no está vinculado (revocado o sin token)
                     null
                 } catch (_: Exception) {
-                    // cualquier otra falla (la base, por ejemplo): no se guardó, se puede reintentar
+                    // cualquier otra falla (la base, por ejemplo): se puede reintentar. Editando, pudo haberse guardado
+                    // antes de fallar: la base de la próxima diferencia es lo que quedó (volver al valor original lo revierte)
+                    if (previo != null) runCatching { lector().gastos().find { it.id == id && !it.eliminado } }.getOrNull()?.let { ahora ->
+                        // solo los campos que mandó este intento, y solo si quedaron guardados (lo que cambió otro celular no se toma:
+                        // si no, el reintento lo pisaría con el valor viejo del formulario)
+                        val mandados = CargaDeGastos.edicion(previo, b, "", "")?.payload?.keys.orEmpty()
+                        val pendientes = CargaDeGastos.edicion(ahora, b, "", "")?.payload?.keys.orEmpty()
+                        if (mandados.isNotEmpty() && mandados.none { it in pendientes }) {
+                            antes = CargaDeGastos.conCampos(previo, b, mandados)
+                        }
+                    }
                     Resultado.Rechazada(Razon.FORMATO)
                 }
             }
@@ -172,9 +258,15 @@ class CargarGastoViewModel(
                     val dia = antes?.diaImputado ?: it.diaImputado
                     it.copy(enviando = false, listo = true, guardado = GastoGuardado(id, texto, dia.takeIf { d -> d != it.hoy }))
                 }
+                // un rechazo por entidad inexistente editando también puede ser el gasto mismo (se borró entre el control y el registro)
+                yaNoEsta || (previo != null && r is Resultado.Rechazada && r.razon == Razon.ENTIDAD_INEXISTENTE &&
+                    withContext(hilo) { lector().gastos().none { it.id == id && !it.eliminado } }) ->
+                    _estado.update { it.copy(enviando = false, mensaje = R.string.gasto_ya_no_esta) }
                 r is Resultado.Rechazada && r.razon in RECARGAN -> {
                     // la moneda, la categoría o el fin del viaje cambiaron (otro celular): se recargan las opciones y se avisa
                     val nuevas = withContext(hilo) { armar() }
+                    // editando, el gasto pudo irse en el medio: se avisa y no se vuelcan opciones vacías
+                    if (nuevas.listo) return@launch _estado.update { it.copy(enviando = false, mensaje = R.string.gasto_ya_no_esta) }
                     _estado.update {
                         val moneda = nuevas.monedas.find { m -> m.codigo == it.moneda } ?: nuevas.monedas.find { m -> m.codigo == nuevas.moneda }
                         (moneda?.let { m -> conMoneda(it, m) } ?: it).copy(
@@ -182,10 +274,13 @@ class CargarGastoViewModel(
                             topes = nuevas.topes, gastado = nuevas.gastado,
                             categoria = if (nuevas.categorias.any { c -> c.id == it.categoria }) it.categoria else CargaDeGastos.OTRO,
                             mensaje = mensajeDe(r.razon),
-                        )
+                        ).let { n -> n.copy(hayCambios = hayCambios(n)) }
                     }
                 }
-                r is Resultado.Rechazada -> _estado.update { it.copy(enviando = false, mensaje = mensajeDe(r.razon)) }
+                // editando: si falló pero lo mandado ya quedó guardado (no queda diferencia), se cierra como guardado
+                r is Resultado.Rechazada && previo != null && !hayCambios(_estado.value) ->
+                    _estado.update { it.copy(enviando = false, listo = true, guardado = GastoGuardado(id, leido)) }
+                r is Resultado.Rechazada -> _estado.update { it.copy(enviando = false, mensaje = mensajeDe(r.razon), hayCambios = hayCambios(it)) }
                 else -> _estado.update { it.copy(enviando = false, mensaje = R.string.gasto_sin_viaje) }
             }
         }
