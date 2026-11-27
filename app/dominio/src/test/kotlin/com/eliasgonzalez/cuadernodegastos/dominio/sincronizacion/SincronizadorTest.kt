@@ -122,6 +122,16 @@ class SincronizadorTest {
     }
 
     @Test
+    fun unGastoDespuesDelFinLaAppNoLoCarga() {
+        val (c, s) = celular()
+        val fin = edicion(s, """{"fecha_fin":"2027-02-17"}""").copy(tipo = "trip.update", entidadTipo = "trip", entidadId = viaje)
+        assertTrue(s.registrar(fin) is Resultado.Aceptada)
+        val a = alta(s) // imputado al 18
+        assertEquals(Resultado.Rechazada(Razon.FUERA_DEL_VIAJE), s.registrar(a))
+        assertFalse(c.opConocida(a.opId))
+    }
+
+    @Test
     fun conElViajeCerradoLaAppNoDejaCargar() {
         val (c, s) = celular()
         val cierre = edicion(s, """{"estado_manual":"CERRADO"}""").copy(tipo = "trip.update", entidadTipo = "trip", entidadId = viaje)

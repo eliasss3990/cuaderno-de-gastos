@@ -1,6 +1,7 @@
 // Validación de una operación contra el estado del viaje: referencias (la moneda debe ser una del viaje y la
-// categoría debe existir), límites (adjuntos activos por dueño y cantidad de atajos) y que la edición de un
-// movimiento de efectivo corresponda a su tipo. Es de solo lectura: devuelve la razón del rechazo o null.
+// categoría debe existir), que un gasto no caiga después del fin del viaje, límites (adjuntos activos por dueño y
+// cantidad de atajos) y que la edición de un movimiento de efectivo corresponda a su tipo. Es de solo lectura:
+// devuelve la razón del rechazo o null.
 // Va después de la validación de formato y de comprobar que no es un duplicado, y dentro de la misma
 // transacción que aplica la operación (si no, dos operaciones a la vez podrían pasar el mismo límite).
 
@@ -10,7 +11,7 @@ import { DINERO_DEL_MOVIMIENTO } from "./validacion.js";
 export const MAX_ADJUNTOS_ACTIVOS = 3;
 export const MAX_ATAJOS = 6;
 
-export type LecturaDelEstado = Pick<Almacen, "entidadExiste" | "entidadTerminada" | "leerCampo" | "leerReloj" | "adjuntosDe" | "contarEntidades">;
+export type LecturaDelEstado = Pick<Almacen, "entidadExiste" | "entidadTerminada" | "leerCampo" | "leerReloj" | "adjuntosDe" | "contarEntidades" | "idDelViaje">;
 
 const CAMPOS_DE_MONEDA = ["moneda", "moneda_sale", "moneda_entra", "moneda_ajuste"] as const;
 
@@ -29,6 +30,16 @@ export function validarContraEstado(op: Operacion, estado: LecturaDelEstado): Ra
   }
   const categoria = p.categoria_id;
   if (typeof categoria === "string" && !estado.entidadExiste("category", categoria)) return "entidad_inexistente";
+
+  // un gasto no puede caer después de la fecha de fin (antes del inicio sí: es preparación); lo ya cargado queda:
+  // una edición se juzga solo si de verdad cambiaría el día (otro valor y con un reloj que gana al guardado)
+  if ((op.tipo === "expense.create" || op.tipo === "expense.update") && typeof p.dia_imputado === "string") {
+    const viaje = estado.idDelViaje();
+    const fin = viaje === null ? null : estado.leerCampo("trip", viaje, "fecha_fin");
+    const reloj = estado.leerReloj("expense", id, "dia_imputado");
+    const cambia = p.dia_imputado !== estado.leerCampo("expense", id, "dia_imputado") && (reloj === null || op.hlc > reloj);
+    if (typeof fin === "string" && p.dia_imputado > fin && cambia) return "fuera_del_viaje";
+  }
 
   if (op.tipo === "attachment.add") {
     // el propio adjunto no cuenta: repetir su alta no agrega uno más
