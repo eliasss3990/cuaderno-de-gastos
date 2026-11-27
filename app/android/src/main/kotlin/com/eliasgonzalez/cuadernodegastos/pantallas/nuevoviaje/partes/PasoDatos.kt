@@ -26,6 +26,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -97,7 +99,7 @@ fun PasoDatos(estado: NuevoViajeEstado, acciones: AccionesDeNuevoViaje, alEnfoca
     }
     // una casilla de verdad, con toda la fila tocable (48 de alto)
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 48.dp).toggleable(value = estado.sinFechaFin, role = Role.Checkbox, onValueChange = { acciones.alCambiarSinFin() }),
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp)).toggleable(value = estado.sinFechaFin, role = Role.Checkbox, onValueChange = { acciones.alCambiarSinFin() }),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Checkbox(checked = estado.sinFechaFin, onCheckedChange = null, colors = CheckboxDefaults.colors(checkedColor = Tema.colores.principal))
@@ -135,7 +137,7 @@ fun PasoDatos(estado: NuevoViajeEstado, acciones: AccionesDeNuevoViaje, alEnfoca
                 IconoRedondo(e.emoji, colorDe(e.fondo), tamano = tamanoDelEmoji, marcado = i == estado.emoji, descripcion = stringResource(R.string.nuevo_emoji_descripcion, e.emoji)) { acciones.alElegirEmoji(i) }
             }
         }
-        CampoDeTexto(stringResource(R.string.nuevo_apodo), estado.apodo, acciones.alCambiarApodo, ayuda = stringResource(R.string.nuevo_apodo_ayuda), error = error("apodo"), mayusculas = true, accion = ImeAction.Done, alEnfocar = alEnfocarElUltimo,
+        CampoDeTexto(stringResource(R.string.nuevo_apodo), estado.apodo, acciones.alCambiarApodo, ayuda = stringResource(R.string.nuevo_apodo_ayuda), error = error("apodo"), mayusculas = true, accion = ImeAction.Done, alEnfocar = alEnfocarElUltimo, seguirAlTeclado = false,
             pedidoDeFoco = focoDelApodo,
         )
     }

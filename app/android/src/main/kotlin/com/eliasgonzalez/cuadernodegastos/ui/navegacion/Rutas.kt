@@ -6,6 +6,9 @@ object Rutas {
     const val NUEVO_VIAJE = "nuevo-viaje"
     const val UNIRSE = "unirse"
     const val HOY = "hoy/{viaje}"
+    const val CARGAR_GASTO = "gasto/{viaje}"
 
     fun hoy(viaje: String) = "hoy/$viaje"
+
+    fun cargarGasto(viaje: String) = "gasto/$viaje"
 }

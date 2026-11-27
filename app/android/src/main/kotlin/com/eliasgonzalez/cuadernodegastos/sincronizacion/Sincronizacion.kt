@@ -3,6 +3,7 @@
 // bloquean: el trabajo pasa a un hilo propio (la base y el Keystore no se tocan desde el hilo principal).
 package com.eliasgonzalez.cuadernodegastos.sincronizacion
 
+import com.eliasgonzalez.cuadernodegastos.dominio.base.Reloj
 import com.eliasgonzalez.cuadernodegastos.datos.AlmacenSqlite
 import com.eliasgonzalez.cuadernodegastos.datos.BaseSql
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Ciclo
@@ -143,6 +144,10 @@ class Sincronizacion(
 
     fun sincronizarAhora(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.sincronizarAhora() } } }
 
+    /** La hora corregida con el desfase aprendido del servidor (la de las marcas), o la del celular si no hay viaje. Bloquea. */
+    fun ahora(viaje: String): Long =
+        AlmacenSqlite(base, viaje).viajeLocal()?.let { Reloj.ahoraCorregida(System.currentTimeMillis(), it.desfaseMs) } ?: System.currentTimeMillis()
+
     /** Las credenciales guardadas de un viaje (para invitar), o null si no está vinculado, está revocado o el token no se lee. Bloquea. */
     fun credenciales(viaje: String): Credenciales? {
         val v = AlmacenSqlite(base, viaje).viajeLocal()?.takeIf { !it.revocado } ?: return null
@@ -157,7 +162,7 @@ class Sincronizacion(
      * se sincroniza sobre `porViaje`.
      */
     fun registrar(viaje: String, op: (Sincronizador) -> Operacion): Resultado {
-        val d = delViaje(viaje) ?: error("el viaje está revocado o sin token: hay que volver a vincular")
+        val d = delViaje(viaje) ?: throw ViajeNoVinculado()
         val r = d.sinc.registrar(op(d.sinc))
         _cambios.update { it + 1 }
         alCambioLocal(viaje)
@@ -204,3 +209,6 @@ class Sincronizacion(
         synchronized(porViaje) { porViaje.values.forEach { it.planificador.close() } }
     }
 }
+
+/** El viaje está revocado o sin token: no se puede registrar nada hasta volver a vincularlo. */
+class ViajeNoVinculado : IllegalStateException("el viaje está revocado o sin token: hay que volver a vincular")

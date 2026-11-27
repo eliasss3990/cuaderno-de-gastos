@@ -17,7 +17,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.dialogos.DialogoDeConfirmar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
@@ -87,12 +87,9 @@ fun NuevoViajePantalla(estado: NuevoViajeEstado, acciones: AccionesDeNuevoViaje)
     // con errores arriba (nombre o fechas) se vuelve al principio; los de abajo ya quedan a la vista
     LaunchedEffect(estado.errores) { if (estado.errores.keys.any { it == "nombre" || it == "fecha_fin" }) desplazamiento.animateScrollTo(0) }
     if (preguntarSiSale) {
-        AlertDialog(
-            onDismissRequest = { preguntarSiSale = false },
-            title = { Text(stringResource(R.string.nuevo_salir_titulo)) },
-            text = { Text(stringResource(R.string.nuevo_salir_texto)) },
-            confirmButton = { TextButton(onClick = { preguntarSiSale = false }) { Text(stringResource(R.string.nuevo_seguir_cargando)) } },
-            dismissButton = { TextButton(onClick = { preguntarSiSale = false; acciones.alCerrar() }) { Text(stringResource(R.string.nuevo_salir), color = Tema.colores.error) } },
+        DialogoDeConfirmar(
+            stringResource(R.string.nuevo_salir_titulo), stringResource(R.string.nuevo_salir_texto), stringResource(R.string.nuevo_seguir_cargando), stringResource(R.string.nuevo_salir),
+            alSeguir = { preguntarSiSale = false }, alSalir = { preguntarSiSale = false; acciones.alCerrar() },
         )
     }
     // con el teclado abierto la pantalla se achica (imePadding) y se puede desplazar; tocar fuera de un campo lo cierra

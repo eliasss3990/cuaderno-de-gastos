@@ -378,15 +378,22 @@ class SincronizadorTest {
         val (c, s) = celular()
         val a = alta(s)
         s.registrar(a)
+        // un alta sin enviar no oculta nada: solo las terminales
+        assertTrue(com.eliasgonzalez.cuadernodegastos.dominio.lecturas.LectorDelViaje(c).gastos().any { it.id == gasto })
         s.respuestaDelLote(listOf(RespuestaDeOp(a.opId, true, ++seq, a.hlc, null)), hora)
         val p = Operacion(opId(), "expense.purge", "expense", gasto, s.nuevaMarca(), JsonObject(emptyMap()), 1)
         assertTrue(s.registrar(p) is Resultado.Aceptada)
         assertTrue(c.entidadExiste("expense", gasto))
         assertEquals(JsonPrimitive("c"), campo(c, "concepto"))
-        // si el servidor la rechaza, el gasto sigue intacto
+        // pendiente (también sin conexión) y enviándose: las pantallas ya no lo ven
+        val lector = com.eliasgonzalez.cuadernodegastos.dominio.lecturas.LectorDelViaje(c)
+        assertTrue(lector.gastos().none { it.id == gasto })
         s.armarLote()
+        assertTrue(lector.gastos().none { it.id == gasto })
+        // si el servidor la rechaza, el gasto sigue intacto y vuelve a verse
         s.respuestaDelLote(listOf(RespuestaDeOp(p.opId, false, null, p.hlc, "viaje_cerrado")), hora)
         assertTrue(c.entidadExiste("expense", gasto))
+        assertTrue(lector.gastos().any { it.id == gasto })
         // reintentada y aceptada, recién ahí se borra y se redacta
         s.reintentar(p.opId)
         s.armarLote()

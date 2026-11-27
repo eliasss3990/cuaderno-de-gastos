@@ -12,7 +12,23 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.platform.LocalDensity
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.focus.FocusDirection
@@ -65,7 +81,7 @@ private fun Caja(
                 .clip(Tema.formas.campo)
                 .let { if (alTocar != null) it.clickable(enabled = habilitado, role = Role.Button, onClickLabel = etiqueta, onClick = alTocar) else it }
                 .background(if (habilitado) Tema.colores.superficie else Tema.colores.pista, Tema.formas.campo)
-                .border(BorderStroke(if (error != null) 2.dp else 1.dp, borde), Tema.formas.campo)
+                .border(BorderStroke(if (error != null || resaltado) 2.dp else 1.dp, borde), Tema.formas.campo)
                 .padding(horizontal = Tema.espacios.m, vertical = Tema.espacios.s),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -106,18 +122,51 @@ fun CampoDeTexto(
     alSiguiente: (() -> Unit)? = null,
     /** Para darle el foco desde afuera. */
     pedidoDeFoco: FocusRequester? = null,
+    /** Lo que admite el dato: lo de más no se escribe. */
+    largoMaximo: Int? = null,
+    /** Que la pantalla siga al campo mientras se abre el teclado (false si quien lo usa ya se ocupa). */
+    seguirAlTeclado: Boolean = true,
 ) {
     val foco = LocalFocusManager.current
-    Caja(etiqueta, resaltado, error, modifier, null) {
+    // con el foco, el borde se marca (como un campo de Material): se ve dónde se está escribiendo
+    val fuente = remember { MutableInteractionSource() }
+    val enfocado by fuente.collectIsFocusedAsState()
+    // al tomar el foco, la pantalla sigue al campo mientras se abre el teclado hasta dejarlo a la vista (en toda la app)
+    val aLaVista = remember { BringIntoViewRequester() }
+    val tecladoDelSistema = WindowInsets.ime
+    val densidad = LocalDensity.current
+    LaunchedEffect(enfocado) {
+        if (enfocado && seguirAlTeclado) withTimeoutOrNull(1_200) { snapshotFlow { tecladoDelSistema.getBottom(densidad) }.collect { aLaVista.bringIntoView() } }
+    }
+    // si quien usa el campo reformatea lo escrito (por ejemplo, el punto de miles de un monto), el cursor queda al final;
+    // si no lo cambia, se respeta dónde estaba
+    var edicion by remember { mutableStateOf(TextFieldValue(valor, TextRange(valor.length))) }
+    val enEdicion = if (edicion.text == valor) edicion else TextFieldValue(valor, TextRange(valor.length))
+    Caja(etiqueta, resaltado || enfocado, error, modifier.bringIntoViewRequester(aLaVista), null) {
         BasicTextField(
             // "Siguiente" baja al campo de abajo; "Listo" suelta el campo y cierra el teclado
             keyboardActions = KeyboardActions(
                 onNext = { if (alSiguiente != null) { foco.clearFocus(); alSiguiente() } else foco.moveFocus(FocusDirection.Down) },
                 onDone = { foco.clearFocus() },
             ),
-            value = valor,
-            onValueChange = alCambiar,
+            value = enEdicion,
+            onValueChange = {
+                // lo de más no se escribe: la edición guarda lo mismo que sube (si no, cada tecla movería el cursor)
+                val recortado = if (largoMaximo != null && it.text.length > largoMaximo) {
+                    // se descarta lo que sobra de lo recién escrito (justo antes del cursor), no el final del texto
+                    val sobra = it.text.length - largoMaximo
+                    val fin = it.selection.end.coerceIn(sobra, it.text.length)
+                    // sin partir un emoji (dos unidades): si el corte cae en el medio, se quita entero
+                    val desde = if (fin - sobra > 0 && it.text[fin - sobra - 1].isHighSurrogate()) fin - sobra - 1 else fin - sobra
+                    it.copy(text = it.text.removeRange(desde, fin), selection = TextRange(desde))
+                } else {
+                    it
+                }
+                edicion = recortado
+                alCambiar(recortado.text)
+            },
             singleLine = unaLinea,
+            interactionSource = fuente,
             minLines = lineasMinimas,
             decorationBox = { campo ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -162,6 +211,9 @@ fun CampoParaElegir(
     error: String? = null,
     habilitado: Boolean = true,
 ) {
+    // al elegir, se suelta el campo de texto que tuviera el foco: si no, al cerrarse el calendario Android se lo devuelve
+    // y vuelve a abrir el teclado
+    val foco = LocalFocusManager.current
     Caja(
         etiqueta,
         false,
@@ -169,7 +221,7 @@ fun CampoParaElegir(
         modifier,
         icono?.takeIf { habilitado }?.let { { Icon(it, contentDescription = null, tint = Tema.colores.etiqueta, modifier = Modifier.padding(start = Tema.espacios.s)) } },
         habilitado = habilitado,
-        alTocar = alTocar,
+        alTocar = { foco.clearFocus(force = true); alTocar() },
     ) {
         if (valor == null) {
             Text(ayuda, style = Tema.texto.valorDeCampo, color = Tema.colores.ayuda)
