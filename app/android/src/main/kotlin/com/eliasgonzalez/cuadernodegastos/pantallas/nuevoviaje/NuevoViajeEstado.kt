@@ -1,6 +1,7 @@
 // Lo que muestra el nuevo viaje en sus dos pasos (datos; tope y efectivo), ya preparado para dibujar.
 package com.eliasgonzalez.cuadernodegastos.pantallas.nuevoviaje
 
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Moneda
 
 /** Una moneda que se puede elegir para el viaje. */
@@ -45,6 +46,13 @@ data class NuevoViajeEstado(
     /** El texto de un problema del plan que viene del servicio, o null. */
     val problema: String? = null,
 ) {
+    /** Crear: en curso mientras se envía, hecha al entrar al viaje (hasta que la pantalla se va). */
+    val accion: EstadoDeAccion get() = when {
+        entrarA != null -> EstadoDeAccion.HECHA
+        enviando -> EstadoDeAccion.EN_CURSO
+        else -> EstadoDeAccion.LISTA
+    }
+
     /** Si ya cargó algo que se perdería al salir. */
     val cargoAlgo: Boolean get() = nombre.isNotBlank() || apodo.isNotBlank() || fechaInicio != null || fechaFin != null
 }

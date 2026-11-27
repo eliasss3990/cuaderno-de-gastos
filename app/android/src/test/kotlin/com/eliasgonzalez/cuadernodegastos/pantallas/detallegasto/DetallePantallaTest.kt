@@ -45,7 +45,7 @@ class DetallePantallaTest {
     @Test
     fun mientrasSeEnviaNoSeVuelveAMandar() {
         var papelera = 0
-        compose.setContent { TemaCuaderno { DetallePantalla(gasto, AccionesDeDetalle(alEnviarAPapelera = { papelera++ }), enviando = true) } }
+        compose.setContent { TemaCuaderno { DetallePantalla(gasto, AccionesDeDetalle(alEnviarAPapelera = { papelera++ }), accion = com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion.EN_CURSO) } }
         compose.onNodeWithText("Enviando a la papelera…").performClick()
         assertEquals(0, papelera)
     }
@@ -95,7 +95,7 @@ class DetallePantallaTest {
     @Test
     fun restaurarQueFallaLoDiceYMientrasRestauraNoSeVuelveATocar() {
         var restaurado = 0
-        compose.setContent { TemaCuaderno { DetallePantalla(gasto.copy(enPapelera = true), AccionesDeDetalle(alRestaurar = { restaurado++ }), enviando = true, fallo = FalloDeDetalle.RESTAURAR) } }
+        compose.setContent { TemaCuaderno { DetallePantalla(gasto.copy(enPapelera = true), AccionesDeDetalle(alRestaurar = { restaurado++ }), accion = com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion.EN_CURSO, fallo = FalloDeDetalle.RESTAURAR) } }
         compose.onNodeWithText("No se pudo restaurar. Probá de nuevo.").assertExists()
         compose.onNodeWithText("Restaurando…").assertIsNotEnabled()
         assertEquals(0, restaurado)
@@ -103,7 +103,7 @@ class DetallePantallaTest {
 
     @Test
     fun mientrasSeMandaALaPapeleraEditarQuedaApagado() {
-        compose.setContent { TemaCuaderno { DetallePantalla(gasto, AccionesDeDetalle(), enviando = true) } }
+        compose.setContent { TemaCuaderno { DetallePantalla(gasto, AccionesDeDetalle(), accion = com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion.EN_CURSO) } }
         compose.onNodeWithText("Editar").assertIsNotEnabled()
     }
 }

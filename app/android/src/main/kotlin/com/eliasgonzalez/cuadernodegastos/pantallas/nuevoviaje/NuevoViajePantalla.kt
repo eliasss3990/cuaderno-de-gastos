@@ -113,7 +113,7 @@ fun NuevoViajePantalla(estado: NuevoViajeEstado, acciones: AccionesDeNuevoViaje)
             if (estado.paso == 1) {
                 BotonPrincipal(stringResource(R.string.nuevo_seguir), acciones.alSeguir)
             } else {
-                BotonPrincipal(stringResource(if (estado.enviando) R.string.nuevo_creando else R.string.nuevo_guardar), acciones.alGuardar, habilitado = !estado.enviando, cargando = estado.enviando)
+                BotonPrincipal(stringResource(R.string.nuevo_guardar), acciones.alGuardar, accion = estado.accion, textoEnCurso = stringResource(R.string.nuevo_creando))
             }
             Spacer(Modifier.height(Tema.espacios.l))
         }
