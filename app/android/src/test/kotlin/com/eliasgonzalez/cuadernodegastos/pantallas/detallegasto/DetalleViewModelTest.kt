@@ -126,6 +126,6 @@ class DetalleViewModelTest {
         backgroundScope.launch { vm.estado.collect {} }
         vm.alEnviarAPapelera()
         // ya salió bien: el botón no vuelve a "Enviar a la papelera" (sería un parpadeo antes de irse)
-        assertEquals(true to (gasto to "R$ 12,90"), vm.enviando.value to vm.enviado.value)
+        assertEquals(com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion.HECHA to (gasto to "R$ 12,90"), vm.accion.value to vm.enviado.value)
     }
 }

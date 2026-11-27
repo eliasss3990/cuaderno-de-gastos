@@ -1,6 +1,7 @@
 // El detalle de un gasto se vuelve a armar con cada cambio (otro celular puede editarlo mientras se mira).
 package com.eliasgonzalez.cuadernodegastos.pantallas.detallegasto
 
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion
 import kotlinx.coroutines.flow.combine
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -53,8 +54,10 @@ class DetalleViewModel(
         .combine(_saliendo) { e, saliendo -> if (!e.enPapelera) e.also { ultimoActivo = it } else if (saliendo) ultimoActivo ?: e else e }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), DetalleEstado())
 
-    private val _enviando = MutableStateFlow(false)
-    val enviando: StateFlow<Boolean> = _enviando
+    private val _accion = MutableStateFlow(EstadoDeAccion.LISTA)
+
+    /** Papelera o restaurar: mandar a la papelera termina en HECHA (la pantalla se va); restaurar vuelve a LISTA. */
+    val accion: StateFlow<EstadoDeAccion> = _accion
 
 
     private val _fallo = MutableStateFlow<FalloDeDetalle?>(null)
@@ -64,8 +67,8 @@ class DetalleViewModel(
 
     /** Restaurar un gasto que está en la papelera: vuelve a verse como cualquier otro (la pantalla se actualiza sola). */
     fun alRestaurar() {
-        if (_enviando.value) return
-        _enviando.value = true
+        if (_accion.value.ocupada) return
+        _accion.value = EstadoDeAccion.EN_CURSO
         _fallo.value = null
         viewModelScope.launch {
             val r = withContext(hilo) {
@@ -77,17 +80,18 @@ class DetalleViewModel(
                     null
                 }
             }
-            _enviando.value = false
+            // restaurado, el gasto queda en esta pantalla: el botón vuelve a estar listo
+            _accion.value = EstadoDeAccion.LISTA
             if (!(r is Resultado.Aceptada || r == Resultado.Duplicada)) _fallo.value = FalloDeDetalle.RESTAURAR
         }
     }
 
     fun alEnviarAPapelera() {
-        if (_enviando.value || _enviado.value != null) return
+        if (_accion.value.ocupada) return
         // desde ya se sale: el estado "en papelera" que llega al registrar no se dibuja
         _saliendo.value = true
         val monto = estado.value.monto
-        _enviando.value = true
+        _accion.value = EstadoDeAccion.EN_CURSO
         _fallo.value = null
         viewModelScope.launch {
             val r = withContext(hilo) {
@@ -100,10 +104,10 @@ class DetalleViewModel(
                 }
             }
             if (r is Resultado.Aceptada || r == Resultado.Duplicada) {
-                // sigue "enviando" hasta que la pantalla se va (si no, el botón vuelve a su estado normal un instante: un parpadeo)
+                _accion.value = EstadoDeAccion.HECHA
                 _enviado.value = gastoId to monto
             } else {
-                _enviando.value = false
+                _accion.value = EstadoDeAccion.LISTA
                 _saliendo.value = false
                 _fallo.value = FalloDeDetalle.PAPELERA
             }

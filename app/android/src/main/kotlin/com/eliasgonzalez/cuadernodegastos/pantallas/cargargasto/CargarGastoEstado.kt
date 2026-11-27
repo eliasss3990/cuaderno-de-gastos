@@ -1,6 +1,7 @@
 // Lo que muestra la pantalla de cargar un gasto: lo que se va escribiendo, las opciones del viaje y cómo terminó.
 package com.eliasgonzalez.cuadernodegastos.pantallas.cargargasto
 
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Dinero
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Moneda
 import com.eliasgonzalez.cuadernodegastos.dominio.base.ResultadoParseo
@@ -60,6 +61,13 @@ data class CargarGastoEstado(
     val hayCambios: Boolean = true,
 ) {
     val editando: Boolean get() = inicial != null
+
+    /** Guardar: en curso mientras se registra, hecha si se guardó (hasta que la pantalla se va). */
+    val accion: EstadoDeAccion get() = when {
+        listo && guardado != null -> EstadoDeAccion.HECHA
+        enviando -> EstadoDeAccion.EN_CURSO
+        else -> EstadoDeAccion.LISTA
+    }
 
     /** Lo que se puede cambiar, para comparar con [inicial]. */
     val campos: List<Any?> get() = listOf(moneda, monedaElegida?.let { (Dinero.parsear(montoTexto, it) as? ResultadoParseo.Ok)?.minor } ?: montoTexto, categoria, metodo, lugar.trim(), concepto.trim(), alias.trim(), nota.trim(), diaImputado)

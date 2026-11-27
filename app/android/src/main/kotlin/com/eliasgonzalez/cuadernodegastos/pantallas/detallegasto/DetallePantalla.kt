@@ -1,6 +1,7 @@
 // El detalle de un gasto: el monto, qué fue y sus datos; desde acá se edita o se manda a la papelera.
 package com.eliasgonzalez.cuadernodegastos.pantallas.detallegasto
 
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.botones.EstadoDeAccion
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.animation.slideInVertically
@@ -62,7 +63,9 @@ data class AccionesDeDetalle(
 )
 
 @Composable
-fun DetallePantalla(estado: DetalleEstado, acciones: AccionesDeDetalle, enviando: Boolean = false, fallo: FalloDeDetalle? = null, aviso: String? = null) {
+fun DetallePantalla(estado: DetalleEstado, acciones: AccionesDeDetalle, accion: EstadoDeAccion = EstadoDeAccion.LISTA, fallo: FalloDeDetalle? = null, aviso: String? = null) {
+    // mientras se manda a la papelera o se restaura no se edita (y el botón de la acción queda "…ando")
+    val enviando = accion.ocupada
     Column(Modifier.fillMaxSize().background(Tema.colores.fondo).systemBarsPadding()) {
         BarraSuperior(stringResource(R.string.detalle_titulo), icono = IconoDeBarra.VOLVER, alTocarIcono = acciones.alVolver)
         if (estado.noSePudoLeer) {
@@ -146,8 +149,8 @@ fun DetallePantalla(estado: DetalleEstado, acciones: AccionesDeDetalle, enviando
                     )
                 }
                 BotonDePeligro(
-                    stringResource(if (enviando) R.string.detalle_enviando else R.string.detalle_a_la_papelera), { if (!enviando) acciones.alEnviarAPapelera() },
-                    Modifier.fillMaxWidth().padding(top = Tema.espacios.l),
+                    stringResource(R.string.detalle_a_la_papelera), acciones.alEnviarAPapelera, Modifier.fillMaxWidth().padding(top = Tema.espacios.l),
+                    accion = accion, textoEnCurso = stringResource(R.string.detalle_enviando),
                 )
             }
             Spacer(Modifier.height(Tema.espacios.l))
@@ -155,7 +158,7 @@ fun DetallePantalla(estado: DetalleEstado, acciones: AccionesDeDetalle, enviando
         // en la papelera, lo único que se hace es restaurarlo (no se edita)
         if (estado.enPapelera) {
             Column(Modifier.padding(horizontal = Tema.espacios.l, vertical = Tema.espacios.s)) {
-                BotonPrincipal(stringResource(if (enviando) R.string.detalle_restaurando else R.string.detalle_restaurar), { if (!enviando) acciones.alRestaurar() }, Modifier.fillMaxWidth(), habilitado = !enviando)
+                BotonPrincipal(stringResource(R.string.detalle_restaurar), acciones.alRestaurar, Modifier.fillMaxWidth(), accion = accion, textoEnCurso = stringResource(R.string.detalle_restaurando))
             }
         }
         // abajo, la acción frecuente: editar (mientras se manda a la papelera no se edita: el gasto se va)
