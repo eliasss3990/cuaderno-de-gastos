@@ -95,7 +95,7 @@ class ClienteHttp(
         val r = try {
             pedir("POST", "/v1/trips/$viaje/ops", JsonObject(mapOf("ops" to JsonArray(ops.map { alCable(it) }))).toString())
         } catch (_: IOException) {
-            return RespuestaDeSubida.Error(Falla.TRANSITORIA)
+            return RespuestaDeSubida.Error(Falla.SIN_RED)
         }
         if (r.estado != 200) return RespuestaDeSubida.Error(falla(r.estado), r.reintentarEnMs)
         val resultados = try {
@@ -119,7 +119,7 @@ class ClienteHttp(
         val r = try {
             pedir("GET", "/v1/trips/$viaje/changes?after=$despuesDe&limit=$limite", null)
         } catch (_: IOException) {
-            return RespuestaDeBajada.Error(Falla.TRANSITORIA)
+            return RespuestaDeBajada.Error(Falla.SIN_RED)
         }
         if (r.estado != 200) return RespuestaDeBajada.Error(falla(r.estado), r.reintentarEnMs)
         return try {

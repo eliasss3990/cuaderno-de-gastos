@@ -2,6 +2,8 @@
 // programada la tarea periódica (con la app cerrada, como máximo cada 15 min y solo con red).
 package com.eliasgonzalez.cuadernodegastos
 
+import android.net.Network
+import android.net.ConnectivityManager
 import android.app.Application
 import android.content.Context
 import android.database.sqlite.SQLiteDatabase
@@ -56,6 +58,12 @@ class CuadernoApp : Application() {
         super.onCreate()
         ProcessLifecycleOwner.get().lifecycle.addObserver(EventosDeLaApp({ sincronizacion.alPrimerPlano() }, { sincronizacion.alSegundoPlano() }))
         programarTareaPeriodica(this)
+        // al volver la red (después de un corte), sincronizar ya: si no, se espera el próximo reintento, que puede ser de minutos
+        getSystemService(ConnectivityManager::class.java)?.registerDefaultNetworkCallback(
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(red: Network) = sincronizacion.alVolverLaRed()
+            },
+        )
     }
 }
 
