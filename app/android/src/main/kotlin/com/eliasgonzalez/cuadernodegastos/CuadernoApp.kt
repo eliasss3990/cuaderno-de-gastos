@@ -58,10 +58,14 @@ class CuadernoApp : Application() {
         super.onCreate()
         ProcessLifecycleOwner.get().lifecycle.addObserver(EventosDeLaApp({ sincronizacion.alPrimerPlano() }, { sincronizacion.alSegundoPlano() }))
         programarTareaPeriodica(this)
-        // al volver la red (después de un corte), sincronizar ya: si no, se espera el próximo reintento, que puede ser de minutos
+        // al volver la red (después de un corte), sincronizar ya: si no, se espera el próximo reintento, que puede ser de minutos;
+        // al perderla, el indicador lo dice en el acto. Al pasar de Wi-Fi a datos llega enseguida la red nueva, que sincroniza
+        // y lo vuelve a "Al día" (preguntar si queda otra red no sirve: en ese instante todavía figura la que se fue)
         getSystemService(ConnectivityManager::class.java)?.registerDefaultNetworkCallback(
             object : ConnectivityManager.NetworkCallback() {
                 override fun onAvailable(red: Network) = sincronizacion.alVolverLaRed()
+
+                override fun onLost(red: Network) = sincronizacion.alPerderLaRed()
             },
         )
     }
