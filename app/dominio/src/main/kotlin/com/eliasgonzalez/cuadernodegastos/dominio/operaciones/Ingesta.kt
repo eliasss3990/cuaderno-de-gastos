@@ -34,6 +34,16 @@ object ValidacionEstado {
         val categoria = texto(p["categoria_id"])
         if (categoria != null && !estado.entidadExiste("category", categoria)) return Razon.ENTIDAD_INEXISTENTE
 
+        // un gasto no puede caer después de la fecha de fin (antes del inicio sí: es preparación); lo ya cargado queda:
+        // una edición se juzga solo si de verdad cambiaría el día (otro valor y con un reloj que gana al guardado)
+        val dia = texto(p["dia_imputado"])
+        if ((op.tipo == "expense.create" || op.tipo == "expense.update") && dia != null) {
+            val fin = estado.idDelViaje()?.let { texto(estado.leerCampo("trip", it, "fecha_fin")) }
+            val reloj = estado.leerReloj("expense", id, "dia_imputado")
+            val cambia = dia != texto(estado.leerCampo("expense", id, "dia_imputado")) && (reloj == null || op.hlc > reloj)
+            if (fin != null && dia > fin && cambia) return Razon.FUERA_DEL_VIAJE
+        }
+
         if (op.tipo == "attachment.add") {
             // el propio adjunto no cuenta: repetir su alta no agrega uno más
             val dueno = texto(p["owner_id"]).orEmpty() // la validación de formato ya exige un UUID

@@ -17,6 +17,7 @@ enum class Razon(val codigo: String) {
     MONEDA_NO_HABILITADA("moneda_no_habilitada"),
     LIMITE_SUPERADO("limite_superado"),
     VIAJE_CERRADO("viaje_cerrado"),
+    FUERA_DEL_VIAJE("fuera_del_viaje"),
 }
 
 sealed interface Resultado {

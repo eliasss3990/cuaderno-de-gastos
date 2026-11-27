@@ -20,7 +20,7 @@ export interface Operacion {
   readonly schemaVersion: number;
 }
 
-export type Razon = "formato" | "entidad_inexistente" | "moneda_no_habilitada" | "limite_superado" | "viaje_cerrado";
+export type Razon = "formato" | "entidad_inexistente" | "moneda_no_habilitada" | "limite_superado" | "viaje_cerrado" | "fuera_del_viaje";
 
 export type Resultado =
   | { readonly estado: "accepted"; readonly seq: number }

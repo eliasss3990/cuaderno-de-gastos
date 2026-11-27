@@ -5,8 +5,9 @@
 //   promedio diario sugerido = (tope − fijos − preparación) ÷ días del viaje, hacia abajo a la unidad menor; solo con tope
 //   y las dos fechas
 //   ritmo = variable ÷ días transcurridos × días del viaje + fijos + preparación; desde el segundo día, con tope y fechas
-// Los días del viaje van del inicio al fin (un gasto después del fin no los alarga: esa carga se va a bloquear). Los
-// gastos en la papelera no cuentan. Los montos están acotados por la validación: las sumas de un viaje real entran en Long.
+// Los días del viaje van del inicio al fin: un gasto después del fin no los alarga (cargarlo se rechaza; uno cargado
+// antes de adelantar el fin queda). Los gastos en la papelera no cuentan. Los montos están acotados por la validación:
+// las sumas de un viaje real entran en Long.
 package com.eliasgonzalez.cuadernodegastos.dominio.lecturas
 
 import com.eliasgonzalez.cuadernodegastos.dominio.base.Dinero

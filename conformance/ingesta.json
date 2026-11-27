@@ -1763,6 +1763,313 @@
    "cuentas": {
     "cash_movement": 1
    }
+  },
+  {
+   "nombre": "un gasto no puede caer después de la fecha de fin del viaje",
+   "ops": [
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000001",
+     "tipo": "trip.create",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000011",
+     "hlc": "0018bcfe56801-0001-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nombre": "Brasil",
+      "zona_horaria": "America/Asuncion",
+      "monedas": [
+       {
+        "codigo": "BRL",
+        "decimales": 2,
+        "simbolo": "R$"
+       }
+      ],
+      "fecha_inicio": "2999-01-01",
+      "fecha_fin": "2999-01-10"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000002",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56802-0002-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2999-01-10"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000003",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000022",
+     "hlc": "0018bcfe56803-0003-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2999-01-11"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000004",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000025",
+     "hlc": "0018bcfe56804-0004-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "EUR",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2999-01-11"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000005",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000023",
+     "hlc": "0018bcfe56805-0005-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2998-12-20"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000006",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000011",
+     "hlc": "0018bcfe56806-0006-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "fecha_fin": "2999-01-05"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000007",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56807-0007-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "nota": "sigue"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000008",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56808-0008-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-10",
+      "nota": "igual"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000009",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56700-0009-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-09"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000010",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000023",
+     "hlc": "0018bcfe5680a-0010-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-08"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000011",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000023",
+     "hlc": "0018bcfe5680b-0011-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-05"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000012",
+     "tipo": "cashmove.create",
+     "entidadTipo": "cash_movement",
+     "entidadId": "018f3a6e-3000-7000-8000-000000000031",
+     "hlc": "0018bcfe5680c-0012-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "tipo": "RETIRO",
+      "cuando": 32503680000000,
+      "moneda_entra": "BRL",
+      "monto_entra_minor": 5
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000013",
+     "tipo": "trip.update",
+     "entidadTipo": "trip",
+     "entidadId": "018f3a6e-1000-7000-8000-000000000011",
+     "hlc": "0018bcfe5680d-0013-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "fecha_fin": null
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000014",
+     "tipo": "expense.create",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000024",
+     "hlc": "0018bcfe5680e-0014-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "monto_minor": 1000,
+      "moneda": "BRL",
+      "categoria_id": "otro",
+      "cuando_ocurrio": 1700000000000,
+      "dia_imputado": "2999-06-01"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000101",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56881-0101-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-09"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000102",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56882-0102-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-03"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000103",
+     "tipo": "expense.delete",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000023",
+     "hlc": "0018bcfe56883-0103-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "eliminado": 1
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000104",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000023",
+     "hlc": "0018bcfe56884-0104-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-07"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000201",
+     "tipo": "expense.update",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000021",
+     "hlc": "0018bcfe56882-0102-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "dia_imputado": "2999-01-09"
+     }
+    },
+    {
+     "schemaVersion": 1,
+     "opId": "018f3a6e-9100-7000-8000-000000000202",
+     "tipo": "expense.restore",
+     "entidadTipo": "expense",
+     "entidadId": "018f3a6e-2000-7000-8000-000000000023",
+     "hlc": "0018bcfe568a0-0202-018f3a6e-0000-7000-8000-00000000000a",
+     "payload": {
+      "eliminado": 0
+     }
+    }
+   ],
+   "orden": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    11,
+    12,
+    13
+   ],
+   "resultados": [
+    "accepted",
+    "accepted",
+    "rejected:fuera_del_viaje",
+    "rejected:moneda_no_habilitada",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted",
+    "rejected:fuera_del_viaje",
+    "accepted",
+    "rejected:fuera_del_viaje",
+    "accepted",
+    "accepted",
+    "rejected:fuera_del_viaje",
+    "rejected:formato",
+    "accepted",
+    "accepted",
+    "accepted",
+    "accepted"
+   ],
+   "cuentas": {
+    "expense": 3,
+    "cash_movement": 1
+   }
   }
  ]
 }

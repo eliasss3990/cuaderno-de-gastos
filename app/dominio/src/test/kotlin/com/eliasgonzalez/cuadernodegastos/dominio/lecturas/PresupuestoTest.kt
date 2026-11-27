@@ -51,7 +51,7 @@ class PresupuestoTest {
 
     @Test
     fun unGastoDespuesDelFinNoAlargaElViaje() {
-        // del 1 al 10; un gasto imputado el 12 (no debería poder cargarse: esa carga se va a bloquear) no suma días
+        // del 1 al 10; un gasto imputado el 12 (cargado antes de adelantar el fin: cargarlo hoy se rechaza) no suma días
         val g = listOf(gasto("a", 100, "2027-01-02"), gasto("b", 20, "2027-01-12"))
         assertEquals(10L, Presupuesto.diasDelViaje(base))
         val p = Presupuesto.calcular(base, moneda(1200), g, emptyList(), "2027-01-12")

@@ -64,13 +64,14 @@ class Desarrollo : BroadcastReceiver() {
             }
             "gasto" -> {
                 val monto = intent.getLongExtra("monto", 1000)
+                val dia = intent.getStringExtra("dia") ?: "2027-02-18"
                 val r = s.registrar(viaje ?: return log("sin viaje")) { sinc ->
                     Operacion(
                         uuid7(), "expense.create", "expense", uuid7(), sinc.nuevaMarca(),
-                        Json.parseToJsonElement("""{"monto_minor":$monto,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":${System.currentTimeMillis()},"dia_imputado":"2027-02-18","nota":"desde adb"}""").jsonObject, 1,
+                        Json.parseToJsonElement("""{"monto_minor":$monto,"moneda":"PYG","categoria_id":"otro","cuando_ocurrio":${System.currentTimeMillis()},"dia_imputado":"$dia","nota":"desde adb"}""").jsonObject, 1,
                     )
                 }
-                log("gasto $monto: $r")
+                log("gasto $monto el $dia: $r")
             }
             "sincronizar" -> s.sincronizarAhora(viaje ?: return log("sin viaje")).also { log("sincronizar pedido") }
             "estado" -> for (v in s.viajes()) log("estado ${s.resumen(v)}")
