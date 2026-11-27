@@ -292,4 +292,21 @@ class CicloTest {
         assertTrue(Espera.tras(40, azar) >= Espera.MAXIMA_MS / 2)
         assertTrue((1..20).map { Espera.tras(6, Random(it)) }.distinct().size > 5)
     }
+
+    @Test
+    fun sinRedLasOperacionesNoGuardanEsperaYAlVolverSeSubenEnseguida() {
+        val (servidor, c, par) = armar()
+        val (s, ciclo) = par
+        ciclo.correr()
+        gastos(s, 2)
+        // varios intentos sin red: el ciclo pide esperar cada vez más (lo maneja el coordinador)...
+        repeat(5) { servidor.fallasDeSubida += RespuestaDeSubida.Error(Falla.SIN_RED) }
+        val esperas = (1..5).map { (ciclo.correr() as FinDelCiclo.Reintentar).enMs }
+        assertTrue("la espera del ciclo crece", esperas.last() > esperas.first())
+        // ...pero ninguna operación guarda una espera propia
+        assertTrue(c.enEstado(EstadoOp.PENDIENTE).all { it.proximoIntentoEn == null })
+        // vuelve la red: el primer ciclo sube todo, aunque la última espera todavía no se haya cumplido
+        assertEquals(FinDelCiclo.AlDia, ciclo.correr())
+        assertEquals(listOf(2), servidor.lotes)
+    }
 }

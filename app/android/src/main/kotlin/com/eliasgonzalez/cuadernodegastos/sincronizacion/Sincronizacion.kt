@@ -142,6 +142,9 @@ class Sincronizacion(
     /** Se guardó un cambio en el viaje: subirlo cuanto antes. */
     fun alCambioLocal(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.alCambioLocal() } } }
 
+    /** Volvió la red (el sistema avisó que hay conexión): cada viaje intenta subir y bajar ya, sin esperar su reintento. */
+    fun alVolverLaRed() = aCadaUno { it.coordinador.sincronizarAhora() }
+
     fun sincronizarAhora(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.sincronizarAhora() } } }
 
     /** La hora corregida con el desfase aprendido del servidor (la de las marcas), o la del celular si no hay viaje. Bloquea. */

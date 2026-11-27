@@ -105,13 +105,14 @@ class ClienteHttpTest {
     }
 
     @Test
-    fun unaRespuestaRotaOSinServidorEsUnaFallaTransitoria() {
+    fun unaRespuestaRotaEsTransitoriaYSinServidorEsSinRed() {
         respuesta = "{no es json"
         assertEquals(Falla.TRANSITORIA, (cliente.subir(listOf(op)) as RespuestaDeSubida.Error).falla)
         assertEquals(Falla.TRANSITORIA, (cliente.bajar(0, 1) as RespuestaDeBajada.Error).falla)
+        // no se llega al servidor: sin red (las operaciones no guardan espera; al volver la red se suben enseguida)
         servidor.stop(0)
-        assertEquals(Falla.TRANSITORIA, (cliente.subir(listOf(op)) as RespuestaDeSubida.Error).falla)
-        assertEquals(Falla.TRANSITORIA, (cliente.bajar(0, 1) as RespuestaDeBajada.Error).falla)
+        assertEquals(Falla.SIN_RED, (cliente.subir(listOf(op)) as RespuestaDeSubida.Error).falla)
+        assertEquals(Falla.SIN_RED, (cliente.bajar(0, 1) as RespuestaDeBajada.Error).falla)
     }
 
     @Test

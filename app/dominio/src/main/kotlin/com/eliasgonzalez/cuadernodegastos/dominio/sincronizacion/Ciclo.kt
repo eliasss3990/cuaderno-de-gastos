@@ -9,8 +9,14 @@ import kotlin.random.Random
 
 /** Por qué falló un pedido al servidor. */
 enum class Falla {
-    /** Sin red, tiempo agotado, 5xx, 429 o 503: se reintenta con espera. */
+    /** Tiempo agotado, 5xx, 429 o 503 (el servidor respondió que esperemos): se reintenta con espera. */
     TRANSITORIA,
+
+    /**
+     * Sin red (no se llegó al servidor): el ciclo reintenta con espera, pero las operaciones no guardan ninguna; al volver
+     * la red, el próximo ciclo las sube enseguida (no quedan esperando minutos con la conexión ya andando).
+     */
+    SIN_RED,
 
     /** 413: el lote es demasiado grande y hay que partirlo. */
     DEMASIADO_GRANDE,
@@ -142,7 +148,8 @@ class Ciclo(
                         continue
                     }
                     val fin = falla(r.falla, r.reintentarEnMs)
-                    val en = (fin as? FinDelCiclo.Reintentar)?.enMs
+                    // sin red, la espera es del ciclo (el coordinador), no de cada operación
+                    val en = (fin as? FinDelCiclo.Reintentar)?.enMs?.takeIf { r.falla != Falla.SIN_RED }
                     sinc.loteNoEnviado(lote.map { it.opId }, en?.let { horaDelCelular() + it })
                     return fin
                 }
