@@ -8,6 +8,7 @@ import com.eliasgonzalez.cuadernodegastos.dominio.base.Moneda
 import com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Validacion
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Cola
 import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.EstadoOp
+import com.eliasgonzalez.cuadernodegastos.dominio.sincronizacion.Sincronizador
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 
@@ -59,13 +60,23 @@ class LectorDelViaje(private val cola: Cola) {
         Categoria(id, texto(c, "nombre") ?: return@mapNotNull null, texto(c, "color") ?: "", texto(c, "emoji") ?: "", si(c, "archivada"))
     }.sortedWith(porNombre({ it.nombre }, { it.id }))
 
+    /**
+     * Las entidades con una terminal propia (purga, borrado definitivo) todavía sin confirmar: no se muestran, aunque no
+     * haya conexión. Si el servidor la rechaza, la operación pasa a cuarentena y la entidad vuelve a verse.
+     */
+    private fun quitandose(tipo: String): Set<String> =
+        (cola.enEstado(EstadoOp.PENDIENTE) + cola.enEstado(EstadoOp.ENVIANDO))
+            .filter { it.op.tipo in Sincronizador.TERMINALES && it.op.entidadTipo == tipo }
+            .map { it.op.entidadId }.toSet()
+
     /** Todos los gastos, también los de la papelera (`eliminado`): cada pantalla elige. */
     fun gastos(): List<Gasto> = cola.transaccion {
         // todo en una lectura coherente: una sincronización en el medio no deja marcas desfasadas
         val autores = cola.autoresDe("expense")
         val sinConfirmar = cola.sinConfirmar()
         val enCuarentena = cola.enEstado(EstadoOp.CUARENTENA).map { it.op.entidadTipo to it.op.entidadId }.toSet()
-        cola.entidadesDe("expense").mapNotNull { (id, c) ->
+        val quitandose = quitandose("expense")
+        cola.entidadesDe("expense").filterKeys { it !in quitandose }.mapNotNull { (id, c) ->
             Gasto(
                 id = id,
                 montoMinor = numero(c, "monto_minor") ?: return@mapNotNull null,
