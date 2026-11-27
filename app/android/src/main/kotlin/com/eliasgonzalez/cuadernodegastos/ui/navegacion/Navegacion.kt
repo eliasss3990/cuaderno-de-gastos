@@ -181,7 +181,8 @@ fun Navegacion(viajeInicial: String?) {
                 )
             }
             val e by vm.estado.collectAsState()
-            val enviando by vm.enviando.collectAsState()
+            val accion by vm.accion.collectAsState()
+            val enviando = accion.ocupada
             val fallo by vm.fallo.collectAsState()
             val enviado by vm.enviado.collectAsState()
             // mandado a la papelera: vuelve y la pantalla de abajo avisa con deshacer
@@ -219,7 +220,7 @@ fun Navegacion(viajeInicial: String?) {
                     alEnviarAPapelera = vm::alEnviarAPapelera,
                     alRestaurar = vm::alRestaurar,
                 ),
-                enviando = enviando, fallo = fallo,
+                accion = accion, fallo = fallo,
                 aviso = if (cambios) stringResource(R.string.detalle_cambios_guardados) else null,
             )
         }

@@ -125,10 +125,7 @@ fun UnirsePantalla(estado: UnirseEstado, acciones: AccionesDeUnirse) {
                     modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
-            BotonPrincipal(
-                stringResource(if (estado.enviando) R.string.unirse_enviando else R.string.unirse_boton), acciones.alUnirse,
-                habilitado = !estado.enviando, cargando = estado.enviando,
-            )
+            BotonPrincipal(stringResource(R.string.unirse_boton), acciones.alUnirse, accion = estado.accion, textoEnCurso = stringResource(R.string.unirse_enviando))
             Spacer(Modifier.height(Tema.espacios.l))
         }
     }
