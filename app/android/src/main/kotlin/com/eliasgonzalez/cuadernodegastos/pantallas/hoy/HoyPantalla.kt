@@ -2,6 +2,7 @@
 // cómo empezar). Las partes viven en `partes/`.
 package com.eliasgonzalez.cuadernodegastos.pantallas.hoy
 
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.Formatos
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +15,14 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.tarjetas.AvisoBreve
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +50,7 @@ data class AccionesDeHoy(
     /** Cambiar de viaje; null mientras no haya a cuál (el título no se ofrece como tocable). */
     val alElegirViaje: (() -> Unit)? = null,
     val alIrA: (Int) -> Unit = {},
+    val alDeshacerGasto: () -> Unit = {},
 )
 
 private val margenDelVacio = 32.dp
@@ -48,8 +58,26 @@ private val margenDelVacio = 32.dp
 /** Lo que queda libre al final de la lista para que el botón de cargar no tape el último gasto. */
 private val espacioBajoLaLista = 96.dp
 
+/** Lo que ocupa el botón de cargar desde abajo (alto, margen y un respiro): el aviso va más arriba. */
+private val arribaDelBoton = 96.dp
+
+
 @Composable
-fun HoyPantalla(estado: HoyEstado, acciones: AccionesDeHoy) {
+fun HoyPantalla(estado: HoyEstado, acciones: AccionesDeHoy, aviso: AvisoDeHoy? = null) {
+    val textoDelAviso = when (aviso) {
+        is AvisoDeHoy.Guardado -> aviso.otroDia?.let { stringResource(R.string.hoy_gasto_guardado_otro_dia, aviso.monto, diaParaLeer(it)) }
+            ?: stringResource(R.string.hoy_gasto_guardado, aviso.monto)
+        is AvisoDeHoy.Deshecho -> stringResource(R.string.hoy_gasto_deshecho, aviso.monto)
+        AvisoDeHoy.NoSePudoDeshacer -> stringResource(R.string.hoy_no_se_pudo_deshacer)
+        null -> null
+    }
+    // el último aviso se sigue dibujando mientras se desvanece (si no, desaparece de golpe)
+    var ultimoTexto by remember { mutableStateOf<String?>(null) }
+    var ultimoAviso by remember { mutableStateOf<AvisoDeHoy?>(null) }
+    if (textoDelAviso != null) {
+        ultimoTexto = textoDelAviso
+        ultimoAviso = aviso
+    }
     Column(Modifier.fillMaxSize().background(Tema.colores.fondo).systemBarsPadding()) {
             BarraSuperior(estado.titulo, alTocarTitulo = acciones.alElegirViaje, descripcionDelTitulo = stringResource(R.string.hoy_cambiar_de_viaje)) {
                 IndicadorDeSincronizacion(estado.sincronizacion, estado.tono)
@@ -82,6 +110,15 @@ fun HoyPantalla(estado: HoyEstado, acciones: AccionesDeHoy) {
                 }
             }
             BotonFlotante(stringResource(R.string.hoy_cargar), acciones.alCargarGasto, Modifier.align(Alignment.BottomCenter).padding(bottom = Tema.espacios.l))
+            // abajo, justo arriba del botón de cargar (sin taparlo)
+            androidx.compose.animation.AnimatedVisibility(visible = textoDelAviso != null, modifier = Modifier.align(Alignment.BottomCenter).padding(horizontal = Tema.espacios.l).padding(bottom = arribaDelBoton), enter = fadeIn() + slideInVertically { it / 2 }, exit = fadeOut()) {
+                ultimoTexto?.let {
+                    AvisoBreve(
+                        it, accion = if (ultimoAviso is AvisoDeHoy.Guardado) stringResource(R.string.hoy_deshacer) else null,
+                        alTocarAccion = acciones.alDeshacerGasto, salioMal = ultimoAviso == AvisoDeHoy.NoSePudoDeshacer,
+                    )
+                }
+            }
             }
             BarraInferior(
                 listOf(
@@ -97,3 +134,7 @@ fun HoyPantalla(estado: HoyEstado, acciones: AccionesDeHoy) {
 @Preview(widthDp = 390, heightDp = 844)
 @Composable
 private fun Vista() = TemaCuaderno { HoyPantalla(HoyEstado(cargando = false, titulo = "Brasil 2027 🌴", sincronizacion = "Al día"), AccionesDeHoy()) }
+
+/** "jueves 26 de febrero" (puede ser un pago previo, de otro mes). */
+private fun diaParaLeer(dia: String): String =
+    java.time.LocalDate.parse(dia).dayOfWeek.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.forLanguageTag("es")) + " " + Formatos.fechaLarga(dia)

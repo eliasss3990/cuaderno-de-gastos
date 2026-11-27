@@ -18,7 +18,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import com.eliasgonzalez.cuadernodegastos.ui.componentes.dialogos.DialogoDeConfirmar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -74,12 +74,9 @@ fun UnirsePantalla(estado: UnirseEstado, acciones: AccionesDeUnirse) {
     val volver = { if (!estado.enviando) { if (estado.cargoAlgo) preguntarSiSale = true else acciones.alVolver() } }
     BackHandler(onBack = volver)
     if (preguntarSiSale) {
-        AlertDialog(
-            onDismissRequest = { preguntarSiSale = false },
-            title = { Text(stringResource(R.string.unirse_salir_titulo)) },
-            text = { Text(stringResource(R.string.nuevo_salir_texto)) },
-            confirmButton = { TextButton(onClick = { preguntarSiSale = false }) { Text(stringResource(R.string.nuevo_seguir_cargando)) } },
-            dismissButton = { TextButton(onClick = { preguntarSiSale = false; acciones.alVolver() }) { Text(stringResource(R.string.nuevo_salir), color = Tema.colores.error) } },
+        DialogoDeConfirmar(
+            stringResource(R.string.unirse_salir_titulo), stringResource(R.string.nuevo_salir_texto), stringResource(R.string.nuevo_seguir_cargando), stringResource(R.string.nuevo_salir),
+            alSeguir = { preguntarSiSale = false }, alSalir = { preguntarSiSale = false; acciones.alVolver() },
         )
     }
     val error = { campo: String -> estado.errores[campo] }
@@ -112,7 +109,7 @@ fun UnirsePantalla(estado: UnirseEstado, acciones: AccionesDeUnirse) {
             )
             CampoDeTexto(
                 stringResource(R.string.nuevo_apodo), estado.apodo, acciones.alCambiarApodo, ayuda = stringResource(R.string.nuevo_apodo_ayuda),
-                error = error("apodo")?.let { stringResource(it) }, mayusculas = true, accion = ImeAction.Done, alEnfocar = alFinal,
+                error = error("apodo")?.let { stringResource(it) }, mayusculas = true, accion = ImeAction.Done, alEnfocar = alFinal, seguirAlTeclado = false,
             )
             Tarjeta(titulo = stringResource(R.string.nuevo_como_te_ven)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Tema.espacios.s)) {

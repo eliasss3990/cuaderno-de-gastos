@@ -1,6 +1,15 @@
 // La tarjeta y el aviso informativo.
 package com.eliasgonzalez.cuadernodegastos.ui.componentes.tarjetas
 
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,5 +61,34 @@ fun Aviso(icono: String?, texto: @Composable () -> Unit, modifier: Modifier = Mo
         // sin emoji: el ícono de información de Material en el color del aviso
         if (icono != null) Text(icono, style = Tema.texto.aviso) else Icon(Icons.Outlined.Info, contentDescription = null, tint = Tema.colores.principal)
         texto()
+    }
+}
+
+/**
+ * Un aviso breve de que algo salió bien (por ejemplo, un gasto guardado), con una acción opcional (deshacer). Se anuncia
+ * al aparecer; quien lo muestra decide cuánto dura.
+ */
+@Composable
+fun AvisoBreve(texto: String, modifier: Modifier = Modifier, accion: String? = null, alTocarAccion: () -> Unit = {}, salioMal: Boolean = false) {
+    // salió mal: en el tono de error y con otro ícono (no se confunde con un aviso de que salió bien)
+    val fondo = if (salioMal) Tema.colores.errorSuave else Tema.colores.bienSuave
+    val tono = if (salioMal) Tema.colores.error else Tema.colores.bien
+    Row(
+        modifier
+            .fillMaxWidth()
+            .background(fondo, Tema.formas.campo)
+            .border(1.dp, tono, Tema.formas.campo)
+            .padding(start = Tema.espacios.m, end = Tema.espacios.xs)
+            .heightIn(min = 52.dp)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(if (salioMal) Icons.Filled.Warning else Icons.Filled.CheckCircle, contentDescription = null, tint = tono)
+        Text(texto, style = Tema.texto.fuerte, color = Tema.colores.tinta, modifier = Modifier.weight(1f).padding(horizontal = Tema.espacios.s))
+        if (accion != null) {
+            TextButton(onClick = alTocarAccion, modifier = Modifier.heightIn(min = 48.dp)) {
+                Text(accion, style = Tema.texto.fuerte, color = Tema.colores.principal)
+            }
+        }
     }
 }

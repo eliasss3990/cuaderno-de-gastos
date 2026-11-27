@@ -39,7 +39,7 @@ data class Colores(
     /** Bordes y separadores. */
     val linea: Color = Color(0xFFE7E0CF),
     /** El borde de lo que se toca o se escribe (campos, chips). */
-    val bordeDeCampo: Color = Color(0xFF8C8577),
+    val bordeDeCampo: Color = Color(0xFF847D70),
     /** El fondo de las barras de progreso y de los selectores. */
     val pista: Color = Color(0xFFEEE8D8),
     /** Cada moneda con su color en los montos. */

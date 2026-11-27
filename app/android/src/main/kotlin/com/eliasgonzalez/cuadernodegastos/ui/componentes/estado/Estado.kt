@@ -1,18 +1,29 @@
 // Piezas chicas de estado: el chip, el indicador de sincronización y el ícono redondo.
 package com.eliasgonzalez.cuadernodegastos.ui.componentes.estado
 
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.ripple
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -59,11 +70,14 @@ fun Chip(texto: String, activo: Boolean = false, alTocar: (() -> Unit)? = null, 
 @Composable
 fun ChipParaElegir(texto: String, elegido: Boolean, alCambiar: () -> Unit) {
     val forma = Tema.formas.chip
-    Box(Modifier.heightIn(min = 48.dp).toggleable(value = elegido, role = Role.Checkbox, onValueChange = { alCambiar() }), contentAlignment = Alignment.Center) {
+    // se toca en 48 de alto, pero el efecto del toque tiene la forma de la píldora que se ve
+    val fuente = remember { MutableInteractionSource() }
+    Box(Modifier.heightIn(min = 48.dp).toggleable(value = elegido, role = Role.Checkbox, interactionSource = fuente, indication = null, onValueChange = { alCambiar() }), contentAlignment = Alignment.Center) {
         Row(
             Modifier
                 .heightIn(min = 40.dp)
                 .clip(forma)
+                .indication(fuente, ripple())
                 .background(if (elegido) Tema.colores.principalSuave else Tema.colores.superficie, forma)
                 .border(BorderStroke(1.dp, if (elegido) Tema.colores.principal else Tema.colores.bordeDeCampo), forma)
                 .padding(start = 4.dp, end = 14.dp),
@@ -72,6 +86,70 @@ fun ChipParaElegir(texto: String, elegido: Boolean, alCambiar: () -> Unit) {
             Checkbox(checked = elegido, onCheckedChange = null, modifier = Modifier.padding(horizontal = 6.dp), colors = CheckboxDefaults.colors(checkedColor = Tema.colores.principal, uncheckedColor = Tema.colores.etiqueta))
             Text(texto, style = Tema.texto.cuerpo.copy(fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.Normal), color = if (elegido) Tema.colores.principal else Tema.colores.dato, maxLines = 1)
         }
+    }
+}
+
+/**
+ * Una opción entre varias (se elige una sola: una categoría, la forma de pago); la elegida lleva ✓ además del color.
+ * Se toca en un alto de 48.
+ */
+@Composable
+fun ChipDeOpcion(
+    texto: String,
+    elegido: Boolean,
+    alTocar: () -> Unit,
+    modifier: Modifier = Modifier,
+    /** Va delante y el lector de pantalla lo salta (lee el texto). */
+    emoji: String? = null,
+    /** Que la píldora llene el ancho que le dan (un control segmentado). */
+    llenar: Boolean = false,
+    /** Tocar el elegido lo desmarca: se anuncia como casilla (el lector de pantalla también puede desmarcarlo). */
+    desmarcable: Boolean = false,
+) {
+    val forma = Tema.formas.chip
+    val fuente = remember { MutableInteractionSource() }
+    val tocable = if (desmarcable) {
+        Modifier.toggleable(value = elegido, role = Role.Checkbox, interactionSource = fuente, indication = null, onValueChange = { alTocar() })
+    } else {
+        Modifier.selectable(selected = elegido, role = Role.RadioButton, interactionSource = fuente, indication = null, onClick = alTocar)
+    }
+    Box(modifier.heightIn(min = 48.dp).then(tocable), contentAlignment = Alignment.Center) {
+        Row(
+            Modifier
+                .let { if (llenar) it.fillMaxWidth() else it }
+                .heightIn(min = 40.dp)
+                .clip(forma)
+                .indication(fuente, ripple())
+                .background(if (elegido) Tema.colores.principalSuave else Tema.colores.superficie, forma)
+                .border(BorderStroke(if (elegido) 2.dp else 1.dp, if (elegido) Tema.colores.principal else Tema.colores.bordeDeCampo), forma)
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center,
+        ) {
+            // un lugar fijo adelante (✓ al elegir, si no el emoji o vacío): el chip no cambia de ancho al elegirlo
+            Box(Modifier.padding(end = 6.dp).size(22.dp), contentAlignment = Alignment.Center) {
+                when {
+                    elegido -> Icon(Icons.Filled.Check, contentDescription = null, tint = Tema.colores.principal, modifier = Modifier.size(18.dp))
+                    emoji != null -> Text(emoji, style = Tema.texto.cuerpo, modifier = Modifier.clearAndSetSemantics {})
+                    else -> Box(Modifier.size(16.dp).border(1.5.dp, Tema.colores.bordeDeCampo, CircleShape))
+                }
+            }
+            Text(texto, style = Tema.texto.cuerpo.copy(fontWeight = if (elegido) FontWeight.SemiBold else FontWeight.Normal), color = if (elegido) Tema.colores.principal else Tema.colores.dato, maxLines = 1)
+        }
+    }
+}
+
+/** Una acción con forma de chip (por ejemplo, completar un campo con algo ya usado): se anuncia como botón. */
+@Composable
+fun ChipDeAccion(texto: String, alTocar: () -> Unit, modifier: Modifier = Modifier) {
+    val forma = Tema.formas.chip
+    val fuente = remember { MutableInteractionSource() }
+    Box(modifier.heightIn(min = 48.dp).widthIn(min = 48.dp).clickable(role = Role.Button, interactionSource = fuente, indication = null, onClick = alTocar), contentAlignment = Alignment.Center) {
+        Text(
+            texto, style = Tema.texto.cuerpo, color = Tema.colores.principal, maxLines = 1, textAlign = TextAlign.Center,
+            modifier = Modifier.heightIn(min = 40.dp).clip(forma).indication(fuente, ripple()).background(Tema.colores.superficie, forma)
+                .border(BorderStroke(1.dp, Tema.colores.bordeDeCampo), forma).padding(horizontal = 14.dp, vertical = 9.dp),
+        )
     }
 }
 
