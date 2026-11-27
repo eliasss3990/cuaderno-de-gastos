@@ -127,6 +127,15 @@ class Coordinador(
     /** Se guardó un cambio local: subirlo cuanto antes. */
     fun alCambioLocal() = pedirCiclo()
 
+    /**
+     * El celular se quedó sin ninguna red: el indicador lo dice en el acto (si no, seguiría "Al día" hasta el próximo
+     * ciclo). Un ciclo que esté corriendo decide al terminar; detenido (revocado, app vieja) no cambia.
+     */
+    fun alPerderLaRed() {
+        if (detenido != null || corriendo) return
+        mostrar(EstadoDeSincronizacion.SinConexion)
+    }
+
     /** Un ciclo pedido a mano (el botón de reintentar). Después de un rechazo, también vuelve a probar. */
     fun sincronizarAhora() = pedirCiclo()
 

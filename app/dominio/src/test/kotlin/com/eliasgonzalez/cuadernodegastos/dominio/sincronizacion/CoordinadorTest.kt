@@ -433,4 +433,26 @@ class CoordinadorTest {
         assertEquals(2, ciclos)
         assertEquals(EstadoDeSincronizacion.AlDia, estados.last())
     }
+
+    @Test
+    fun alPerderLaRedElIndicadorLoDiceEnElActoYAlVolverSeSincroniza() {
+        enPantalla()
+        assertEquals(EstadoDeSincronizacion.AlDia, estados.last())
+        // sin ninguna red: sin esperar ningún ciclo
+        c.alPerderLaRed()
+        assertEquals(EstadoDeSincronizacion.SinConexion, estados.last())
+        assertEquals(1, ciclos)
+        // vuelve la red: se sincroniza y queda al día
+        c.sincronizarAhora()
+        plan.avanzar(0)
+        assertEquals(EstadoDeSincronizacion.AlDia, estados.last())
+    }
+
+    @Test
+    fun perderLaRedNoPisaUnEstadoDetenidoNiUnCicloEnCurso() {
+        fines += FinDelCiclo.Revocado
+        enPantalla()
+        c.alPerderLaRed()
+        assertEquals(EstadoDeSincronizacion.Revocado, estados.last())
+    }
 }

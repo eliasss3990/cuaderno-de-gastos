@@ -145,6 +145,9 @@ class Sincronizacion(
     /** Volvió la red (el sistema avisó que hay conexión): cada viaje intenta subir y bajar ya, sin esperar su reintento. */
     fun alVolverLaRed() = aCadaUno { it.coordinador.sincronizarAhora() }
 
+    /** El celular se quedó sin ninguna red: el indicador de cada viaje pasa a "Sin conexión" en el acto. */
+    fun alPerderLaRed() = aCadaUno { it.coordinador.alPerderLaRed() }
+
     fun sincronizarAhora(viaje: String) = en { delViaje(viaje)?.let { d -> d.planificador.despues(0) { d.coordinador.sincronizarAhora() } } }
 
     /** La hora corregida con el desfase aprendido del servidor (la de las marcas), o la del celular si no hay viaje. Bloquea. */
