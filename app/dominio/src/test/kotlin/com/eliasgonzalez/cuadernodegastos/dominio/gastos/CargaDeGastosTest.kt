@@ -71,7 +71,7 @@ class CargaDeGastosTest {
         val antes = gasto(lugar = "Do Porto", cuando = 1_802_971_920_000).copy(montoMinor = 13750, categoriaId = "otro", metodoPago = null)
         assertNull(CargaDeGastos.edicion(antes, borrador.copy(lugar = "Do Porto "), op, marca))
         val o = CargaDeGastos.edicion(antes, borrador.copy(montoMinor = 14000, lugar = ""), op, marca)!!
-        assertEquals(mapOf("monto_minor" to JsonPrimitive(14000), "lugar" to JsonNull), o.payload.toMap())
+        assertEquals(mapOf("monto_minor" to JsonPrimitive(14000), "moneda" to JsonPrimitive("BRL"), "lugar" to JsonNull), o.payload.toMap())
         assertEquals("expense.update" to antes.id, o.tipo to o.entidadId)
         assertEquals(ResultadoValidacion.Ok, Validacion.validar(o))
     }
@@ -87,12 +87,12 @@ class CargaDeGastosTest {
     }
 
     @Test
-    fun laEdicionNoTocaCuandoOcurrioYCambiaMonedaOCategoriaSolas() {
+    fun laEdicionNoTocaCuandoOcurrioYLaMonedaViajaConElMonto() {
         val antes = gasto(cuando = 1_000).copy(montoMinor = 13750, categoriaId = "otro", metodoPago = null)
         val mismo = borrador.copy(cuandoOcurrio = 1_000)
         // otra hora en el borrador (la de ahora) no se manda: no pisa cuándo ocurrió
         assertNull(CargaDeGastos.edicion(antes, mismo.copy(cuandoOcurrio = 99_999), op, marca))
-        assertEquals(setOf("moneda"), CargaDeGastos.edicion(antes, mismo.copy(moneda = "PYG"), op, marca)!!.payload.keys)
+        assertEquals(setOf("monto_minor", "moneda"), CargaDeGastos.edicion(antes, mismo.copy(moneda = "PYG"), op, marca)!!.payload.keys)
         assertEquals(setOf("categoria_id"), CargaDeGastos.edicion(antes, mismo.copy(categoriaId = "c9"), op, marca)!!.payload.keys)
     }
 
@@ -148,5 +148,40 @@ class CargaDeGastosTest {
         val d = CargaDeGastos.porDefecto(emptyList(), listOf("PYG"), emptySet(), "yo", "America/Asuncion", 1_802_971_920_000, fechaFin = "2027-02-10")
         assertEquals("2027-02-10", d.diaImputado)
         assertEquals("2027-02-18", CargaDeGastos.porDefecto(emptyList(), listOf("PYG"), emptySet(), "yo", "America/Asuncion", 1_802_971_920_000, fechaFin = "2027-02-28").diaImputado)
+    }
+
+    @Test
+    fun papeleraYRestaurarSonOperacionesValidas() {
+        val id = "018f3a6e-2000-7000-8000-000000000001"
+        val p = CargaDeGastos.aLaPapelera(id, "018f3a6e-9000-7000-8000-000000000001", marca)
+        val r = CargaDeGastos.restaurar(id, "018f3a6e-9000-7000-8000-000000000002", marca)
+        assertEquals(listOf("expense.delete", "expense.restore"), listOf(p.tipo, r.tipo))
+        assertEquals(listOf("1", "0"), listOf(p, r).map { it.payload!!["eliminado"].toString() })
+        for (o in listOf(p, r)) assertEquals(com.eliasgonzalez.cuadernodegastos.dominio.operaciones.ResultadoValidacion.Ok, com.eliasgonzalez.cuadernodegastos.dominio.operaciones.Validacion.validar(o))
+    }
+
+    @Test
+    fun siCambiaElMontoOLaMonedaViajanLosDos() {
+        val g = com.eliasgonzalez.cuadernodegastos.dominio.lecturas.Gasto("018f3a6e-2000-7000-8000-000000000001", 500, "BRL", "otro", 1, "2027-02-18", null, "Do Porto", null, null, null, false, null, false)
+        val b = BorradorDeGasto(500, "USD", "otro", 2, "2027-02-18", "", "Do Porto", null, "", "")
+        val o = CargaDeGastos.edicion(g, b, "018f3a6e-9000-7000-8000-000000000001", marca)!!
+        assertEquals(setOf("monto_minor", "moneda"), o.payload!!.keys)
+        // otro campo solo, viaja solo
+        val l = CargaDeGastos.edicion(g, b.copy(moneda = "BRL", lugar = "Otro lugar"), "018f3a6e-9000-7000-8000-000000000002", marca)!!
+        assertEquals(setOf("lugar"), l.payload!!.keys)
+    }
+
+    @Test
+    fun conCamposAplicaSoloLosCamposDados() {
+        val g = Gasto("018f3a6e-2000-7000-8000-000000000001", 500, "BRL", "otro", 1, "2027-02-18", "c", "Do Porto", "CREDITO", "Visa", "n", false, null, false)
+        val b = BorradorDeGasto(900, "PYG", "c9", 2, "2027-02-17", " ", "  Otro lugar ", "EFECTIVO", "Visa", "nota")
+        val r = CargaDeGastos.conCampos(g, b, setOf("monto_minor", "moneda", "lugar", "concepto", "alias_tarjeta"))
+        // lo pedido se toma limpio (vacío = sin dato; el alias sin tarjeta no va), lo demás queda
+        assertEquals(listOf<Any?>(900L, "PYG", "otro", "2027-02-18", null, "Otro lugar", "CREDITO", null, "n"), listOf(r.montoMinor, r.moneda, r.categoriaId, r.diaImputado, r.concepto, r.lugar, r.metodoPago, r.aliasTarjeta, r.nota))
+        // lo que no se pide queda como estaba
+        assertEquals("c" to "n", CargaDeGastos.conCampos(g, b, setOf("lugar")).let { it.concepto to it.nota })
+        // aplicar lo que manda una edición deja al gasto igual al borrador (no queda nada por mandar)
+        val todo = CargaDeGastos.edicion(g, b, "op", "m")!!.payload.keys
+        assertEquals(null, CargaDeGastos.edicion(CargaDeGastos.conCampos(g, b, todo), b, "op", "m"))
     }
 }
