@@ -242,9 +242,11 @@ fun CargarGastoPantalla(estado: CargarGastoEstado, acciones: AccionesDeCargarGas
             estado.mensaje?.let {
                 Text(stringResource(it), style = Tema.texto.aviso, color = Tema.colores.error, modifier = Modifier.fillMaxWidth().semantics { liveRegion = LiveRegionMode.Polite })
             }
-            BotonPrincipal(stringResource(if (estado.enviando) R.string.gasto_guardando else if (estado.editando) R.string.gasto_guardar_cambios else R.string.gasto_guardar), { teclado?.hide(); foco.clearFocus(); acciones.alGuardar() },
+            // ya guardado sigue "Guardando…" hasta que la pantalla se va (si no, el botón vuelve a su estado normal un instante)
+            val guardando = estado.enviando || (estado.listo && estado.guardado != null)
+            BotonPrincipal(stringResource(if (guardando) R.string.gasto_guardando else if (estado.editando) R.string.gasto_guardar_cambios else R.string.gasto_guardar), { teclado?.hide(); foco.clearFocus(); acciones.alGuardar() },
                 // editando sin cambios queda apagado (no hay nada que guardar)
-                habilitado = !estado.enviando && (!estado.editando || estado.hayCambios), cargando = estado.enviando)
+                habilitado = !guardando && (!estado.editando || estado.hayCambios), cargando = guardando)
         }
         // con el teclado del sistema abierto (lugar, nota) el del monto se esconde
         // entra y sale deslizándose (lo de arriba no salta de golpe)

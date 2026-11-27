@@ -218,4 +218,12 @@ class CargarGastoPantallaTest {
         compose.onNodeWithText("Editar gasto").assertExists()
         compose.onNodeWithText("Monto").assertDoesNotExist()
     }
+
+    @Test
+    fun yaGuardadoSigueGuardandoHastaIrse() {
+        compose.setContent { TemaCuaderno { CargarGastoPantalla(base.copy(montoTexto = "5", listo = true, guardado = GastoGuardado("g", "R$ 5,00")), AccionesDeCargarGasto()) } }
+        // el botón no vuelve a "Guardar gasto" mientras la pantalla se va (sería un parpadeo)
+        compose.onNodeWithText("Guardando…").assertExists()
+        compose.onNodeWithText("Guardar gasto").assertDoesNotExist()
+    }
 }
