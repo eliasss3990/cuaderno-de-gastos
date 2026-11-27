@@ -1,5 +1,7 @@
 package com.eliasgonzalez.cuadernodegastos.pantallas.hoy
 
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.GastoEnPantalla
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.AvisoDeGastos
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -102,18 +104,26 @@ class HoyPantallaTest {
     @Test
     fun elAvisoDeGuardadoTieneDeshacerYLosDemasNo() {
         var deshecho = 0
-        var aviso by androidx.compose.runtime.mutableStateOf<AvisoDeHoy?>(AvisoDeHoy.Guardado("g1", "₲ 150.005"))
+        var aviso by androidx.compose.runtime.mutableStateOf<AvisoDeGastos?>(AvisoDeGastos.Guardado("g1", "₲ 150.005"))
         compose.setContent { TemaCuaderno { HoyPantalla(dia, AccionesDeHoy(alDeshacerGasto = { deshecho++ }), aviso) } }
         compose.onNodeWithText("Gasto guardado: ₲ 150.005").assertExists()
         compose.onRoot().captureRoboImage("build/capturas/hoy-gasto-guardado.png")
         compose.onNodeWithText("Deshacer").performClick()
         assertEquals(1, deshecho)
-        aviso = AvisoDeHoy.NoSePudoDeshacer
+        aviso = AvisoDeGastos.NoSePudoDeshacer
         compose.onNodeWithText("No se pudo deshacer. El gasto sigue cargado.").assertExists()
         compose.onRoot().captureRoboImage("build/capturas/hoy-no-se-pudo-deshacer.png")
         compose.onNodeWithText("Deshacer").assertDoesNotExist()
-        aviso = AvisoDeHoy.Guardado("g2", "R$ 12,00", "2027-02-18")
+        aviso = AvisoDeGastos.Guardado("g2", "R$ 12,00", "2027-02-18")
         compose.onNodeWithText("R$ 12,00 guardado para el jueves 18 de febrero").assertExists()
     }
 
+
+    @Test
+    fun tocarUnGastoAbreSuDetalle() {
+        var abierto = ""
+        compose.setContent { TemaCuaderno { HoyPantalla(dia, AccionesDeHoy(alAbrirGasto = { abierto = it })) } }
+        compose.onNodeWithText("Peaje", useUnmergedTree = true).performClick()
+        assertEquals("2", abierto)
+    }
 }

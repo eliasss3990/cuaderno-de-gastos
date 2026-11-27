@@ -1,6 +1,7 @@
 // Lo que dibuja Hoy, ya con textos y colores decididos (la pantalla no calcula nada).
 package com.eliasgonzalez.cuadernodegastos.pantallas.hoy
 
+import com.eliasgonzalez.cuadernodegastos.pantallas.comun.GastoEnPantalla
 import com.eliasgonzalez.cuadernodegastos.dominio.lecturas.Nivel
 import com.eliasgonzalez.cuadernodegastos.ui.componentes.estado.Tono
 
@@ -12,18 +13,6 @@ data class TotalEnPantalla(
     val previsto: String?,
     val porcentaje: Long?,
     val nivel: Nivel?,
-)
-
-data class GastoEnPantalla(
-    val id: String,
-    val emoji: String,
-    val fondo: String,
-    val titulo: String,
-    val detalle: String?,
-    val quien: String,
-    val monto: String,
-    val codigo: String,
-    val pendiente: Boolean,
 )
 
 data class HoyEstado(

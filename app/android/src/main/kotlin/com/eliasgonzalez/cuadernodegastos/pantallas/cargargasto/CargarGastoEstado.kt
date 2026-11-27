@@ -54,7 +54,16 @@ data class CargarGastoEstado(
     val listo: Boolean = false,
     /** El gasto guardado, para el aviso con deshacer. */
     val guardado: GastoGuardado? = null,
+    /** Editando un gasto: lo que tenía al abrir (para saber si se cambió algo); null al cargar uno nuevo. */
+    val inicial: List<Any?>? = null,
+    /** Editando: si cambió algo que valga guardar (si no, "Guardar cambios" queda apagado). */
+    val hayCambios: Boolean = true,
 ) {
+    val editando: Boolean get() = inicial != null
+
+    /** Lo que se puede cambiar, para comparar con [inicial]. */
+    val campos: List<Any?> get() = listOf(moneda, monedaElegida?.let { (Dinero.parsear(montoTexto, it) as? ResultadoParseo.Ok)?.minor } ?: montoTexto, categoria, metodo, lugar.trim(), concepto.trim(), alias.trim(), nota.trim(), diaImputado)
+
     val conTarjeta: Boolean get() = metodo in CargaDeGastos.CON_TARJETA
     val monedaElegida: Moneda? get() = monedas.firstOrNull { it.codigo == moneda }
 
@@ -66,7 +75,7 @@ data class CargarGastoEstado(
     }
 
     /** Si ya escribió algo que se perdería al salir. */
-    val cargoAlgo: Boolean get() = montoTexto.isNotEmpty() || lugar.isNotBlank() || concepto.isNotBlank() || nota.isNotBlank() || alias.isNotBlank() || diaImputado != diaPropuesto
+    val cargoAlgo: Boolean get() = if (inicial != null) inicial.isNotEmpty() && hayCambios else montoTexto.isNotEmpty() || lugar.isNotBlank() || concepto.isNotBlank() || nota.isNotBlank() || alias.isNotBlank() || diaImputado != diaPropuesto
 }
 
 /** Lo que Hoy necesita para avisar: el id (para deshacer), el monto para leer ("₲ 150.005") y el día si no es hoy. */
